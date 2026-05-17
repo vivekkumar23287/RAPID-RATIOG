@@ -13,14 +13,6 @@ type LiveStockData = {
   gapPercent: number;
 };
 
-type ScanCache = {
-  dateString: string;
-  timestamp: string;
-  gapUps: LiveStockData[];
-  gapDowns: LiveStockData[];
-  isLocked: boolean;
-};
-
 const FALLBACK_GAP_UPS: LiveStockData[] = [
   { symbol: "POLYCAB", name: "Polycab India", price: 5890.40, changePercent: 2.18, gapPercent: 1.45 },
   { symbol: "RELIANCE", name: "Reliance Industries", price: 2450.25, changePercent: 1.12, gapPercent: 0.85 },
@@ -43,133 +35,17 @@ export default function TricksInNSE() {
   const [loading, setLoading] = useState(true);
   const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
   const [gapDowns, setGapDowns] = useState<LiveStockData[]>([]);
-  const [scanStatus, setScanStatus] = useState<{
-    date: string;
-    time: string;
-    isLocked: boolean;
-    reason: string;
-  }>({
-    date: "",
-    time: "",
-    isLocked: false,
-    reason: ""
-  });
 
-  const checkScanScheduleAndFetch = async () => {
+  const fetchGaps = async () => {
     setLoading(true);
     try {
-      const now = new Date();
-      const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const targetMinutes = 9 * 60 + 30; // 9:30 AM
-      const isPastTargetTime = currentMinutes >= targetMinutes;
-
-      // Indian standard date representation for checks
-      const todayDateString = now.toLocaleDateString("en-IN", { year: "numeric", month: "2-digit", day: "2-digit" });
-
-      // Retrieve previous scans cache
-      const cachedData = localStorage.getItem("nse_gaps_scanner_cache");
-      let cache: ScanCache | null = null;
-
-      if (cachedData) {
-        try {
-          const parsed = JSON.parse(cachedData);
-          // Only validate cache if it has actual populated stock rows inside
-          if (parsed && parsed.gapUps?.length > 0 && parsed.gapDowns?.length > 0) {
-            cache = parsed;
-          }
-        } catch (e) {
-          console.error("Failed to parse scanner cache");
-        }
-      }
-
-      // Check if we need to perform a fresh scan
-      // Rule: Perform fresh scan ONLY if it's a weekday, it's past 9:30 AM, and we haven't scanned today after 9:30 AM.
-      const needsFreshScan = isWeekday && isPastTargetTime && (cache?.dateString !== todayDateString);
-
-      if (needsFreshScan) {
-        // Fetch fresh gaps calculations from server API
-        const response = await fetch("/api/nse-gaps", { cache: "no-store" });
-        if (!response.ok) throw new Error("Failed to scan live gaps");
-        const data = await response.json();
-
-        const freshUps: LiveStockData[] = data.gapUps || [];
-        const freshDowns: LiveStockData[] = data.gapDowns || [];
-
-        // Save fresh scan to localStorage cache, marked as locked for the rest of today
-        const newCache: ScanCache = {
-          dateString: todayDateString,
-          timestamp: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-          gapUps: freshUps,
-          gapDowns: freshDowns,
-          isLocked: true
-        };
-
-        localStorage.setItem("nse_gaps_scanner_cache", JSON.stringify(newCache));
-
-        setGapUps(freshUps);
-        setGapDowns(freshDowns);
-        setScanStatus({
-          date: todayDateString,
-          time: newCache.timestamp,
-          isLocked: true,
-          reason: "Locked range (9:30 AM opening candle settled for today)."
-        });
-      } else if (cache) {
-        // Use cached range (either locked range from earlier today, or Friday's closing ranges if weekend/before 9:30 AM)
-        setGapUps(cache.gapUps);
-        setGapDowns(cache.gapDowns);
-        
-        let statusReason = "Showing locked opening range from previous session.";
-        if (isWeekday && !isPastTargetTime) {
-          statusReason = "Awaiting 9:30 AM opening candle completion. Showing previous session.";
-        } else if (!isWeekday) {
-          statusReason = "Market is closed for the weekend. Showing Friday's 9:30 AM settled range.";
-        } else {
-          statusReason = "Locked range (9:30 AM opening candle settled for today).";
-        }
-
-        setScanStatus({
-          date: cache.dateString,
-          time: cache.timestamp,
-          isLocked: true,
-          reason: statusReason
-        });
-      } else {
-        // No cache exists yet (first time visiting), perform immediate scan to hydrate the dashboard
-        const response = await fetch("/api/nse-gaps", { cache: "no-store" });
-        if (!response.ok) throw new Error("Failed to fetch first time scan");
-        const data = await response.json();
-
-        const initialUps: LiveStockData[] = data.gapUps || [];
-        const initialDowns: LiveStockData[] = data.gapDowns || [];
-
-        const initialCache: ScanCache = {
-          dateString: todayDateString,
-          timestamp: now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-          gapUps: initialUps,
-          gapDowns: initialDowns,
-          isLocked: isWeekday && isPastTargetTime
-        };
-
-        localStorage.setItem("nse_gaps_scanner_cache", JSON.stringify(initialCache));
-
-        setGapUps(initialUps);
-        setGapDowns(initialDowns);
-        setScanStatus({
-          date: todayDateString,
-          time: initialCache.timestamp,
-          isLocked: initialCache.isLocked,
-          reason: isWeekday && isPastTargetTime 
-            ? "First-time scan hydrated. Range locked." 
-            : "First-time scan hydrated. Will lock at next 9:30 AM session."
-        });
-      }
+      const response = await fetch("/api/nse-gaps", { cache: "no-store" });
+      if (!response.ok) throw new Error("Failed to scan live gaps");
+      const data = await response.json();
+      setGapUps(data.gapUps || []);
+      setGapDowns(data.gapDowns || []);
     } catch (error) {
-      console.error("Scanner schedule load failed, using fallbacks:", error);
-      // Fallback state guarantees user never sees a blank dashboard
+      console.error("Scanner load failed, using fallbacks:", error);
       setGapUps(FALLBACK_GAP_UPS);
       setGapDowns(FALLBACK_GAP_DOWNS);
     } finally {
@@ -178,7 +54,7 @@ export default function TricksInNSE() {
   };
 
   useEffect(() => {
-    checkScanScheduleAndFetch();
+    fetchGaps();
   }, []);
 
   const handleStockClick = (symbol: string) => {
