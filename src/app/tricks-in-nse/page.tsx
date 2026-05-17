@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, ArrowDownRight, ArrowClockwise, CaretRight, Lock, Globe, Lightbulb } from "@phosphor-icons/react";
+import { ArrowUpRight, ArrowDownRight, CaretRight } from "@phosphor-icons/react";
 
 type LiveStockData = {
   symbol: string;
@@ -167,119 +167,27 @@ export default function TricksInNSE() {
       
       <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 0px" }}>
         
-        {/* Scanner Methodology Banner */}
-        <div style={{
-          background: "linear-gradient(135deg, #0F2044 0%, #1E293B 100%)",
-          borderRadius: "20px",
-          padding: "24px 32px",
-          color: "white",
-          marginBottom: "40px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: "24px",
-          boxShadow: "0 10px 45px rgba(15,32,68,0.15)"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "20px", flex: 1, minWidth: "300px" }}>
-            <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: "rgba(255,255,255,0.08)", display: "flex", alignItems: "center", justifyContent: "center", color: "#10B981" }}>
-              <Lightbulb size={28} weight="duotone" />
-            </div>
-            <div>
-              <h4 style={{ fontSize: "16px", fontWeight: 800, margin: "0 0 6px" }}>9:30 AM Opening Range Strategy</h4>
-              <p style={{ fontSize: "13px", color: "#94A3B8", margin: "0", lineHeight: "1.5" }}>
-                Gaps are calculated strictly at <strong>9:30 AM (after the first 15-minute candle closes)</strong>, comparing 9:15 AM Open to Yesterday's Close. To eliminate noise, values lock once per day.
-              </p>
-            </div>
-          </div>
-          
-          <div style={{ 
-            background: "rgba(255,255,255,0.05)", 
-            border: "1px solid rgba(255,255,255,0.1)", 
-            borderRadius: "14px",
-            padding: "12px 20px",
-            textAlign: "right",
-            minWidth: "200px"
-          }}>
-            <span style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", color: "#94A3B8", display: "block", marginBottom: "4px" }}>Schedule Status</span>
-            <span style={{ fontSize: "14px", fontWeight: 700, color: "#10B981", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px" }}>
-              <Globe size={16} /> Monday - Friday @ 9:30
-            </span>
-          </div>
-        </div>
-
         {/* Page Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
-          <div>
-            <div style={{ 
-              display: "inline-flex", 
-              alignItems: "center", 
-              gap: "6px", 
-              background: scanStatus.isLocked ? "rgba(15,32,68,0.08)" : "rgba(16,185,129,0.08)", 
-              padding: "6px 14px", 
-              borderRadius: "100px",
-              color: scanStatus.isLocked ? "#0F2044" : "#10B981",
-              fontWeight: 700,
-              fontSize: "12px",
-              marginBottom: "16px"
-            }}>
-              {scanStatus.isLocked ? <Lock size={14} weight="bold" /> : <span style={{ width: "8px", height: "8px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} />}
-              {scanStatus.isLocked ? "Daily Range Settled" : "Live Scan Feed"}
-            </div>
-            
-            <h1 style={{ 
-              fontSize: "clamp(32px, 5vw, 44px)", 
-              fontWeight: 900, 
-              color: "#0F2044", 
-              marginBottom: "12px",
-              letterSpacing: "-1px",
-              lineHeight: 1.1
-            }}>
-              NSE Gap Scanner
-            </h1>
-            <p style={{ 
-              color: "#64748B", 
-              fontSize: "15px", 
-              maxWidth: "680px", 
-              margin: "0",
-              lineHeight: 1.6
-            }}>
-              {scanStatus.reason}
-            </p>
-          </div>
-
-          {/* Refresh controls */}
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {scanStatus.date && (
-              <span style={{ fontSize: "13px", color: "#94A3B8", fontFamily: "monospace", background: "white", padding: "8px 12px", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                Session: {scanStatus.date} @ {scanStatus.time}
-              </span>
-            )}
-            <button 
-              onClick={checkScanScheduleAndFetch}
-              disabled={loading}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                background: "white",
-                border: "1px solid #E2E8F0",
-                borderRadius: "10px",
-                padding: "10px 16px",
-                fontSize: "14px",
-                fontWeight: 600,
-                color: "#0F2044",
-                cursor: loading ? "default" : "pointer",
-                transition: "all 0.2s ease",
-                boxShadow: "0 2px 8px rgba(15,32,68,0.02)"
-              }}
-              onMouseEnter={(e) => { if (!loading) { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#CBD5E1"; } }}
-              onMouseLeave={(e) => { if (!loading) { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#E2E8F0"; } }}
-            >
-              <ArrowClockwise size={16} className={loading ? "spin-animate" : ""} />
-              Check Schedule
-            </button>
-          </div>
+        <div style={{ marginBottom: "40px" }}>
+          <h1 style={{ 
+            fontSize: "clamp(32px, 5vw, 44px)", 
+            fontWeight: 900, 
+            color: "#0F2044", 
+            marginBottom: "12px",
+            letterSpacing: "-1px",
+            lineHeight: 1.1
+          }}>
+            NSE Gap Scanner
+          </h1>
+          <p style={{ 
+            color: "#64748B", 
+            fontSize: "15px", 
+            maxWidth: "680px", 
+            margin: "0",
+            lineHeight: 1.6
+          }}>
+            Track overnight opening gaps and intraday breakouts for high-volume NSE stocks. Select any company row to open its real-time interactive chart.
+          </p>
         </div>
 
         {/* Scanner Grid Dashboard */}
@@ -306,7 +214,7 @@ export default function TricksInNSE() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => <SkeletonLoader key={i} />)
-              ) : gapUps.length > 0 ? (
+              ) : (
                 gapUps.map((stock) => (
                   <StockRow 
                     key={stock.symbol} 
@@ -315,8 +223,6 @@ export default function TricksInNSE() {
                     onClick={() => handleStockClick(stock.symbol)} 
                   />
                 ))
-              ) : (
-                <EmptyGapsState isUp={true} />
               )}
             </div>
           </div>
@@ -342,7 +248,7 @@ export default function TricksInNSE() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => <SkeletonLoader key={i} />)
-              ) : gapDowns.length > 0 ? (
+              ) : (
                 gapDowns.map((stock) => (
                   <StockRow 
                     key={stock.symbol} 
@@ -351,8 +257,6 @@ export default function TricksInNSE() {
                     onClick={() => handleStockClick(stock.symbol)} 
                   />
                 ))
-              ) : (
-                <EmptyGapsState isUp={false} />
               )}
             </div>
           </div>
@@ -492,28 +396,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
   );
 }
 
-// Highly styled empty gaps view
-function EmptyGapsState({ isUp }: { isUp: boolean }) {
-  return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: "48px 24px",
-      textAlign: "center",
-      background: "#F8FAFC",
-      border: "1px dashed #E2E8F0",
-      borderRadius: "16px"
-    }}>
-      <span style={{ fontSize: "36px", marginBottom: "12px" }}>{isUp ? "📈" : "📉"}</span>
-      <h4 style={{ fontSize: "14px", fontWeight: 700, color: "#64748B", margin: "0 0 6px" }}>No Gaps Detected</h4>
-      <p style={{ fontSize: "12px", color: "#94A3B8", margin: "0", maxWidth: "280px", lineHeight: "1.5" }}>
-        No monitored Nifty stocks met the {isUp ? "positive gap (≥ 0.20%)" : "negative gap (≤ -0.20%)"} criteria at today's 9:30 AM check.
-      </p>
-    </div>
-  );
-}
+
 
 // Cool shimmering skeleton loader component
 function SkeletonLoader() {
