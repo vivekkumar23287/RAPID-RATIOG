@@ -1,0 +1,313 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { List, X, ChartLineUp } from "@phosphor-icons/react";
+
+const navLinks = [
+  { label: "Home", href: "/" },
+  { label: "NSE", href: "/prices" },
+  { label: "TRICKS IN NSE", href: "/tricks-in-nse" },
+  { label: "Crypto", href: "/crypto" },
+  { label: "Sheet Flow", href: "/sheetflow" },
+];
+
+export default function Navbar() {
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [pillStyle, setPillStyle] = useState({ opacity: 0, left: 0, width: 0 });
+  const pathname = usePathname();
+  const { isSignedIn } = useAuth();
+  const navRef = useRef<HTMLElement>(null);
+  const logoRef = useRef<HTMLAnchorElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // GSAP entrance
+  useEffect(() => {
+    const load = async () => {
+      const { gsap } = await import("gsap");
+      gsap.fromTo(navRef.current,
+        { y: -80, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.9, ease: "power4.out", delay: 0.1 }
+      );
+      gsap.fromTo(".nav-link-item",
+        { opacity: 0, y: -12 },
+        { opacity: 1, y: 0, duration: 0.5, stagger: 0.08, ease: "power3.out", delay: 0.5 }
+      );
+      gsap.fromTo(".nav-auth-btn",
+        { opacity: 0, scale: 0.9 },
+        { opacity: 1, scale: 1, duration: 0.5, stagger: 0.1, ease: "back.out(1.7)", delay: 0.7 }
+      );
+    };
+    load();
+  }, []);
+
+  // Magnetic logo
+  const handleLogoMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    const el = logoRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX - rect.left - rect.width / 2) * 0.18;
+    const y = (e.clientY - rect.top - rect.height / 2) * 0.18;
+    el.style.transform = `translate(${x}px, ${y}px)`;
+  };
+  const handleLogoMouseLeave = () => {
+    const el = logoRef.current;
+    if (!el) return;
+    el.style.transition = "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)";
+    el.style.transform = "translate(0,0)";
+    setTimeout(() => { if (el) el.style.transition = ""; }, 400);
+  };
+
+  return (
+    <header
+      ref={navRef}
+      style={{
+        position: "fixed",
+        top: 0, left: 0, right: 0,
+        zIndex: 100,
+        transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)",
+        background: scrolled ? "rgba(255,255,255,0.92)" : "transparent",
+        backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(226,232,240,0.8)" : "none",
+        boxShadow: scrolled ? "0 4px 32px rgba(15,32,68,0.06)" : "none",
+        padding: "0 2rem",
+      }}
+    >
+      <nav style={{
+        maxWidth: "1280px",
+        margin: "0 auto",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        height: scrolled ? "64px" : "72px",
+        transition: "height 0.3s ease",
+      }}>
+        {/* Logo */}
+        <Link
+          ref={logoRef}
+          href="/"
+          onMouseMove={handleLogoMouseMove}
+          onMouseLeave={handleLogoMouseLeave}
+          style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px", transition: "transform 0.1s ease" }}
+        >
+          <div style={{
+            width: "36px", height: "36px",
+            background: "linear-gradient(135deg, #E01F2E 0%, #B8161F 100%)",
+            borderRadius: "10px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            flexShrink: 0,
+            boxShadow: "0 4px 12px rgba(224,31,46,0.3)",
+          }}>
+            <ChartLineUp size={20} color="white" weight="bold" />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: "#0F2044", letterSpacing: "-0.3px" }}>
+              Rapid<span style={{ color: "#E01F2E" }}>RatioG</span>
+            </span>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: "#94A3B8", letterSpacing: "0.8px", textTransform: "uppercase" }}>
+              Live Trading Intel
+            </span>
+          </div>
+        </Link>
+
+        {/* Desktop Nav — Sliding Hover Pill */}
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "0.25rem", position: "relative" }}
+          className="desktop-nav"
+          onMouseLeave={() => {
+            setHoveredIdx(null);
+            setPillStyle({ opacity: 0, left: 0, width: 0 });
+          }}
+        >
+          {/* Animated background pill */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              height: "36px",
+              borderRadius: "100px",
+              background: "rgba(224,31,46,0.07)",
+              border: "1px solid rgba(224,31,46,0.1)",
+              pointerEvents: "none",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transform: "translateY(-50%)",
+              opacity: pillStyle.opacity,
+              left: pillStyle.left,
+              width: pillStyle.width,
+              zIndex: 0,
+            }}
+          />
+          {navLinks.map((link, i) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="nav-link-item"
+              data-nav-idx={i}
+              onMouseEnter={(e) => {
+                setHoveredIdx(i);
+                const rect = e.currentTarget.getBoundingClientRect();
+                const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
+                if (parentRect) {
+                  setPillStyle({
+                    opacity: 1,
+                    left: rect.left - parentRect.left,
+                    width: rect.width,
+                  });
+                }
+              }}
+              style={{
+                fontFamily: "Satoshi, sans-serif",
+                fontWeight: pathname === link.href ? 600 : 500,
+                fontSize: "15px",
+                color: hoveredIdx === i ? "#E01F2E" : pathname === link.href ? "#E01F2E" : "#0F2044",
+                textDecoration: "none",
+                position: "relative",
+                padding: "6px 16px",
+                borderRadius: "8px",
+                transition: "color 0.25s ease",
+                background: "transparent",
+                zIndex: 1,
+              }}
+            >
+              {link.label}
+              {pathname === link.href && hoveredIdx === null && (
+                <span style={{
+                  position: "absolute", bottom: "0px", left: "16px", right: "16px",
+                  height: "2px",
+                  background: "linear-gradient(90deg, #E01F2E, #FF6B7A)",
+                  borderRadius: "2px",
+                  animation: "slideIn 0.3s ease",
+                }} />
+              )}
+            </Link>
+          ))}
+        </div>
+
+        {/* Auth Buttons */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }} className="desktop-nav">
+          {!isSignedIn ? (
+            <>
+              <SignInButton mode="modal">
+                <button
+                  className="nav-auth-btn"
+                  style={{
+                    fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "14px",
+                    color: "#0F2044", background: "transparent", border: "1.5px solid #E2E8F0",
+                    borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
+                    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = "#E01F2E";
+                    e.currentTarget.style.color = "#E01F2E";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "#E2E8F0";
+                    e.currentTarget.style.color = "#0F2044";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >Sign In</button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button
+                  className="nav-auth-btn"
+                  style={{
+                    fontFamily: "Satoshi, sans-serif", fontWeight: 600, fontSize: "14px",
+                    color: "white", background: "linear-gradient(135deg, #E01F2E 0%, #B8161F 100%)",
+                    border: "none", borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
+                    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                    boxShadow: "0 3px 12px rgba(224,31,46,0.3)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
+                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(224,31,46,0.4)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "translateY(0) scale(1)";
+                    e.currentTarget.style.boxShadow = "0 3px 12px rgba(224,31,46,0.3)";
+                  }}
+                >Get Started</button>
+              </SignUpButton>
+            </>
+          ) : <UserButton />}
+        </div>
+
+        {/* Mobile Toggle */}
+        <button
+          onClick={() => setMenuOpen(!menuOpen)}
+          className="mobile-menu-btn"
+          style={{
+            background: "transparent", border: "1.5px solid #E2E8F0", borderRadius: "8px",
+            cursor: "pointer", color: "#0F2044", display: "none", padding: "6px",
+            transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E01F2E"; e.currentTarget.style.color = "#E01F2E"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#0F2044"; }}
+        >
+          {menuOpen ? <X size={22} /> : <List size={22} />}
+        </button>
+      </nav>
+
+      {/* Mobile Menu */}
+      <div style={{
+        maxHeight: menuOpen ? "400px" : "0",
+        overflow: "hidden",
+        transition: "max-height 0.4s cubic-bezier(0.4,0,0.2,1)",
+        background: "rgba(255,255,255,0.98)",
+        backdropFilter: "blur(20px)",
+      }}>
+        <div style={{
+          borderTop: "1px solid #E2E8F0",
+          padding: menuOpen ? "1.25rem 2rem" : "0 2rem",
+          display: "flex", flexDirection: "column", gap: "0.75rem",
+        }}>
+          {navLinks.map((link, i) => (
+            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{
+              fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "16px",
+              color: pathname === link.href ? "#E01F2E" : "#0F2044",
+              textDecoration: "none", padding: "10px 14px", borderRadius: "10px",
+              background: pathname === link.href ? "rgba(224,31,46,0.06)" : "transparent",
+              opacity: menuOpen ? 1 : 0,
+              transform: menuOpen ? "translateX(0)" : "translateX(-16px)",
+              transition: `all 0.3s ease ${i * 0.05}s`,
+            }}>
+              {link.label}
+            </Link>
+          ))}
+          <div style={{ display: "flex", gap: "10px", paddingTop: "0.5rem" }}>
+            {!isSignedIn ? (
+              <>
+                <SignInButton mode="modal">
+                  <button style={{ flex: 1, padding: "11px", border: "1.5px solid #E2E8F0", borderRadius: "10px", background: "transparent", fontWeight: 500, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Sign In</button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button style={{ flex: 1, padding: "11px", background: "#E01F2E", color: "white", border: "none", borderRadius: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Get Started</button>
+                </SignUpButton>
+              </>
+            ) : <UserButton />}
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 768px) {
+          .desktop-nav { display: none !important; }
+          .mobile-menu-btn { display: flex !important; }
+        }
+        @keyframes slideIn {
+          from { transform: scaleX(0); }
+          to { transform: scaleX(1); }
+        }
+      `}</style>
+    </header>
+  );
+}

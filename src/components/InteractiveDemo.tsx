@@ -1,0 +1,223 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { MagnifyingGlass, TrendUp, FileXls } from "@phosphor-icons/react";
+
+const STEPS = [
+  { num: "01", title: "Search Any Stock", desc: "Type any NSE-listed stock or crypto and get instant results with live pricing data.", color: "#E01F2E" },
+  { num: "02", title: "Analyze with Charts", desc: "Interactive candlestick charts with RSI, MACD indicators and professional drawing tools.", color: "#8B5CF6" },
+  { num: "03", title: "Export to Excel", desc: "Download your analysis as formatted .xlsx spreadsheets — or edit right in the browser.", color: "#10B981" },
+];
+
+export default function InteractiveDemo() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const load = async () => {
+      const { gsap } = await import("gsap");
+      const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+      gsap.registerPlugin(ScrollTrigger);
+
+      gsap.fromTo(".id-eyebrow", { opacity: 0, x: -20, filter: "blur(6px)" },
+        { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out",
+          scrollTrigger: { trigger: ".id-section", start: "top 75%" } });
+
+      gsap.fromTo(".id-heading", { opacity: 0, y: 50, filter: "blur(10px)" },
+        { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.1, ease: "power4.out",
+          scrollTrigger: { trigger: ".id-section", start: "top 75%" } });
+
+      // Steps stagger
+      gsap.fromTo(".id-step", { opacity: 0, x: -40, filter: "blur(4px)" },
+        { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.8, stagger: 0.12, ease: "power3.out",
+          scrollTrigger: { trigger: ".id-steps", start: "top 82%" } });
+
+      // Right panel
+      gsap.fromTo(".id-panel", { opacity: 0, x: 80, rotationY: -10, filter: "blur(8px)" },
+        { opacity: 1, x: 0, rotationY: 0, filter: "blur(0px)", duration: 1.4, ease: "power3.out",
+          scrollTrigger: { trigger: ".id-section", start: "top 70%" } });
+    };
+    load();
+  }, []);
+
+  // Auto-cycle steps
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActive(p => (p + 1) % STEPS.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <section className="id-section" style={{
+      padding: "9rem 2rem", background: "#F8F9FC", position: "relative", overflow: "hidden",
+    }}>
+      <div style={{
+        position: "absolute", inset: 0,
+        backgroundImage: "radial-gradient(rgba(15,32,68,0.03) 1px, transparent 1px)",
+        backgroundSize: "28px 28px",
+      }} />
+
+      <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div className="id-grid" style={{
+          display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "5rem", alignItems: "center",
+        }}>
+          {/* Left — steps */}
+          <div>
+            <span className="id-eyebrow" style={{
+              fontFamily: "Satoshi, sans-serif", fontSize: 11, fontWeight: 700,
+              color: "#E01F2E", letterSpacing: "2.5px", textTransform: "uppercase",
+              display: "block", marginBottom: "1rem",
+            }}>How it works</span>
+
+            <h2 className="id-heading" style={{
+              fontFamily: "Satoshi, sans-serif", fontWeight: 800,
+              fontSize: "clamp(28px, 4vw, 52px)", color: "#0F2044",
+              letterSpacing: "-1.5px", lineHeight: 1.1, marginBottom: "3rem",
+            }}>
+              Three steps to{" "}
+              <span style={{ color: "#E01F2E" }}>market mastery</span>
+            </h2>
+
+            <div className="id-steps" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {STEPS.map((step, i) => (
+                <div key={step.num} className="id-step"
+                  onClick={() => setActive(i)}
+                  style={{
+                    display: "flex", alignItems: "flex-start", gap: 20, padding: "1.5rem",
+                    borderRadius: 18, cursor: "pointer",
+                    background: active === i ? "rgba(255,255,255,0.9)" : "transparent",
+                    border: active === i ? `1px solid ${step.color}30` : "1px solid transparent",
+                    boxShadow: active === i ? `0 8px 32px ${step.color}15` : "none",
+                    transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)",
+                    transform: active === i ? "translateX(8px)" : "translateX(0)",
+                  }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+                    background: active === i ? step.color : "#E2E8F0",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.4s ease",
+                  }}>
+                    <span style={{
+                      fontFamily: "Satoshi,sans-serif", fontWeight: 800, fontSize: 14,
+                      color: active === i ? "white" : "#94A3B8",
+                    }}>{step.num}</span>
+                  </div>
+                  <div>
+                    <h3 style={{
+                      fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 17,
+                      color: "#0F2044", marginBottom: 4,
+                    }}>{step.title}</h3>
+                    <p style={{
+                      fontFamily: "Satoshi,sans-serif", fontSize: 13, color: "#64748B",
+                      lineHeight: 1.7, maxHeight: active === i ? 100 : 0,
+                      overflow: "hidden", transition: "max-height 0.4s ease",
+                      opacity: active === i ? 1 : 0,
+                    }}>{step.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar */}
+            <div style={{
+              marginTop: 24, height: 3, background: "#E2E8F0", borderRadius: 3, overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%", background: STEPS[active].color, borderRadius: 3,
+                width: `${((active + 1) / STEPS.length) * 100}%`,
+                transition: "width 0.5s ease, background 0.3s ease",
+              }} />
+            </div>
+          </div>
+
+          {/* Right — visual panel */}
+          <div className="id-panel" style={{ perspective: 1000 }}>
+            <div style={{
+              background: "rgba(255,255,255,0.9)", backdropFilter: "blur(20px)",
+              borderRadius: 24, border: "1px solid rgba(226,232,240,0.8)", padding: "2rem",
+              boxShadow: "0 24px 80px rgba(15,32,68,0.1)",
+              transition: "all 0.5s cubic-bezier(0.4,0,0.2,1)",
+              transform: `rotateY(${active * 2 - 2}deg)`,
+            }}>
+              {/* Mock search bar */}
+              <div style={{
+                background: "#F8F9FC", borderRadius: 14, padding: "12px 18px",
+                border: "1px solid #E2E8F0", marginBottom: 20,
+                display: "flex", alignItems: "center", gap: 10,
+              }}>
+                <MagnifyingGlass size={16} color="#94A3B8" weight="bold" />
+                <span style={{
+                  fontFamily: "Satoshi,sans-serif", fontSize: 14, color: active === 0 ? "#0F2044" : "#94A3B8",
+                  fontWeight: active === 0 ? 600 : 400,
+                  transition: "all 0.3s ease",
+                }}>
+                  {active === 0 ? "POLYCAB INDIA" : "Search stocks & crypto..."}
+                </span>
+              </div>
+
+              {/* Mock chart area */}
+              <div style={{
+                background: active === 1 ? "#0F2044" : "#F8F9FC",
+                borderRadius: 18, padding: "1.5rem", marginBottom: 16,
+                transition: "all 0.5s ease", minHeight: 200,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                position: "relative", overflow: "hidden",
+              }}>
+                {active === 1 ? (
+                  <svg viewBox="0 0 400 120" style={{ width: "100%", height: 120 }}>
+                    <defs>
+                      <linearGradient id="demoGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#E01F2E" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#E01F2E" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,100 L40,85 L80,90 L120,60 L160,50 L200,55 L240,35 L280,40 L320,20 L360,25 L400,10 L400,120 L0,120Z" fill="url(#demoGrad)" />
+                    <path d="M0,100 L40,85 L80,90 L120,60 L160,50 L200,55 L240,35 L280,40 L320,20 L360,25 L400,10" fill="none" stroke="#E01F2E" strokeWidth="2.5" strokeLinecap="round" />
+                    {/* Candlesticks */}
+                    {[40,80,120,160,200,240,280,320,360].map((x, i) => (
+                      <g key={i}>
+                        <line x1={x} y1={90-i*8} x2={x} y2={70-i*8} stroke={i%2===0?"#16A34A":"#DC2626"} strokeWidth="4" strokeLinecap="round" />
+                        <line x1={x} y1={95-i*8} x2={x} y2={65-i*8} stroke={i%2===0?"#16A34A":"#DC2626"} strokeWidth="1" />
+                      </g>
+                    ))}
+                  </svg>
+                ) : active === 2 ? (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}><FileXls size={48} color="#0F2044" weight="duotone" /></div>
+                    <div style={{ fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 16, color: "#0F2044" }}>Export Ready</div>
+                    <div style={{ fontFamily: "Satoshi,sans-serif", fontSize: 12, color: "#94A3B8", marginTop: 4 }}>Download as .xlsx</div>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <div style={{ marginBottom: 8, display: "flex", justifyContent: "center" }}><TrendUp size={48} color="#0F2044" weight="duotone" /></div>
+                    <div style={{ fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 16, color: "#0F2044" }}>₹5,890.40</div>
+                    <div style={{
+                      fontFamily: "Satoshi,sans-serif", fontSize: 12, fontWeight: 700,
+                      color: "#16A34A", background: "#DCFCE7", padding: "2px 10px",
+                      borderRadius: 100, display: "inline-block", marginTop: 8,
+                    }}>▲ +2.18%</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Step indicator */}
+              <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+                {STEPS.map((_, i) => (
+                  <div key={i} style={{
+                    width: active === i ? 24 : 8, height: 8, borderRadius: 4,
+                    background: active === i ? STEPS[i].color : "#E2E8F0",
+                    transition: "all 0.4s ease", cursor: "pointer",
+                  }} onClick={() => setActive(i)} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @media(max-width:900px){.id-grid{grid-template-columns:1fr!important}.id-panel{margin-top:2rem}}
+      `}</style>
+    </section>
+  );
+}
