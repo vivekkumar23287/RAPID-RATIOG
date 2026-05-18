@@ -80,11 +80,12 @@ export async function GET() {
             if (o !== undefined && h !== undefined && l !== undefined && c !== undefined && o !== null && h !== null && l !== null && c !== null) {
               const date = new Date(ts * 1000);
               const dateString = date.toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" });
+              const cleanDateString = dateString.replace(/-/g, "/");
 
-              if (!candleGroups[dateString]) {
-                candleGroups[dateString] = [];
+              if (!candleGroups[cleanDateString]) {
+                candleGroups[cleanDateString] = [];
               }
-              candleGroups[dateString].push({ open: o, high: h, low: l, close: c, timestamp: ts });
+              candleGroups[cleanDateString].push({ open: o, high: h, low: l, close: c, timestamp: ts });
             }
           });
 
@@ -102,12 +103,16 @@ export async function GET() {
           const todayDate = sortedDates[0];
           const yesterdayDate = sortedDates[1];
 
-          const todayCandles = candleGroups[todayDate];
-          const yesterdayCandles = candleGroups[yesterdayDate];
+          const todayCandles = candleGroups[todayDate] || [];
+          const yesterdayCandles = candleGroups[yesterdayDate] || [];
+
+          if (todayCandles.length === 0 || yesterdayCandles.length === 0) return null;
 
           // 1. Calculate Yesterday's Session High and Low
           const yesterdayHigh = Math.max(...yesterdayCandles.map(c => c.high));
           const yesterdayLow = Math.min(...yesterdayCandles.map(c => c.low));
+
+          if (!isFinite(yesterdayHigh) || !isFinite(yesterdayLow)) return null;
 
           // 2. Identify the first 15-minute candle of today (sort ascending by timestamp)
           const sortedTodayCandles = [...todayCandles].sort((a, b) => a.timestamp - b.timestamp);
