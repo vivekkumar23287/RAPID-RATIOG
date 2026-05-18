@@ -69,6 +69,7 @@ export default function StockChartPage() {
   const [rsiChartReady, setRsiChartReady] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  const [hoveredCandle, setHoveredCandle] = useState<any>(null);
   const linesRef = useRef<Record<string, any>>({});
   const textDivsRef = useRef<Record<string, HTMLDivElement>>({});
   const svgRef = useRef<SVGSVGElement>(null);
@@ -888,13 +889,25 @@ export default function StockChartPage() {
     const crosshairMoveHandler = (param: any) => {
       if (!chartContainerRef.current) return;
       
-      if (drawingMode) {
-        chartContainerRef.current.style.cursor = 'crosshair';
+      if (!param.point) {
+        setHoveredCandle(null);
+        chartContainerRef.current.style.cursor = 'default';
         return;
       }
 
-      if (!param.point) {
-        chartContainerRef.current.style.cursor = 'default';
+      let candle = null;
+      if (param.time && candleSeriesRef.current) {
+        try {
+          candle = param.seriesData.get(candleSeriesRef.current);
+        } catch (e) {}
+      }
+      if (!candle && param.time && stockData?.candles) {
+        candle = stockData.candles.find((c: any) => c.time === param.time);
+      }
+      setHoveredCandle(candle || null);
+
+      if (drawingMode) {
+        chartContainerRef.current.style.cursor = 'crosshair';
         return;
       }
 
@@ -920,7 +933,7 @@ export default function StockChartPage() {
         chartRef.current.unsubscribeCrosshairMove(crosshairMoveHandler);
       }
     };
-  }, [drawingMode, activeLayoutId, layouts, chartReady]);
+  }, [drawingMode, activeLayoutId, layouts, chartReady, stockData]);
 
   const isPositive = stockData ? stockData.change >= 0 : true;
 
@@ -1449,6 +1462,69 @@ export default function StockChartPage() {
             flexDirection: "column",
           }}
         >
+          {/* Floating OHLC Legend (TradingView Style) */}
+          {(() => {
+            const activeCandle = hoveredCandle || (stockData?.candles && stockData.candles.length > 0 ? stockData.candles[stockData.candles.length - 1] : null);
+            if (!activeCandle) return null;
+
+            const openVal = activeCandle.open;
+            const highVal = activeCandle.high;
+            const lowVal = activeCandle.low;
+            const closeVal = activeCandle.close;
+            const changeVal = closeVal - openVal;
+            const changePercentVal = openVal ? (changeVal / openVal) * 100 : 0;
+            
+            const isUp = closeVal >= openVal;
+            const valColor = isUp ? "#22c55e" : "#ef4444";
+            
+            const formatNum = (num: number) => {
+              return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
+            return (
+              <div style={{
+                position: "absolute",
+                top: "14px",
+                left: "14px",
+                zIndex: 100,
+                pointerEvents: "none",
+                display: "flex",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "8px",
+                background: "rgba(255, 255, 255, 0.85)",
+                backdropFilter: "blur(8px)",
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: "1.5px solid rgba(226, 232, 240, 0.8)",
+                fontFamily: "Satoshi, sans-serif",
+                fontSize: "12px",
+                fontWeight: 700,
+                boxShadow: "0 4px 20px rgba(15,32,68,0.05)",
+                color: "#1E293B"
+              }}>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>O</span>
+                  <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(openVal)}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>H</span>
+                  <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(highVal)}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>L</span>
+                  <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(lowVal)}</span>
+                </span>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>C</span>
+                  <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(closeVal)}</span>
+                </span>
+                <span style={{ color: valColor, fontWeight: 800, marginLeft: "4px" }}>
+                  {changeVal >= 0 ? "+" : ""}{formatNum(changeVal)} ({changeVal >= 0 ? "+" : ""}{changePercentVal.toFixed(2)}%)
+                </span>
+              </div>
+            );
+          })()}
           {/* Floating Line Toolbar */}
           {lineToolbarPos && selectedLineId && (
             <div style={{
