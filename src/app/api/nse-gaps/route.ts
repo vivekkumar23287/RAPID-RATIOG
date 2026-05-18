@@ -22,24 +22,6 @@ const SCANNER_SYMBOLS = [
   { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank" }
 ];
 
-// High-fidelity fallback dataset representing real historical breakouts that meet this exact strategy
-const FALLBACK_GAPS = {
-  gapUps: [
-    { symbol: "POLYCAB", name: "Polycab India", price: 5890.40, changePercent: 2.18, gapPercent: 1.45 },
-    { symbol: "RELIANCE", name: "Reliance Industries", price: 2450.25, changePercent: 1.12, gapPercent: 0.85 },
-    { symbol: "TCS", name: "TCS", price: 3890.00, changePercent: 1.65, gapPercent: 1.20 },
-    { symbol: "TATAMOTORS", name: "Tata Motors", price: 980.50, changePercent: 1.85, gapPercent: 1.25 },
-    { symbol: "SBIN", name: "State Bank of India", price: 790.30, changePercent: 1.56, gapPercent: 0.95 },
-    { symbol: "BHARTIARTL", name: "Bharti Airtel", price: 1210.40, changePercent: 1.68, gapPercent: 1.10 }
-  ],
-  gapDowns: [
-    { symbol: "WIPRO", name: "Wipro", price: 460.50, changePercent: -1.45, gapPercent: -0.95 },
-    { symbol: "HDFCBANK", name: "HDFC Bank", price: 1510.40, changePercent: -0.87, gapPercent: -0.45 },
-    { symbol: "ICICIBANK", name: "ICICI Bank", price: 1080.50, changePercent: -1.15, gapPercent: -0.65 },
-    { symbol: "INFY", name: "Infosys", price: 1420.30, changePercent: -1.56, gapPercent: -0.90 },
-    { symbol: "DEEPAKNTR", name: "Deepak Nitrite", price: 2340.10, changePercent: -0.95, gapPercent: -0.55 }
-  ]
-};
 
 const fetchStockData = async (symbol: string) => {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS?range=3d&interval=15m`;
@@ -164,23 +146,16 @@ export async function GET() {
       .filter(s => s.isGapDown)
       .sort((a, b) => b.gapPercent - a.gapPercent);
 
-    // Rule: DO NOT MIX LIVE AND STATIC DATA.
-    // If the market is active today (some stocks broke out), serve only live computed results.
-    // If the market is closed or flat (0 breakouts computed), serve the complete matching fallback dataset on both sides.
-    const totalGapsComputed = gapUps.length + gapDowns.length;
-    const activeGapUps = totalGapsComputed > 0 ? gapUps : FALLBACK_GAPS.gapUps;
-    const activeGapDowns = totalGapsComputed > 0 ? gapDowns : FALLBACK_GAPS.gapDowns;
-
     return NextResponse.json({
-      gapUps: activeGapUps,
-      gapDowns: activeGapDowns,
+      gapUps,
+      gapDowns,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error("NSE Gaps calculations exception:", error);
     return NextResponse.json({
-      gapUps: FALLBACK_GAPS.gapUps,
-      gapDowns: FALLBACK_GAPS.gapDowns,
+      gapUps: [],
+      gapDowns: [],
       timestamp: new Date().toISOString()
     });
   }

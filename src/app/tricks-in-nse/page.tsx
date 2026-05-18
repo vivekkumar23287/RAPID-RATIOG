@@ -13,22 +13,6 @@ type LiveStockData = {
   gapPercent: number;
 };
 
-const FALLBACK_GAP_UPS: LiveStockData[] = [
-  { symbol: "POLYCAB", name: "Polycab India", price: 5890.40, changePercent: 2.18, gapPercent: 1.45 },
-  { symbol: "RELIANCE", name: "Reliance Industries", price: 2450.25, changePercent: 1.12, gapPercent: 0.85 },
-  { symbol: "TCS", name: "TCS", price: 3890.00, changePercent: 1.65, gapPercent: 1.20 },
-  { symbol: "TATAMOTORS", name: "Tata Motors", price: 980.50, changePercent: 1.85, gapPercent: 1.25 },
-  { symbol: "SBIN", name: "State Bank of India", price: 790.30, changePercent: 1.56, gapPercent: 0.95 },
-  { symbol: "BHARTIARTL", name: "Bharti Airtel", price: 1210.40, changePercent: 1.68, gapPercent: 1.10 }
-];
-
-const FALLBACK_GAP_DOWNS: LiveStockData[] = [
-  { symbol: "WIPRO", name: "Wipro", price: 460.50, changePercent: -1.45, gapPercent: -0.95 },
-  { symbol: "HDFCBANK", name: "HDFC Bank", price: 1510.40, changePercent: -0.87, gapPercent: -0.45 },
-  { symbol: "ICICIBANK", name: "ICICI Bank", price: 1080.50, changePercent: -1.15, gapPercent: -0.65 },
-  { symbol: "INFY", name: "Infosys", price: 1420.30, changePercent: -1.56, gapPercent: -0.90 },
-  { symbol: "DEEPAKNTR", name: "Deepak Nitrite", price: 2340.10, changePercent: -0.95, gapPercent: -0.55 }
-];
 
 export default function TricksInNSE() {
   const router = useRouter();
@@ -45,9 +29,9 @@ export default function TricksInNSE() {
       setGapUps(data.gapUps || []);
       setGapDowns(data.gapDowns || []);
     } catch (error) {
-      console.error("Scanner load failed, using fallbacks:", error);
-      setGapUps(FALLBACK_GAP_UPS);
-      setGapDowns(FALLBACK_GAP_DOWNS);
+      console.error("Scanner load failed:", error);
+      setGapUps([]);
+      setGapDowns([]);
     } finally {
       setLoading(false);
     }
