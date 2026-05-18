@@ -164,11 +164,16 @@ export async function GET() {
       .filter(s => s.isGapDown)
       .sort((a, b) => b.gapPercent - a.gapPercent);
 
-    // Rule: DO NOT SHOW EMPTY. If there are no active breakout gaps today,
-    // fallback to loading high-fidelity breakouts from the last active trading session.
+    // Rule: DO NOT MIX LIVE AND STATIC DATA.
+    // If the market is active today (some stocks broke out), serve only live computed results.
+    // If the market is closed or flat (0 breakouts computed), serve the complete matching fallback dataset on both sides.
+    const totalGapsComputed = gapUps.length + gapDowns.length;
+    const activeGapUps = totalGapsComputed > 0 ? gapUps : FALLBACK_GAPS.gapUps;
+    const activeGapDowns = totalGapsComputed > 0 ? gapDowns : FALLBACK_GAPS.gapDowns;
+
     return NextResponse.json({
-      gapUps: gapUps.length > 0 ? gapUps : FALLBACK_GAPS.gapUps,
-      gapDowns: gapDowns.length > 0 ? gapDowns : FALLBACK_GAPS.gapDowns,
+      gapUps: activeGapUps,
+      gapDowns: activeGapDowns,
       timestamp: new Date().toISOString()
     });
   } catch (error) {

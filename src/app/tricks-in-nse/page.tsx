@@ -114,6 +114,23 @@ export default function TricksInNSE() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => <SkeletonLoader key={i} />)
+              ) : gapUps.length === 0 ? (
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "48px 24px",
+                  borderRadius: "20px",
+                  background: "rgba(248,250,252,0.6)",
+                  border: "2px dashed rgba(226,232,240,0.8)",
+                  textAlign: "center"
+                }}>
+                  <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Ups</div>
+                  <div style={{ fontSize: "12px", color: "#64748B", marginTop: "6px", maxWidth: "240px", lineHeight: "1.4" }}>
+                    No stocks have broken out above yesterday's session peak yet.
+                  </div>
+                </div>
               ) : (
                 gapUps.map((stock) => (
                   <StockRow 
@@ -148,6 +165,23 @@ export default function TricksInNSE() {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => <SkeletonLoader key={i} />)
+              ) : gapDowns.length === 0 ? (
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "48px 24px",
+                  borderRadius: "20px",
+                  background: "rgba(248,250,252,0.6)",
+                  border: "2px dashed rgba(226,232,240,0.8)",
+                  textAlign: "center"
+                }}>
+                  <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Downs</div>
+                  <div style={{ fontSize: "12px", color: "#64748B", marginTop: "6px", maxWidth: "240px", lineHeight: "1.4" }}>
+                    No stocks have broken down below yesterday's session floor yet.
+                  </div>
+                </div>
               ) : (
                 gapDowns.map((stock) => (
                   <StockRow 
