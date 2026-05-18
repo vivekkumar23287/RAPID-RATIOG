@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-dynamic";
+
 // Predefined list of active high-volume NSE Nifty stocks to monitor
 const SCANNER_SYMBOLS = [
   { symbol: "RELIANCE", name: "Reliance Industries" },
