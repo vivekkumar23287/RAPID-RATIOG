@@ -118,15 +118,11 @@ export async function GET() {
           const changePercent = meta.regularMarketChangePercent ?? 0;
 
           // 3. Apply the User's strict Breakout Rules:
-          // GAP UP BREAKOUT: 
-          // - First 15-min candle's low must be strictly higher than yesterday's session high
-          // - Current price must be strictly higher than yesterday's session high
-          const isGapUp = (firstCandle.low > yesterdayHigh) && (currentPrice > yesterdayHigh);
+          // GAP UP BREAKOUT: First 15-min candle's low is strictly higher than yesterday's session high
+          const isGapUp = firstCandle.low > yesterdayHigh;
 
-          // GAP DOWN BREAKDOWN:
-          // - First 15-min candle's high must be strictly lower than yesterday's session low
-          // - Current price must be strictly lower than yesterday's session low
-          const isGapDown = (firstCandle.high < yesterdayLow) && (currentPrice < yesterdayLow);
+          // GAP DOWN BREAKDOWN: First 15-min candle's high is strictly lower than yesterday's session low
+          const isGapDown = firstCandle.high < yesterdayLow;
 
           let gapPercent = 0;
           if (isGapUp) {
