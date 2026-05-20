@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,47 @@ const fetchStockData = async (symbol: string) => {
 
 export async function GET() {
   try {
+    // 1. Enforce Time Restriction: Calculation should start only after 9:31 AM IST
+    const now = new Date();
+    const nowISTString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+    const nowIST = new Date(nowISTString);
+    const dateStr = `${nowIST.getFullYear()}-${(nowIST.getMonth() + 1).toString().padStart(2, '0')}-${nowIST.getDate().toString().padStart(2, '0')}`;
+    
+    // Ensure table exists
+    await sql`
+      CREATE TABLE IF NOT EXISTS scanner_cache (
+        id SERIAL PRIMARY KEY,
+        date_str VARCHAR(20) NOT NULL,
+        scanner_type VARCHAR(50) NOT NULL,
+        results JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(date_str, scanner_type)
+      )
+    `;
+
+    // Try to get from DB first
+    const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'nse-gaps'`;
+    if (cached.length > 0) {
+       return NextResponse.json(cached[0].results);
+    }
+    
+    // Market opens at 9:15 AM. First 15-min candle fully completes at 9:30 AM. Allow 1 min for Yahoo delay.
+    const isMarketOpenAndCandleClosed = nowIST.getHours() > 9 || (nowIST.getHours() === 9 && nowIST.getMinutes() >= 31);
+    
+    if (!isMarketOpenAndCandleClosed) {
+      // Return yesterday's data instead of failing/empty, so clients always see latest processed data
+      const latest = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'nse-gaps' ORDER BY date_str DESC LIMIT 1`;
+      if (latest.length > 0) {
+         return NextResponse.json(latest[0].results);
+      }
+      return NextResponse.json({
+        gapUps: [],
+        gapDowns: [],
+        timestamp: new Date().toISOString(),
+        message: "Waiting for the first 15-minute candle to close (9:31 AM IST)."
+      });
+    }
+
     const rawResults = await Promise.all(
       SCANNER_SYMBOLS.map(async (item) => {
         try {
@@ -98,19 +140,26 @@ export async function GET() {
 
           if (!isFinite(yesterdayHigh) || !isFinite(yesterdayLow)) return null;
 
-          // 2. Identify the first 15-minute candle of today (sort ascending by timestamp)
-          const sortedTodayCandles = [...todayCandles].sort((a, b) => a.timestamp - b.timestamp);
-          const firstCandle = sortedTodayCandles[0];
+          // 2. Identify the 9:15 AM candle (First 15-min candle)
+          const firstCandle = todayCandles.find(c => {
+            const date = new Date(c.timestamp * 1000);
+            const istDateString = date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
+            const istDate = new Date(istDateString);
+            return istDate.getHours() === 9 && istDate.getMinutes() === 15;
+          });
+
           if (!firstCandle) return null;
 
           const currentPrice = meta.regularMarketPrice ?? firstCandle.close;
           const changePercent = meta.regularMarketChangePercent ?? 0;
 
-          // 3. Apply the User's strict Breakout Rules:
-          // GAP UP BREAKOUT: First 15-min candle's low is strictly higher than yesterday's session high
+          // 3. Apply the Strict True Gap Rules:
+          // TRUE GAP UP: First 15-min candle's LOW is strictly higher than yesterday's FULL DAY HIGH.
+          // It should NOT touch or go below yesterday's high.
           const isGapUp = firstCandle.low > yesterdayHigh;
 
-          // GAP DOWN BREAKDOWN: First 15-min candle's high is strictly lower than yesterday's session low
+          // TRUE GAP DOWN: First 15-min candle's HIGH is strictly lower than yesterday's FULL DAY LOW.
+          // It should NOT touch or go above yesterday's low.
           const isGapDown = firstCandle.high < yesterdayLow;
 
           let gapPercent = 0;
@@ -146,11 +195,20 @@ export async function GET() {
       .filter(s => s.isGapDown)
       .sort((a, b) => b.gapPercent - a.gapPercent);
 
-    return NextResponse.json({
+    const responsePayload = {
       gapUps,
       gapDowns,
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    // Save to DB so subsequent calls today don't recalculate
+    await sql`
+      INSERT INTO scanner_cache (date_str, scanner_type, results)
+      VALUES (${dateStr}, 'nse-gaps', ${responsePayload as any})
+      ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
+    `;
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
     console.error("NSE Gaps calculations exception:", error);
     return NextResponse.json({
