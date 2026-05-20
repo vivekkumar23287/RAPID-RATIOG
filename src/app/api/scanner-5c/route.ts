@@ -323,7 +323,7 @@ export async function GET(req: NextRequest) {
     if (!singleSymbol) {
       await sql`
         INSERT INTO scanner_cache (date_str, scanner_type, results)
-        VALUES (${dateStr}, 'scanner-5c', ${responsePayload as any})
+        VALUES (${dateStr}, 'scanner-5c', ${JSON.stringify(responsePayload)})
         ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
       `;
     }

@@ -204,7 +204,7 @@ export async function GET() {
     // Save to DB so subsequent calls today don't recalculate
     await sql`
       INSERT INTO scanner_cache (date_str, scanner_type, results)
-      VALUES (${dateStr}, 'nse-gaps', ${responsePayload as any})
+      VALUES (${dateStr}, 'nse-gaps', ${JSON.stringify(responsePayload)})
       ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
     `;
 
