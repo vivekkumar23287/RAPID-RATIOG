@@ -56,6 +56,7 @@ export default function StockChartPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
+  const [selectedDate, setSelectedDate] = useState<string>("");
 
   // Drawing Tools & Layout State
   type ChartText = { id: string; time: number; price: number; text: string; offsetX?: number; offsetY?: number };
@@ -688,8 +689,9 @@ export default function StockChartPage() {
     setError(null);
 
     const fetchData = () => {
+      const dateParam = selectedDate ? `&date=${selectedDate}` : "";
       // Use cache: 'no-store' to ensure we always get the live data from the API
-      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}`, { cache: "no-store" })
+      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch data");
           return res.json();
@@ -739,7 +741,7 @@ export default function StockChartPage() {
     let intervalId: NodeJS.Timeout;
     let ws: WebSocket;
 
-    if (isCrypto) {
+    if (!selectedDate && isCrypto) {
       // Real-time WebSocket for Crypto via Binance
       const binanceIntervalMap: Record<string, string> = {
         "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
@@ -806,7 +808,7 @@ export default function StockChartPage() {
           }
         }
       };
-    } else {
+    } else if (!selectedDate) {
       // 5-second polling for live updates on NSE stocks (already direct sync with Yahoo Finance)
       intervalId = setInterval(fetchData, 5000);
     }
@@ -816,7 +818,7 @@ export default function StockChartPage() {
       if (intervalId) clearInterval(intervalId);
       if (ws) ws.close();
     };
-  }, [rawSymbol, timeframe.interval, timeframe.range]);
+  }, [rawSymbol, timeframe.interval, timeframe.range, selectedDate]);
 
   const [lineToolbarPos, setLineToolbarPos] = useState<{ x: number, y: number, price: number } | null>(null);
 
@@ -1064,6 +1066,42 @@ export default function StockChartPage() {
           gap: "6px",
         }}
       >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '16px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Date:</span>
+          <input
+            type="date"
+            value={selectedDate}
+            max={new Date().toISOString().split("T")[0]}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            style={{
+              padding: '4px 8px',
+              borderRadius: '6px',
+              border: '1px solid #e2e8f0',
+              fontFamily: 'Satoshi, sans-serif',
+              fontSize: '13px',
+              color: '#0F2044',
+              outline: 'none'
+            }}
+          />
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate("")}
+              style={{
+                background: '#E01F2E',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Live
+            </button>
+          )}
+        </div>
+
         {timeframes.map((tf) => (
           <button
             key={tf.interval}

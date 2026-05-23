@@ -27,6 +27,27 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_layouts_user_symbol ON chart_layouts(user_id, symbol);
     `;
+
+    // Create the signals_history table for Trick in NSE
+    await sql`
+      CREATE TABLE IF NOT EXISTS signals_history (
+        id SERIAL PRIMARY KEY,
+        stock_symbol TEXT NOT NULL,
+        stock_name TEXT NOT NULL,
+        signal_type TEXT NOT NULL,
+        direction TEXT NOT NULL,
+        timeframe TEXT NOT NULL,
+        open_price DECIMAL NOT NULL,
+        high_price DECIMAL NOT NULL,
+        low_price DECIMAL NOT NULL,
+        close_price DECIMAL NOT NULL,
+        candle_time TEXT NOT NULL,
+        candle_date TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(stock_symbol, candle_time)
+      );
+      CREATE INDEX IF NOT EXISTS idx_signals_date ON signals_history(candle_date);
+    `;
     
     console.log('Database initialized successfully!');
   } catch (error) {

@@ -14,7 +14,7 @@ const NAV_LINKS = [
   { group: "Platform", links: [
     { label: "Home", href: "/" },
     { label: "Live Prices", href: "/prices" },
-    { label: "Tricks in NSE", href: "/tricks-in-nse" },
+    { label: "Tricks in NSE", href: "/trick-in-nse" },
     { label: "Sheet Flow", href: "/sheetflow" },
   ]},
   { group: "Stocks", links: [

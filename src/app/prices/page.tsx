@@ -90,7 +90,7 @@ export default function PricesPage() {
           setIsLoaded(true);
         }
       } catch (error) {
-        console.error("Error fetching live prices:", error);
+        console.warn("Error fetching live prices:", error);
       }
     };
 

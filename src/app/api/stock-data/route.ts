@@ -82,11 +82,45 @@ export async function GET(req: NextRequest) {
   const symbol = searchParams.get("symbol") || "RELIANCE";
   const range = searchParams.get("range") || "1y";
   const interval = searchParams.get("interval") || "1d";
+  const dateParam = searchParams.get("date");
 
   const yahooSymbol = getYahooSymbol(symbol);
   const isIntraday = ["1m", "5m", "15m", "30m", "60m"].includes(interval);
   const isCrypto = symbol.toUpperCase().includes("-USD");
   const CACHE_DURATION_SECONDS = 7;
+
+  // 0. If historical date is provided, fetch from database directly
+  if (dateParam) {
+    try {
+      const [histChart] = await sql`
+        SELECT chart_data
+        FROM historical_charts
+        WHERE symbol = ${symbol.toUpperCase()} AND candle_date = ${dateParam} AND interval = ${interval}
+      `;
+      if (histChart && histChart.chart_data) {
+        const candles = histChart.chart_data;
+        const lastCandle = candles[candles.length - 1] || { close: 0, open: 0 };
+        const prevCandle = candles.length > 1 ? candles[candles.length - 2] : lastCandle;
+        const change = lastCandle.close - prevCandle.close;
+        const changePercent = prevCandle.close ? (change / prevCandle.close) * 100 : 0;
+        
+        return NextResponse.json({
+          symbol: symbol.toUpperCase(),
+          name: symbol.toUpperCase(),
+          currency: "INR",
+          currentPrice: lastCandle.close,
+          previousClose: prevCandle.close,
+          change: parseFloat(change.toFixed(2)),
+          changePercent: parseFloat(changePercent.toFixed(2)),
+          candles,
+          isHistorical: true
+        });
+      }
+    } catch (e) {
+      console.error("Failed fetching historical chart:", e);
+    }
+    // Fallthrough to live if not found, though usually we just return empty or let it fallthrough
+  }
 
   let cachedData = null;
   let isCacheFresh = false;
