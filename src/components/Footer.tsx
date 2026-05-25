@@ -34,9 +34,11 @@ export default function Footer() {
   return (
     <footer
       style={{
-        background: "#0A1628",
-        borderTop: "1px solid rgba(255,255,255,0.06)",
+        background: "transparent",
+        borderTop: "1px solid rgba(255,255,255,0.1)",
         paddingTop: "4rem",
+        position: "relative",
+        zIndex: 1,
       }}
     >
       <div
@@ -64,7 +66,7 @@ export default function Footer() {
                 style={{
                   width: "36px",
                   height: "36px",
-                  background: "#E01F2E",
+                  background: "linear-gradient(135deg, #00C9A7, #7CFFEF)",
                   borderRadius: "10px",
                   display: "flex",
                   alignItems: "center",
@@ -72,7 +74,7 @@ export default function Footer() {
                   flexShrink: 0,
                 }}
               >
-                <ChartLineUp size={20} color="white" weight="bold" />
+                <ChartLineUp size={20} color="#070B14" weight="bold" />
               </div>
               <span
                 style={{
@@ -83,7 +85,7 @@ export default function Footer() {
                   letterSpacing: "-0.3px",
                 }}
               >
-                Rapid<span style={{ color: "#E01F2E" }}>RatioG</span>
+                Rapid<span style={{ color: "#7CFFEF" }}>RatioG</span>
               </span>
             </Link>
 
@@ -127,9 +129,9 @@ export default function Footer() {
                     transition: "all 0.2s",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(224,31,46,0.15)";
-                    e.currentTarget.style.borderColor = "rgba(224,31,46,0.4)";
-                    e.currentTarget.style.color = "#E01F2E";
+                    e.currentTarget.style.background = "rgba(124,255,239,0.15)";
+                    e.currentTarget.style.borderColor = "rgba(124,255,239,0.4)";
+                    e.currentTarget.style.color = "#7CFFEF";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = "rgba(255,255,255,0.06)";
@@ -171,7 +173,7 @@ export default function Footer() {
                         textDecoration: "none",
                         transition: "color 0.2s",
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "#E01F2E"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.color = "#7CFFEF"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.45)"; }}
                     >
                       {link.label}
@@ -223,8 +225,8 @@ export default function Footer() {
               display: "inline-flex",
               alignItems: "center",
               gap: "8px",
-              background: "#E01F2E",
-              color: "white",
+              background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
+              color: "#070B14",
               borderRadius: "10px",
               padding: "12px 22px",
               fontFamily: "DM Sans, sans-serif",
@@ -232,10 +234,16 @@ export default function Footer() {
               fontSize: "14px",
               textDecoration: "none",
               whiteSpace: "nowrap",
-              transition: "background 0.2s",
+              transition: "all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "#B8161F"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#E01F2E"; }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-3px)";
+              e.currentTarget.style.boxShadow = "0 8px 24px rgba(124,255,239,0.3)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "none";
+            }}
           >
             View live prices
             <ArrowRight size={16} weight="bold" />

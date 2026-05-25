@@ -116,8 +116,8 @@ body {
 
 /* Subtle pulse glow */
 @keyframes subtleGlow {
-  0%, 100% { box-shadow: 0 0 20px rgba(224, 31, 46, 0.08); }
-  50% { box-shadow: 0 0 40px rgba(224, 31, 46, 0.15); }
+  0%, 100% { box-shadow: 0 0 20px rgba(124,255,239,0.15); }
+  50% { box-shadow: 0 0 40px rgba(124,255,239,0.3); }
 }
 
 /* Gradient text shimmer */

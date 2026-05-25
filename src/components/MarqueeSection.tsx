@@ -115,23 +115,16 @@ export default function MarqueeSection() {
   return (
     <section ref={sectionRef} className="mq-sec" style={{
       padding: "5.5rem 0",
-      background: "#0F2044",
+      background: "transparent",
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Dot pattern */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "radial-gradient(rgba(224,31,46,0.06) 1px, transparent 1px)",
-        backgroundSize: "30px 30px",
-      }} />
-
       {/* Center glow */}
       <div style={{
         position: "absolute", top: "50%", left: "50%",
         transform: "translate(-50%,-50%)",
         width: 600, height: 280, borderRadius: "50%",
-        background: "radial-gradient(circle, rgba(224,31,46,0.14), transparent 70%)",
+        background: "radial-gradient(circle, rgba(124,255,239,0.07), transparent 70%)",
         filter: "blur(80px)",
         pointerEvents: "none",
       }} />

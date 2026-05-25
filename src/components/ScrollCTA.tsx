@@ -32,7 +32,7 @@ function AnimatedCounter({ target, suffix, label, triggered }: {
     <div style={{ textAlign: "center" }}>
       <div style={{
         fontFamily: "Satoshi,sans-serif", fontWeight: 900,
-        fontSize: "clamp(32px, 5vw, 56px)", color: "#E01F2E",
+        fontSize: "clamp(32px, 5vw, 56px)", color: "#7CFFEF",
         letterSpacing: "-2px", lineHeight: 1,
       }}>
         {target > 0 ? count : ""}{suffix}
@@ -90,24 +90,19 @@ export default function ScrollCTA() {
 
   return (
     <section className="cta-section" style={{
-      padding: "9rem 2rem", background: "#0A1628", position: "relative", overflow: "hidden",
+      padding: "9rem 2rem", background: "transparent", position: "relative", overflow: "hidden",
     }}>
-      {/* Grid dots */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "radial-gradient(rgba(224,31,46,0.06) 1px, transparent 1px)",
-        backgroundSize: "36px 36px",
-      }} />
+
 
       {/* Glows */}
       <div className="cta-glow-1" style={{
         position: "absolute", top: -100, right: -100, width: 600, height: 600,
-        background: "radial-gradient(circle, rgba(224,31,46,0.15), transparent 60%)",
+        background: "radial-gradient(circle, rgba(124,255,239,0.15), transparent 60%)",
         filter: "blur(80px)", borderRadius: "50%",
       }} />
       <div className="cta-glow-2" style={{
         position: "absolute", bottom: -80, left: -80, width: 400, height: 400,
-        background: "radial-gradient(circle, rgba(224,31,46,0.08), transparent 60%)",
+        background: "radial-gradient(circle, rgba(155,48,255,0.08), transparent 60%)",
         filter: "blur(60px)", borderRadius: "50%",
       }} />
 
@@ -120,7 +115,7 @@ export default function ScrollCTA() {
           Ready to trade
           <br />
           <span style={{
-            background: "linear-gradient(135deg, #E01F2E, #FF6B7A, #E01F2E)",
+            background: "linear-gradient(135deg, #00C9A7, #7CFFEF, #00C9A7)",
             backgroundSize: "200% 100%",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
             animation: "gradientShift 3s ease infinite",
@@ -138,14 +133,14 @@ export default function ScrollCTA() {
           <SignUpButton mode="modal">
             <button style={{
               display: "flex", alignItems: "center", gap: 10,
-              background: "linear-gradient(135deg, #E01F2E, #B8161F)", color: "white",
+              background: "linear-gradient(135deg, #00C9A7, #7CFFEF)", color: "#070B14",
               border: "none", borderRadius: 14, padding: "16px 36px",
               fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 16, cursor: "pointer",
-              boxShadow: "0 8px 32px rgba(224,31,46,0.4)",
+              boxShadow: "0 8px 32px rgba(124,255,239,0.3)",
               transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
             }}
-              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.04)"; e.currentTarget.style.boxShadow = "0 16px 48px rgba(224,31,46,0.5)"; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(224,31,46,0.4)"; }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px) scale(1.04)"; e.currentTarget.style.boxShadow = "0 16px 48px rgba(124,255,239,0.45)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0) scale(1)"; e.currentTarget.style.boxShadow = "0 8px 32px rgba(124,255,239,0.3)"; }}
             >
               Get Started Free <ArrowRight size={18} weight="bold" />
             </button>
@@ -158,7 +153,7 @@ export default function ScrollCTA() {
             fontSize: 16, textDecoration: "none",
             transition: "all 0.3s ease",
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#E01F2E"; e.currentTarget.style.color = "#E01F2E"; e.currentTarget.style.transform = "translateY(-3px)"; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#7CFFEF"; e.currentTarget.style.color = "#7CFFEF"; e.currentTarget.style.transform = "translateY(-3px)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
             Explore Prices

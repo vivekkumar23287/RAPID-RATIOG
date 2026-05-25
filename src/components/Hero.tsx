@@ -13,7 +13,7 @@ const TICKER_STOCKS = [
   { name: "IFORGE", value: "₹890.70", change: "+1.56%" },
 ];
 
-const WORDS = ["Intelligence.", "Precision.", "Speed.", "Clarity.", "Power."];
+const WORDS = ["Intelligence", "Precision", "Speed", "Clarity", "Power"];
 
 export default function Hero() {
   const wordRef = useRef<HTMLSpanElement>(null);
@@ -27,6 +27,7 @@ export default function Hero() {
     const el = wordRef.current;
     if (!el) return;
 
+    let interval: NodeJS.Timeout;
     const runCycle = async () => {
       const { gsap } = await import("gsap");
       el.textContent = WORDS[0];
@@ -49,11 +50,11 @@ export default function Hero() {
         });
       };
 
-      const interval = setInterval(cycle, 2400);
-      return () => clearInterval(interval);
+      interval = setInterval(cycle, 2400);
     };
 
     runCycle();
+    return () => clearInterval(interval);
   }, []);
 
   // GSAP hero entrance — cinematic stagger
@@ -62,10 +63,9 @@ export default function Hero() {
       const { gsap } = await import("gsap");
 
       // Initial state
-      gsap.set([".hero-badge", ".hero-line-1", ".hero-line-2", ".hero-sub", ".hero-btn-primary", ".hero-btn-secondary", ".hero-stat"], {
+      gsap.set([".hero-line-1", ".hero-line-2", ".hero-sub", ".hero-btn-primary", ".hero-btn-secondary", ".hero-stat"], {
         opacity: 0,
       });
-      gsap.set(".hero-badge", { y: -30, scale: 0.9 });
       gsap.set([".hero-line-1", ".hero-line-2"], { y: 80, skewY: 3 });
       gsap.set(".hero-sub", { y: 40 });
       gsap.set([".hero-btn-primary", ".hero-btn-secondary"], { y: 30, scale: 0.95 });
@@ -74,8 +74,7 @@ export default function Hero() {
 
       const tl = gsap.timeline({ delay: 0.15, defaults: { ease: "power4.out" } });
 
-      tl.to(".hero-badge", { opacity: 1, y: 0, scale: 1, duration: 0.7 })
-        .to(".hero-line-1", { opacity: 1, y: 0, skewY: 0, duration: 1.0 }, "-=0.4")
+      tl.to(".hero-line-1", { opacity: 1, y: 0, skewY: 0, duration: 1.0 })
         .to(".hero-line-2", { opacity: 1, y: 0, skewY: 0, duration: 1.0 }, "-=0.75")
         .to(".hero-sub", { opacity: 1, y: 0, duration: 0.8 }, "-=0.5")
         .to(".hero-btn-primary", { opacity: 1, y: 0, scale: 1, duration: 0.6 }, "-=0.4")
@@ -214,38 +213,6 @@ export default function Hero() {
       >
         {/* Left col */}
         <div>
-          {/* Badge */}
-          <div
-            className="hero-badge"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "rgba(224,31,46,0.08)",
-              border: "1px solid rgba(224,31,46,0.22)",
-              borderRadius: "100px",
-              padding: "6px 16px 6px 10px",
-              marginBottom: "2rem",
-            }}
-          >
-            <div style={{
-              width: "6px", height: "6px", borderRadius: "50%",
-              background: "#E01F2E",
-              animation: "ping 1.5s ease-in-out infinite",
-              flexShrink: 0,
-            }} />
-            <Lightning size={13} color="#E01F2E" weight="fill" />
-            <span style={{
-              fontFamily: "Satoshi, sans-serif",
-              fontSize: "13px",
-              fontWeight: 500,
-              color: "#E01F2E",
-              letterSpacing: "0.2px",
-            }}>
-              Live market data · Updated in real time
-            </span>
-          </div>
-
           {/* Headline */}
           <h1 style={{
             fontFamily: "Satoshi, sans-serif",
@@ -495,7 +462,7 @@ function MockChartCard() {
   }, []);
 
   return (
-    <div 
+    <div
       style={{
         width: "100%",
         maxWidth: "480px",
@@ -504,26 +471,26 @@ function MockChartCard() {
       }}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div 
+      <div
         onMouseEnter={() => setIsHovered(true)}
         style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        background: "rgba(255,255,255,0.85)",
-        backdropFilter: "blur(20px)",
-        borderRadius: "24px",
-        border: "1px solid rgba(226,232,240,0.9)",
-        padding: "1.5rem",
-        boxShadow: "0 24px 80px rgba(15,32,68,0.12), 0 4px 16px rgba(247,147,26,0.06)",
-        transform: isHovered 
-          ? "translateY(-50px) translateX(30px) rotate(4deg)" 
-          : "translateY(-30px) translateX(30px) rotate(5deg)",
-        opacity: isHovered ? 1 : 0.6,
-        transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
-        zIndex: 0,
-      }}>
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          background: "rgba(255,255,255,0.85)",
+          backdropFilter: "blur(20px)",
+          borderRadius: "24px",
+          border: "1px solid rgba(226,232,240,0.9)",
+          padding: "1.5rem",
+          boxShadow: "0 24px 80px rgba(15,32,68,0.12), 0 4px 16px rgba(247,147,26,0.06)",
+          transform: isHovered
+            ? "translateY(-50px) translateX(30px) rotate(4deg)"
+            : "translateY(-30px) translateX(30px) rotate(5deg)",
+          opacity: isHovered ? 1 : 0.6,
+          transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+          zIndex: 0,
+        }}>
         {/* Card header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
           <div>
@@ -708,10 +675,10 @@ function MockChartCard() {
         animation: "float 5s ease-in-out 1s infinite",
         zIndex: 2,
       }}>
-        <div style={{ 
-          width: "7px", height: "7px", borderRadius: "50%", 
-          background: isMarketOpen ? "#22C55E" : "#94A3B8", 
-          animation: isMarketOpen ? "ping 2s infinite" : "none" 
+        <div style={{
+          width: "7px", height: "7px", borderRadius: "50%",
+          background: isMarketOpen ? "#22C55E" : "#94A3B8",
+          animation: isMarketOpen ? "ping 2s infinite" : "none"
         }} />
         <span style={{ fontFamily: "Satoshi, sans-serif", fontSize: "12px", fontWeight: 600, color: "white" }}>
           {isMarketOpen ? "Live · NSE" : "Market Closed"}

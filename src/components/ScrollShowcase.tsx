@@ -41,18 +41,18 @@ export default function ScrollShowcase() {
   }, []);
 
   return (
-    <section className="ss-sec" style={{ padding: "8rem 2rem", background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
+    <section className="ss-sec" style={{ padding: "8rem 2rem", background: "transparent", position: "relative", overflow: "hidden" }}>
       {/* Floating shapes */}
-      <div className="ss-fl" style={{ position: "absolute", top: 60, right: 80, width: 160, height: 160, borderRadius: "50%", border: "1px solid rgba(224,31,46,0.08)", background: "radial-gradient(circle, rgba(224,31,46,0.03), transparent)" }} />
-      <div className="ss-fl" style={{ position: "absolute", bottom: 100, left: 50, width: 100, height: 100, borderRadius: 20, transform: "rotate(45deg)", border: "1px solid rgba(15,32,68,0.05)", background: "radial-gradient(circle, rgba(15,32,68,0.02), transparent)" }} />
-      <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(14,32,68,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(14,32,68,0.018) 1px, transparent 1px)", backgroundSize: "52px 52px" }} />
+      <div className="ss-fl" style={{ position: "absolute", top: 60, right: 80, width: 160, height: 160, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", background: "radial-gradient(circle, rgba(255,255,255,0.03), transparent)" }} />
+      <div className="ss-fl" style={{ position: "absolute", bottom: 100, left: 50, width: 100, height: 100, borderRadius: 20, transform: "rotate(45deg)", border: "1px solid rgba(255,255,255,0.08)", background: "radial-gradient(circle, rgba(255,255,255,0.02), transparent)" }} />
+
 
       <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div style={{ textAlign: "center", marginBottom: "5rem" }}>
-          <span className="ss-ey" style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: "#E01F2E", letterSpacing: "3px", textTransform: "uppercase", display: "block", marginBottom: "1rem" }}>Scroll-Driven Experience</span>
-          <h2 className="ss-hd" style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(32px, 5vw, 60px)", color: "#0F2044", letterSpacing: "-2px", lineHeight: 1.05 }}>
+          <span className="ss-ey" style={{ fontFamily: FONT, fontSize: 11, fontWeight: 700, color: "#7CFFEF", letterSpacing: "3px", textTransform: "uppercase", display: "block", marginBottom: "1rem" }}>Scroll-Driven Experience</span>
+          <h2 className="ss-hd" style={{ fontFamily: FONT, fontWeight: 800, fontSize: "clamp(32px, 5vw, 60px)", color: "#FFFFFF", letterSpacing: "-2px", lineHeight: 1.05 }}>
             Every scroll tells<br />
-            <span style={{ background: "linear-gradient(135deg, #E01F2E, #FF6B7A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>a story</span>
+            <span style={{ background: "linear-gradient(135deg, #7CFFEF, #45E180)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>a story</span>
           </h2>
         </div>
 
@@ -72,28 +72,28 @@ function PremiumCard({ feature }: { feature: typeof FEATURES[0] }) {
     const x = ((e.clientX - r.left) / r.width - 0.5) * 10;
     const y = ((e.clientY - r.top) / r.height - 0.5) * -10;
     el.style.transform = `perspective(800px) rotateX(${y}deg) rotateY(${x}deg) scale3d(1.02,1.02,1.02)`;
-    el.style.boxShadow = "0 20px 60px rgba(15,32,68,0.1), 0 0 0 1px rgba(224,31,46,0.1)";
+    el.style.boxShadow = "0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(124,255,239,0.15)";
     const sh = el.querySelector(".ss-sh") as HTMLElement;
-    if (sh) sh.style.background = `radial-gradient(250px at ${e.clientX - r.left}px ${e.clientY - r.top}px, rgba(224,31,46,0.08), transparent)`;
+    if (sh) sh.style.background = `radial-gradient(250px at ${e.clientX - r.left}px ${e.clientY - r.top}px, rgba(124,255,239,0.08), transparent)`;
   };
   const handleLeave = () => {
     const el = ref.current; if (!el) return;
     el.style.transform = "perspective(800px) rotateX(0) rotateY(0) scale3d(1,1,1)";
-    el.style.boxShadow = "0 4px 24px rgba(15,32,68,0.05)";
+    el.style.boxShadow = "0 4px 24px rgba(0,0,0,0.15)";
   };
 
   return (
     <div ref={ref} className="ss-card" onMouseMove={handleMove} onMouseLeave={handleLeave} style={{
-      background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 24, padding: "2.25rem",
+      background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 24, padding: "2.25rem",
       position: "relative", overflow: "hidden", transition: "transform 0.12s ease, box-shadow 0.4s ease",
-      transformStyle: "preserve-3d", cursor: "default", boxShadow: "0 4px 24px rgba(15,32,68,0.05)",
+      transformStyle: "preserve-3d", cursor: "default", boxShadow: "0 4px 24px rgba(0,0,0,0.15)", backdropFilter: "blur(16px)",
     }}>
       <div className="ss-sh" style={{ position: "absolute", inset: 0, borderRadius: 24, pointerEvents: "none", zIndex: 1 }} />
       <div style={{ width: 52, height: 52, borderRadius: 16, background: feature.gradient, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: "1.4rem", boxShadow: "0 6px 20px rgba(0,0,0,0.08)", transform: "translateZ(15px)" }}>
         {feature.icon}
       </div>
-      <h3 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: "#0F2044", marginBottom: "0.75rem", letterSpacing: "-0.3px", transform: "translateZ(8px)" }}>{feature.title}</h3>
-      <p style={{ fontFamily: FONT, fontSize: 14, color: "#64748B", lineHeight: 1.8, transform: "translateZ(4px)" }}>{feature.desc}</p>
+      <h3 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 19, color: "#FFFFFF", marginBottom: "0.75rem", letterSpacing: "-0.3px", transform: "translateZ(8px)" }}>{feature.title}</h3>
+      <p style={{ fontFamily: FONT, fontSize: 14, color: "rgba(255,255,255,0.65)", lineHeight: 1.8, transform: "translateZ(4px)" }}>{feature.desc}</p>
       <div style={{ position: "absolute", bottom: 0, left: "10%", right: "10%", height: 2, background: feature.gradient, borderRadius: 2, opacity: 0.4 }} />
     </div>
   );

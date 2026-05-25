@@ -76,10 +76,10 @@ export default function Navbar() {
         top: 0, left: 0, right: 0,
         zIndex: 100,
         transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)",
-        background: scrolled ? "rgba(255,255,255,0.92)" : "transparent",
+        background: scrolled ? "rgba(12,74,110,0.85)" : "transparent",
         backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(226,232,240,0.8)" : "none",
-        boxShadow: scrolled ? "0 4px 32px rgba(15,32,68,0.06)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(124,255,239,0.12)" : "none",
+        boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.15)" : "none",
         padding: "0 2rem",
       }}
     >
@@ -102,19 +102,19 @@ export default function Navbar() {
         >
           <div style={{
             width: "36px", height: "36px",
-            background: "linear-gradient(135deg, #E01F2E 0%, #B8161F 100%)",
+            background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
             borderRadius: "10px",
             display: "flex", alignItems: "center", justifyContent: "center",
             flexShrink: 0,
-            boxShadow: "0 4px 12px rgba(224,31,46,0.3)",
+            boxShadow: "0 4px 12px rgba(124,255,239,0.3)",
           }}>
             <ChartLineUp size={20} color="white" weight="bold" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: "#0F2044", letterSpacing: "-0.3px" }}>
-              Rapid<span style={{ color: "#E01F2E" }}>RatioG</span>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: "#FFFFFF", letterSpacing: "-0.3px" }}>
+              Rapid<span style={{ color: "#7CFFEF" }}>RatioG</span>
             </span>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: "#94A3B8", letterSpacing: "0.8px", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.8px", textTransform: "uppercase" }}>
               Live Trading Intel
             </span>
           </div>
@@ -136,8 +136,8 @@ export default function Navbar() {
               top: "50%",
               height: "36px",
               borderRadius: "100px",
-              background: "rgba(224,31,46,0.07)",
-              border: "1px solid rgba(224,31,46,0.1)",
+              background: "rgba(124,255,239,0.08)",
+              border: "1px solid rgba(124,255,239,0.15)",
               pointerEvents: "none",
               transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               transform: "translateY(-50%)",
@@ -169,7 +169,7 @@ export default function Navbar() {
                 fontFamily: "Satoshi, sans-serif",
                 fontWeight: pathname === link.href ? 600 : 500,
                 fontSize: "15px",
-                color: hoveredIdx === i ? "#E01F2E" : pathname === link.href ? "#E01F2E" : "#0F2044",
+                color: hoveredIdx === i ? "#7CFFEF" : pathname === link.href ? "#7CFFEF" : "#FFFFFF",
                 textDecoration: "none",
                 position: "relative",
                 padding: "6px 16px",
@@ -184,7 +184,7 @@ export default function Navbar() {
                 <span style={{
                   position: "absolute", bottom: "0px", left: "16px", right: "16px",
                   height: "2px",
-                  background: "linear-gradient(90deg, #E01F2E, #FF6B7A)",
+                  background: "linear-gradient(90deg, #7CFFEF, #45E180)",
                   borderRadius: "2px",
                   animation: "slideIn 0.3s ease",
                 }} />
@@ -202,18 +202,18 @@ export default function Navbar() {
                   className="nav-auth-btn"
                   style={{
                     fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "14px",
-                    color: "#0F2044", background: "transparent", border: "1.5px solid #E2E8F0",
+                    color: "#FFFFFF", background: "transparent", border: "1.5px solid rgba(255,255,255,0.2)",
                     borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
                     transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = "#E01F2E";
-                    e.currentTarget.style.color = "#E01F2E";
+                    e.currentTarget.style.borderColor = "#7CFFEF";
+                    e.currentTarget.style.color = "#7CFFEF";
                     e.currentTarget.style.transform = "translateY(-2px)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "#E2E8F0";
-                    e.currentTarget.style.color = "#0F2044";
+                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+                    e.currentTarget.style.color = "#FFFFFF";
                     e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >Sign In</button>
@@ -223,18 +223,18 @@ export default function Navbar() {
                   className="nav-auth-btn"
                   style={{
                     fontFamily: "Satoshi, sans-serif", fontWeight: 600, fontSize: "14px",
-                    color: "white", background: "linear-gradient(135deg, #E01F2E 0%, #B8161F 100%)",
+                    color: "#070B14", background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
                     border: "none", borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
                     transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
-                    boxShadow: "0 3px 12px rgba(224,31,46,0.3)",
+                    boxShadow: "0 3px 12px rgba(124,255,239,0.3)",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-2px) scale(1.03)";
-                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(224,31,46,0.4)";
+                    e.currentTarget.style.boxShadow = "0 6px 20px rgba(124,255,239,0.4)";
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = "translateY(0) scale(1)";
-                    e.currentTarget.style.boxShadow = "0 3px 12px rgba(224,31,46,0.3)";
+                    e.currentTarget.style.boxShadow = "0 3px 12px rgba(124,255,239,0.3)";
                   }}
                 >Get Started</button>
               </SignUpButton>
@@ -247,12 +247,12 @@ export default function Navbar() {
           onClick={() => setMenuOpen(!menuOpen)}
           className="mobile-menu-btn"
           style={{
-            background: "transparent", border: "1.5px solid #E2E8F0", borderRadius: "8px",
-            cursor: "pointer", color: "#0F2044", display: "none", padding: "6px",
+            background: "transparent", border: "1.5px solid rgba(255,255,255,0.2)", borderRadius: "8px",
+            cursor: "pointer", color: "#FFFFFF", display: "none", padding: "6px",
             transition: "all 0.2s",
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E01F2E"; e.currentTarget.style.color = "#E01F2E"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E2E8F0"; e.currentTarget.style.color = "#0F2044"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#7CFFEF"; e.currentTarget.style.color = "#7CFFEF"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.color = "#FFFFFF"; }}
         >
           {menuOpen ? <X size={22} /> : <List size={22} />}
         </button>
@@ -263,20 +263,20 @@ export default function Navbar() {
         maxHeight: menuOpen ? "400px" : "0",
         overflow: "hidden",
         transition: "max-height 0.4s cubic-bezier(0.4,0,0.2,1)",
-        background: "rgba(255,255,255,0.98)",
+        background: "rgba(12, 74, 110, 0.95)",
         backdropFilter: "blur(20px)",
       }}>
         <div style={{
-          borderTop: "1px solid #E2E8F0",
+          borderTop: "1px solid rgba(255,255,255,0.1)",
           padding: menuOpen ? "1.25rem 2rem" : "0 2rem",
           display: "flex", flexDirection: "column", gap: "0.75rem",
         }}>
           {navLinks.map((link, i) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{
               fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "16px",
-              color: pathname === link.href ? "#E01F2E" : "#0F2044",
+              color: pathname === link.href ? "#7CFFEF" : "rgba(255,255,255,0.75)",
               textDecoration: "none", padding: "10px 14px", borderRadius: "10px",
-              background: pathname === link.href ? "rgba(224,31,46,0.06)" : "transparent",
+              background: pathname === link.href ? "rgba(124,255,239,0.1)" : "transparent",
               opacity: menuOpen ? 1 : 0,
               transform: menuOpen ? "translateX(0)" : "translateX(-16px)",
               transition: `all 0.3s ease ${i * 0.05}s`,
@@ -288,10 +288,10 @@ export default function Navbar() {
             {!isSignedIn ? (
               <>
                 <SignInButton mode="modal">
-                  <button style={{ flex: 1, padding: "11px", border: "1.5px solid #E2E8F0", borderRadius: "10px", background: "transparent", fontWeight: 500, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Sign In</button>
+                  <button style={{ flex: 1, padding: "11px", border: "1.5px solid rgba(255,255,255,0.2)", borderRadius: "10px", background: "transparent", color: "white", fontWeight: 500, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Sign In</button>
                 </SignInButton>
                 <SignUpButton mode="modal">
-                  <button style={{ flex: 1, padding: "11px", background: "#E01F2E", color: "white", border: "none", borderRadius: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Get Started</button>
+                  <button style={{ flex: 1, padding: "11px", background: "linear-gradient(135deg, #00C9A7, #7CFFEF)", color: "#070B14", border: "none", borderRadius: "10px", fontWeight: 600, cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Get Started</button>
                 </SignUpButton>
               </>
             ) : <UserButton />}

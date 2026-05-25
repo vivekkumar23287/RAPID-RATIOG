@@ -47,9 +47,9 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         transform,
         transition: "transform 0.12s ease",
         background: accent
-          ? "linear-gradient(135deg, #0F2044 0%, #1A3460 100%)"
-          : "#FFFFFF",
-        border: accent ? "none" : "1px solid #E2E8F0",
+          ? "rgba(255,255,255,0.1)"
+          : "rgba(255,255,255,0.06)",
+        border: accent ? "1px solid rgba(124,255,239,0.3)" : "1px solid rgba(255,255,255,0.1)",
         borderRadius: "24px",
         padding: "2.25rem",
         position: "relative",
@@ -57,8 +57,9 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         cursor: "default",
         transformStyle: "preserve-3d",
         boxShadow: accent
-          ? "0 20px 60px rgba(15,32,68,0.25)"
-          : "0 4px 24px rgba(15,32,68,0.06)",
+          ? "0 20px 60px rgba(0,0,0,0.25)"
+          : "0 4px 24px rgba(0,0,0,0.12)",
+        backdropFilter: "blur(16px)",
         opacity: 0, // GSAP will animate this
       }}
     >
@@ -66,7 +67,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
       <div style={{
         position: "absolute",
         inset: 0,
-        background: `radial-gradient(300px at ${glow.x}% ${glow.y}%, ${accent ? "rgba(224,31,46,0.18)" : "rgba(224,31,46,0.07)"}, transparent)`,
+        background: `radial-gradient(300px at ${glow.x}% ${glow.y}%, ${accent ? "rgba(124,255,239,0.12)" : "rgba(124,255,239,0.06)"}, transparent)`,
         transition: "background 0.12s",
         borderRadius: "24px",
         pointerEvents: "none",
@@ -79,7 +80,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
           position: "absolute",
           top: 0, right: 0,
           width: "120px", height: "120px",
-          background: "radial-gradient(circle at top right, rgba(224,31,46,0.3), transparent 70%)",
+          background: "radial-gradient(circle at top right, rgba(124,255,239,0.2), transparent 70%)",
           zIndex: 0,
         }} />
       )}
@@ -87,13 +88,13 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
       {/* Tag */}
       <div style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
-        background: accent ? "rgba(224,31,46,0.2)" : "rgba(224,31,46,0.08)",
-        color: accent ? "#FFB3B8" : "#E01F2E",
+        background: accent ? "rgba(124,255,239,0.15)" : "rgba(124,255,239,0.1)",
+        color: accent ? "#7CFFEF" : "#7CFFEF",
         borderRadius: "100px", padding: "5px 14px",
         fontSize: "11px", fontFamily: "Satoshi, sans-serif",
         fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase",
         marginBottom: "1.4rem", position: "relative", zIndex: 2,
-        border: accent ? "1px solid rgba(224,31,46,0.3)" : "1px solid rgba(224,31,46,0.15)",
+        border: accent ? "1px solid rgba(124,255,239,0.3)" : "1px solid rgba(124,255,239,0.2)",
       }}>
         {icon}
         {tag}
@@ -102,7 +103,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
       {/* Title */}
       <h3 style={{
         fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "22px",
-        color: accent ? "#FFFFFF" : "#0F2044",
+        color: "#FFFFFF",
         marginBottom: "0.75rem", position: "relative", zIndex: 2, lineHeight: 1.15,
       }}>
         {title}
@@ -111,7 +112,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
       {/* Description */}
       <p style={{
         fontFamily: "Satoshi, sans-serif", fontSize: "14px",
-        color: accent ? "rgba(255,255,255,0.55)" : "#64748B",
+        color: "rgba(255,255,255,0.55)",
         lineHeight: 1.75, marginBottom: "1.75rem", position: "relative", zIndex: 2,
       }}>
         {description}
@@ -124,23 +125,23 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
             key={item.label}
             style={{
               display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: accent ? "rgba(255,255,255,0.05)" : "#F8F9FC",
+              background: "rgba(255,255,255,0.05)",
               borderRadius: "12px", padding: "11px 16px",
-              border: accent ? "1px solid rgba(255,255,255,0.08)" : "1px solid #F1F5F9",
+              border: "1px solid rgba(255,255,255,0.08)",
               transition: "all 0.2s ease",
               animation: `fadeInRow 0.4s ease ${0.1 + i * 0.08}s both`,
             }}
           >
             <span style={{
               fontFamily: "Satoshi, sans-serif", fontSize: "13px", fontWeight: 500,
-              color: accent ? "rgba(255,255,255,0.75)" : "#0F2044",
+              color: "rgba(255,255,255,0.75)",
             }}>
               {item.label}
             </span>
             <span style={{
               fontFamily: "Satoshi, sans-serif", fontSize: "13px", fontWeight: 700,
-              color: accent ? "#FF8A94" : "#E01F2E",
-              background: accent ? "rgba(224,31,46,0.15)" : "rgba(224,31,46,0.08)",
+              color: "#7CFFEF",
+              background: "rgba(124,255,239,0.12)",
               padding: "2px 10px", borderRadius: "100px",
             }}>
               {item.visual}
@@ -194,16 +195,10 @@ export default function ServicesSection() {
   return (
     <section
       ref={sectionRef}
-      style={{ padding: "9rem 2rem", background: "#F8F9FC", position: "relative" }}
+      style={{ padding: "9rem 2rem", background: "transparent", position: "relative" }}
       className="services-section"
     >
-      {/* Subtle dot pattern */}
-      <div style={{
-        position: "absolute", inset: 0,
-        backgroundImage: "radial-gradient(rgba(15,32,68,0.04) 1px, transparent 1px)",
-        backgroundSize: "32px 32px",
-        zIndex: 0,
-      }} />
+
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         {/* Header */}
@@ -212,7 +207,7 @@ export default function ServicesSection() {
             className="services-label"
             style={{
               fontFamily: "Satoshi, sans-serif", fontSize: "11px", fontWeight: 700,
-              color: "#E01F2E", letterSpacing: "2px", textTransform: "uppercase",
+              color: "#7CFFEF", letterSpacing: "2px", textTransform: "uppercase",
               display: "block", marginBottom: "1rem",
             }}
           >
@@ -223,12 +218,12 @@ export default function ServicesSection() {
             style={{
               fontFamily: "Satoshi, sans-serif", fontWeight: 800,
               fontSize: "clamp(30px, 4vw, 52px)",
-              color: "#0F2044", letterSpacing: "-1.5px", lineHeight: 1.1,
+              color: "#FFFFFF", letterSpacing: "-1.5px", lineHeight: 1.1,
             }}
           >
             Everything you need to
             <br />
-            <span style={{ color: "#E01F2E" }}>trade smarter</span>
+            <span style={{ color: "#7CFFEF" }}>trade smarter</span>
           </h2>
         </div>
 
@@ -244,7 +239,7 @@ export default function ServicesSection() {
           <ThreeDCard
             index={0}
             tag="Live Prices"
-            icon={<TrendUp size={22} color="#E01F2E" weight="bold" />}
+            icon={<TrendUp size={22} color="#7CFFEF" weight="bold" />}
             title="Real-Time Stock Prices"
             description="Watch all your favourite NSE stocks and cryptocurrencies update live — prices, % change, and volume at a glance."
             items={[
@@ -256,7 +251,7 @@ export default function ServicesSection() {
           <ThreeDCard
             index={1}
             tag="Charts"
-            icon={<ChartBar size={22} color="#E01F2E" weight="bold" />}
+            icon={<ChartBar size={22} color="#7CFFEF" weight="bold" />}
             title="Interactive Charts"
             description="Beautiful, interactive charts for each stock — zoom in, compare timeframes, spot patterns instantly."
             items={[
@@ -268,7 +263,7 @@ export default function ServicesSection() {
           <ThreeDCard
             index={2}
             tag="Excel"
-            icon={<FileXls size={22} color="#E01F2E" weight="bold" />}
+            icon={<FileXls size={22} color="#7CFFEF" weight="bold" />}
             title="Integrated Excel Sheets"
             description="Edit your data right in the browser — your spreadsheet, synced with live prices, downloadable as .xlsx."
             items={[

@@ -165,8 +165,8 @@ function StockBadge({
       <div
         ref={innerRef}
         style={{
-          background: "#FFFFFF",
-          border: "0.5px solid #E2E8F0",
+          background: "rgba(255,255,255,0.06)",
+          border: "0.5px solid rgba(255,255,255,0.12)",
           borderRadius: "14px",
           padding: "1rem 1.1rem",
           position: "relative",
@@ -177,12 +177,12 @@ function StockBadge({
           opacity: 0,
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "#CBD5E1";
-          e.currentTarget.style.background = "#F8FAFC";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+          e.currentTarget.style.background = "rgba(255,255,255,0.1)";
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "#E2E8F0";
-          e.currentTarget.style.background = "#FFFFFF";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)";
+          e.currentTarget.style.background = "rgba(255,255,255,0.06)";
         }}
       >
         {/* Ticker + change badge */}
@@ -213,7 +213,7 @@ function StockBadge({
               fontSize: "12px",
               fontWeight: 500,
               color: stock.up ? "#16A34A" : "#DC2626",
-              background: stock.up ? "#DCFCE7" : "#FEE2E2",
+              background: stock.up ? "rgba(69,225,128,0.15)" : "rgba(239,68,68,0.15)",
               padding: "3px 8px",
               borderRadius: "6px",
               display: "flex",
@@ -236,7 +236,7 @@ function StockBadge({
             fontFamily: FONT,
             fontWeight: 700,
             fontSize: "13px",
-            color: "#0F2044",
+            color: "#FFFFFF",
             margin: "0 0 2px",
             whiteSpace: "nowrap",
             overflow: "hidden",
@@ -251,7 +251,7 @@ function StockBadge({
           style={{
             fontFamily: FONT,
             fontSize: "12px",
-            color: "#94A3B8",
+            color: "rgba(255,255,255,0.5)",
             margin: "0 0 12px",
           }}
         >
@@ -264,7 +264,7 @@ function StockBadge({
             fontFamily: FONT,
             fontWeight: 800,
             fontSize: "20px",
-            color: "#0F2044",
+            color: "#FFFFFF",
             letterSpacing: "-0.5px",
             lineHeight: 1,
           }}
@@ -371,7 +371,7 @@ export default function StocksBadgeSection() {
       className="stocks-section"
       style={{
         padding: "9rem 2rem",
-        background: "#FFFFFF",
+        background: "transparent",
         position: "relative",
         overflow: "hidden",
       }}
@@ -382,8 +382,8 @@ export default function StocksBadgeSection() {
           position: "absolute",
           inset: 0,
           backgroundImage: `
-            linear-gradient(rgba(14,32,68,0.025) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(14,32,68,0.025) 1px, transparent 1px)
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)
           `,
           backgroundSize: "48px 48px",
           zIndex: 0,
@@ -406,7 +406,7 @@ export default function StocksBadgeSection() {
               fontFamily: FONT,
               fontSize: "11px",
               fontWeight: 700,
-              color: "#E01F2E",
+              color: "#7CFFEF",
               letterSpacing: "2.5px",
               textTransform: "uppercase",
               display: "block",
@@ -421,7 +421,7 @@ export default function StocksBadgeSection() {
               fontFamily: FONT,
               fontWeight: 900,
               fontSize: "clamp(28px, 4vw, 50px)",
-              color: "#0F2044",
+              color: "#FFFFFF",
               letterSpacing: "-1.5px",
               lineHeight: 1.05,
               maxWidth: "580px",
@@ -429,7 +429,7 @@ export default function StocksBadgeSection() {
             }}
           >
             Your portfolio,{" "}
-            <span style={{ color: "#E01F2E" }}>all in one view</span>
+            <span style={{ color: "#7CFFEF" }}>all in one view</span>
           </h2>
           <p
             className="stocks-sub"
@@ -437,7 +437,7 @@ export default function StocksBadgeSection() {
               fontFamily: FONT,
               fontSize: "16px",
               fontWeight: 400,
-              color: "#64748B",
+              color: "rgba(255,255,255,0.55)",
               maxWidth: "480px",
               lineHeight: 1.75,
             }}
