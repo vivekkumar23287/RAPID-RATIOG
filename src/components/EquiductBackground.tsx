@@ -4,14 +4,11 @@ import { useEffect, useRef, useCallback } from "react";
 /*
   Equiduct-inspired animated gradient background.
   
-  From the actual screenshot:
-    - Base: Deep teal (#0C4A6E → #0E7490) 
-    - Large flowing blobs of cyan (#06B6D4), turquoise (#14B8A6), 
-      bright teal (#2DD4BF), green (#45E180), sky blue (#38BDF8),
-      and deeper blue (#1D4ED8) areas
-    - Very large, soft blobs that move slowly across the entire viewport
-    - The background is BRIGHT/VIBRANT, not dark
-    - Colors shift subtly as user scrolls
+  Smoothly transitions colors across three screens:
+    - Screen 1: Vibrant bright Equiduct Cyan/Teal/Turquoise
+    - Screen 2: Rich deep Dark Forest Green / Teal Green
+    - Screen 3: Premium Deep Slate Navy Blue / Royal Indigo (Navy Blue Types)
+    - All transitions are 100% smooth, fluidly morphing as you scroll.
 */
 
 interface Blob {
@@ -20,9 +17,9 @@ interface Blob {
   vx: number;
   vy: number;
   radius: number;
-  r: number;
-  g: number;
-  b: number;
+  r1: number; g1: number; b1: number; // Screen 1 color (Cyan/Teal)
+  r2: number; g2: number; b2: number; // Screen 2 color (Forest Green)
+  r3: number; g3: number; b3: number; // Screen 3 color (Navy Blue/Indigo/Sky)
   opacity: number;
   baseOpacity: number;
   phase: number;
@@ -41,31 +38,31 @@ export default function EquiductBackground() {
     const blobs: Blob[] = [
       // Large bright cyan blob (top-left area)
       { x: w * 0.15, y: h * 0.2, vx: 0.25, vy: 0.15, radius: baseRadius * 0.55,
-        r: 6, g: 182, b: 212, opacity: 0.7, baseOpacity: 0.7, phase: 0 },
+        r1: 6, g1: 182, b1: 212, r2: 13, g2: 148, b2: 136, r3: 56, g3: 189, b3: 248, opacity: 0.7, baseOpacity: 0.7, phase: 0 },
       // Turquoise/teal blob (center-right)
       { x: w * 0.7, y: h * 0.35, vx: -0.2, vy: 0.2, radius: baseRadius * 0.5,
-        r: 20, g: 184, b: 166, opacity: 0.65, baseOpacity: 0.65, phase: 0.2 },
+        r1: 20, g1: 184, b1: 166, r2: 20, g2: 110, b2: 80, r3: 96, g3: 165, b3: 250, opacity: 0.65, baseOpacity: 0.65, phase: 0.2 },
       // Bright green-teal blob (bottom area)
       { x: w * 0.4, y: h * 0.75, vx: 0.3, vy: -0.15, radius: baseRadius * 0.45,
-        r: 45, g: 212, b: 191, opacity: 0.6, baseOpacity: 0.6, phase: 0.4 },
+        r1: 45, g1: 212, b1: 191, r2: 16, g2: 185, b2: 129, r3: 129, g3: 140, b3: 248, opacity: 0.6, baseOpacity: 0.6, phase: 0.4 },
       // Sky blue blob (top-right)
       { x: w * 0.85, y: h * 0.15, vx: -0.15, vy: 0.25, radius: baseRadius * 0.48,
-        r: 56, g: 189, b: 248, opacity: 0.55, baseOpacity: 0.55, phase: 0.6 },
+        r1: 56, g1: 189, b1: 248, r2: 8, g2: 145, b2: 178, r3: 147, g3: 197, b3: 253, opacity: 0.55, baseOpacity: 0.55, phase: 0.6 },
       // Deep blue blob (left side)
       { x: w * 0.1, y: h * 0.6, vx: 0.2, vy: -0.1, radius: baseRadius * 0.42,
-        r: 29, g: 78, b: 216, opacity: 0.5, baseOpacity: 0.5, phase: 0.15 },
+        r1: 29, g1: 78, b1: 216, r2: 6, g2: 95, b2: 70, r3: 37, g3: 99, b3: 235, opacity: 0.5, baseOpacity: 0.5, phase: 0.15 },
       // Green accent blob  
       { x: w * 0.55, y: h * 0.5, vx: -0.25, vy: -0.2, radius: baseRadius * 0.38,
-        r: 69, g: 225, b: 128, opacity: 0.45, baseOpacity: 0.45, phase: 0.75 },
+        r1: 69, g1: 225, b1: 128, r2: 45, g2: 212, b2: 191, r3: 29, g3: 78, b3: 216, opacity: 0.45, baseOpacity: 0.45, phase: 0.75 },
       // Light cyan highlight (moves fast)
       { x: w * 0.3, y: h * 0.3, vx: 0.35, vy: 0.25, radius: baseRadius * 0.35,
-        r: 103, g: 232, b: 249, opacity: 0.5, baseOpacity: 0.5, phase: 0.5 },
+        r1: 103, g1: 232, b1: 249, r2: 4, g2: 120, b2: 87, r3: 103, g3: 232, b3: 249, opacity: 0.5, baseOpacity: 0.5, phase: 0.5 },
       // Deep teal base blob (large, slow)
       { x: w * 0.5, y: h * 0.9, vx: 0.1, vy: -0.08, radius: baseRadius * 0.6,
-        r: 14, g: 116, b: 144, opacity: 0.6, baseOpacity: 0.6, phase: 0.85 },
+        r1: 14, g1: 116, b1: 144, r2: 2, g2: 44, b2: 34, r3: 15, g3: 32, b3: 84, opacity: 0.6, baseOpacity: 0.6, phase: 0.85 },
       // Warm teal
       { x: w * 0.9, y: h * 0.7, vx: -0.18, vy: -0.12, radius: baseRadius * 0.4,
-        r: 8, g: 145, b: 178, opacity: 0.5, baseOpacity: 0.5, phase: 0.35 },
+        r1: 8, g1: 145, b1: 178, r2: 15, g2: 118, b2: 110, r3: 59, g3: 130, b3: 246, opacity: 0.5, baseOpacity: 0.5, phase: 0.35 },
     ];
     blobsRef.current = blobs;
   }, []);
@@ -84,7 +81,6 @@ export default function EquiductBackground() {
       h = window.innerHeight;
       canvas.width = w;
       canvas.height = h;
-      // Re-init blobs on resize for proper sizing
       initBlobs(w, h);
     };
     resize();
@@ -96,24 +92,70 @@ export default function EquiductBackground() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("mousemove", onMouse, { passive: true });
 
+    // Base Stops for Screen 1: Vibrant Equiduct Cyan/Teal/Turquoise
+    const screen1Stops = [
+      [10, 126, 140], // vibrant Equiduct cyan
+      [20, 160, 150], // bright turquoise
+      [6, 170, 190],  // glowing sky teal
+      [10, 126, 140]
+    ];
+
+    // Base Stops for Screen 2: Deep Equiduct Forest Green / Teal Green
+    const screen2Stops = [
+      [6, 75, 62],    // deep Equiduct green
+      [12, 90, 80],   // rich dark forest green
+      [15, 110, 100], // deep teal green
+      [6, 75, 62]
+    ];
+
+    // Base Stops for Screen 3: Premium Lighter Blue / Royal Sky Blue
+    const screen3Stops = [
+      [15, 60, 140],  // lighter royal/sky blue (#0F3C8C)
+      [28, 80, 180],  // mid-tone bright royal blue (#1C50B4)
+      [40, 115, 230], // glowing sky blue highlight (#2873E6)
+      [15, 60, 140]
+    ];
+
+    const interpolateColor = (c1: number[], c2: number[], p: number) => {
+      return [
+        Math.round(c1[0] + (c2[0] - c1[0]) * p),
+        Math.round(c1[1] + (c2[1] - c1[1]) * p),
+        Math.round(c1[2] + (c2[2] - c1[2]) * p)
+      ];
+    };
+
+    const rgbStr = (c: number[]) => `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+
     const animate = () => {
       timeRef.current += 0.003;
       const t = timeRef.current;
-      const docHeight = Math.max(1, document.documentElement.scrollHeight - h);
-      const scrollProgress = Math.min(scrollRef.current / docHeight, 1);
+      
+      // Calculate smooth transitions across pages
+      // Screen 1 to Screen 2 transition (window.scrollY from 0 to h)
+      const p1 = Math.min(Math.max(0, scrollRef.current / h), 1);
+      
+      // Screen 2 to Screen 3 transition (window.scrollY from h to h * 2.3)
+      const p2 = Math.min(Math.max(0, (scrollRef.current - h) / (h * 1.3)), 1);
 
-      // Base gradient background — deep teal
+      // Base gradient background interpolation based on active segment
+      let stops;
+      if (scrollRef.current <= h) {
+        stops = screen1Stops.map((c1, idx) => interpolateColor(c1, screen2Stops[idx], p1));
+      } else {
+        stops = screen2Stops.map((c2, idx) => interpolateColor(c2, screen3Stops[idx], p2));
+      }
+
       const grad = ctx.createLinearGradient(0, 0, w * 0.3, h);
-      grad.addColorStop(0, "#0C4A6E");   // deep dark teal
-      grad.addColorStop(0.4, "#0E7490"); // mid teal
-      grad.addColorStop(0.7, "#0891B2"); // brighter cyan
-      grad.addColorStop(1, "#0C4A6E");   // back to deep
+      grad.addColorStop(0, rgbStr(stops[0]));
+      grad.addColorStop(0.4, rgbStr(stops[1]));
+      grad.addColorStop(0.7, rgbStr(stops[2]));
+      grad.addColorStop(1, rgbStr(stops[3]));
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
       // Update & draw blobs
       blobsRef.current.forEach((blob, i) => {
-        // Organic drift using sine/cosine
+        // Organic drift
         blob.x += blob.vx + Math.sin(t * 0.5 + i * 1.3) * 0.5;
         blob.y += blob.vy + Math.cos(t * 0.4 + i * 1.7) * 0.4;
 
@@ -133,8 +175,9 @@ export default function EquiductBackground() {
           blob.y -= dy * 0.002;
         }
 
-        // Scroll-based opacity wave — creates shifting colors on scroll
-        const scrollWave = Math.sin((scrollProgress * Math.PI * 4) + blob.phase * Math.PI * 2 + t * 0.2);
+        // Scroll-based opacity wave
+        const activeProgress = scrollRef.current <= h ? p1 : p2;
+        const scrollWave = Math.sin((activeProgress * Math.PI * 4) + blob.phase * Math.PI * 2 + t * 0.2);
         const opacityMod = 0.5 + 0.5 * scrollWave;
         blob.opacity = blob.baseOpacity * (0.4 + 0.6 * opacityMod);
 
@@ -142,28 +185,19 @@ export default function EquiductBackground() {
         const pulseScale = 1 + 0.1 * Math.sin(t * 0.6 + i * 0.9);
         const currentRadius = blob.radius * pulseScale;
 
-        // Draw the blob as an organic, morphing fluid shape instead of a perfect circle!
+        // Dynamic morphed radius
         ctx.beginPath();
         const steps = 60;
         for (let j = 0; j <= steps; j++) {
           const angle = (j / steps) * Math.PI * 2;
-          
-          // Superimposed sine/cosine waves for fluid organic shape morphing
           const wave1 = Math.sin(angle * 3 + t * 1.5 + i * 2.3) * 0.18;
           const wave2 = Math.cos(angle * 5 - t * 1.0 + i * 1.7) * 0.12;
           const wave3 = Math.sin(angle * 2 + t * 2.4 - i * 3.1) * 0.08;
-          
-          // Calculate the dynamic, morphed radius at this angle
           const rad = currentRadius * (1 + wave1 + wave2 + wave3);
-          
           const px = blob.x + Math.cos(angle) * rad;
           const py = blob.y + Math.sin(angle) * rad;
-          
-          if (j === 0) {
-            ctx.moveTo(px, py);
-          } else {
-            ctx.lineTo(px, py);
-          }
+          if (j === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
         }
         ctx.closePath();
 
@@ -171,28 +205,62 @@ export default function EquiductBackground() {
         const gradX = blob.x + Math.sin(t * 0.6 + i) * currentRadius * 0.15;
         const gradY = blob.y + Math.cos(t * 0.5 - i * 1.5) * currentRadius * 0.15;
 
+        // Smoothly transition blob colors
+        let r, g, b;
+        if (scrollRef.current <= h) {
+          r = Math.round(blob.r1 + (blob.r2 - blob.r1) * p1);
+          g = Math.round(blob.g1 + (blob.g2 - blob.g1) * p1);
+          b = Math.round(blob.b1 + (blob.b2 - blob.b1) * p1);
+        } else {
+          r = Math.round(blob.r2 + (blob.r3 - blob.r2) * p2);
+          g = Math.round(blob.g2 + (blob.g3 - blob.g2) * p2);
+          b = Math.round(blob.b2 + (blob.b3 - blob.b2) * p2);
+        }
+
         const gradient = ctx.createRadialGradient(
           gradX, gradY, 0,
           gradX, gradY, currentRadius * 1.25
         );
-        gradient.addColorStop(0,   `rgba(${blob.r}, ${blob.g}, ${blob.b}, ${blob.opacity * 0.85})`);
-        gradient.addColorStop(0.3, `rgba(${blob.r}, ${blob.g}, ${blob.b}, ${blob.opacity * 0.65})`);
-        gradient.addColorStop(0.6, `rgba(${blob.r}, ${blob.g}, ${blob.b}, ${blob.opacity * 0.3})`);
-        gradient.addColorStop(1,   `rgba(${blob.r}, ${blob.g}, ${blob.b}, 0)`);
+        gradient.addColorStop(0,   `rgba(${r}, ${g}, ${b}, ${blob.opacity * 0.85})`);
+        gradient.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${blob.opacity * 0.65})`);
+        gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, ${blob.opacity * 0.3})`);
+        gradient.addColorStop(1,   `rgba(${r}, ${g}, ${b}, 0)`);
 
         ctx.fillStyle = gradient;
         ctx.fill();
       });
 
-      // Bright center highlight — gives that glowing center feel
+      // Bright center highlight — transitions along with page
       const centerGlow = ctx.createRadialGradient(
         w * 0.45 + Math.sin(t * 0.3) * 50,
         h * 0.4 + Math.cos(t * 0.25) * 40,
         0,
         w * 0.45, h * 0.4, w * 0.4
       );
-      centerGlow.addColorStop(0, `rgba(103, 232, 249, ${0.15 + 0.05 * Math.sin(t)})`);
-      centerGlow.addColorStop(0.5, "rgba(20, 184, 166, 0.05)");
+      
+      const glowOpacity1 = 0.15 + 0.05 * Math.sin(t);
+      const glowOpacity2 = 0.06 + 0.03 * Math.sin(t);
+      const glowOpacity3 = 0.18 + 0.06 * Math.sin(t);
+
+      let activeOpacity, glowR1, glowG1, glowB1;
+      if (scrollRef.current <= h) {
+        activeOpacity = glowOpacity1 + (glowOpacity2 - glowOpacity1) * p1;
+        glowR1 = Math.round(103 + (15 - 103) * p1);
+        glowG1 = Math.round(232 + (110 - 232) * p1);
+        glowB1 = Math.round(249 + (100 - 249) * p1);
+      } else {
+        activeOpacity = glowOpacity2 + (glowOpacity3 - glowOpacity2) * p2;
+        glowR1 = Math.round(15 + (22 - 15) * p2);
+        glowG1 = Math.round(110 + (50 - 110) * p2);
+        glowB1 = Math.round(100 + (255 - 100) * p2);
+      }
+
+      centerGlow.addColorStop(0, `rgba(${glowR1}, ${glowG1}, ${glowB1}, ${activeOpacity})`);
+      if (scrollRef.current <= h) {
+        centerGlow.addColorStop(0.5, `rgba(20, 184, 166, ${0.05 * (1 - p1)})`);
+      } else {
+        centerGlow.addColorStop(0.5, `rgba(22, 50, 100, ${0.06 * p2})`);
+      }
       centerGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
       ctx.fillStyle = centerGlow;
       ctx.fillRect(0, 0, w, h);

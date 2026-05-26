@@ -95,17 +95,17 @@ export default function MarqueeSection() {
       fontFamily: FONT,
       fontWeight: 800,
       fontSize: "clamp(28px, 4vw, 48px)",
-      color: highlighted ? "#E01F2E" : "rgba(255,255,255,0.07)",
+      color: highlighted ? "#7CFFEF" : "rgba(255,255,255,0.14)",
       whiteSpace: "nowrap",
       letterSpacing: "-1px",
-      textShadow: highlighted ? "0 0 40px rgba(224,31,46,0.3)" : "none",
+      textShadow: highlighted ? "0 0 35px rgba(124,255,239,0.45)" : "none",
       transition: "color 0.3s ease",
     }}>
       {word}
       <span style={{
         display: "inline-block",
         margin: "0 18px",
-        color: highlighted ? "rgba(224,31,46,0.3)" : "rgba(255,255,255,0.05)",
+        color: highlighted ? "rgba(124,255,239,0.3)" : "rgba(255,255,255,0.06)",
         fontSize: "0.5em",
         verticalAlign: "middle",
       }}>✦</span>
