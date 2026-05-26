@@ -216,7 +216,7 @@ function ScrollCandleCanvas() {
         trigger: ".ss-sec",
         start: "top bottom",   // when section top hits viewport bottom → start
         end:   "bottom top",   // when section bottom leaves viewport top → end
-        scrub: 1.2,
+        scrub: 1.8,
         onUpdate: (self) => {
           // Map scroll progress (0→1) to t-value along the spline (0→1)
           // Candles travel from right (t=0) to left (t=1) as user scrolls
