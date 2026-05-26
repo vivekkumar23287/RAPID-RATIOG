@@ -24,6 +24,8 @@
 html {
   scroll-behavior: smooth;
   color-scheme: light;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
 }
 
 body {
@@ -34,6 +36,8 @@ body {
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
   text-rendering: optimizeLegibility;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
 }
 
 /* Force light mode always */
@@ -47,16 +51,17 @@ body {
   }
 }
 
-/* Premium custom scrollbar */
+/* Hide scrollbar entirely on all platforms */
 ::-webkit-scrollbar {
-  width: 6px;
+  display: none;
+  width: 0;
+  height: 0;
 }
 ::-webkit-scrollbar-track {
-  background: var(--gray-soft);
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--scarlet);
-  border-radius: 3px;
+  background: transparent;
 }
 
 /* Selection */

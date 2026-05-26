@@ -185,17 +185,17 @@ export function LogosSection() {
 export function FutureSection() {
   const items = [
     {
-      icon: <ChartLine size={24} color="#7CFFEF" weight="bold" />,
+      icon: <ChartLine size={24} color="#E6A100" weight="bold" />,
       title: "More stocks",
       desc: "We'll keep adding companies based on what our users request — your demand shapes our roadmap.",
     },
     {
-      icon: <FileCsv size={24} color="#7CFFEF" weight="bold" />,
+      icon: <FileCsv size={24} color="#E6A100" weight="bold" />,
       title: "Advanced Excel tools",
       desc: "Deeper formula support, multi-sheet linking, and auto-refresh from live price feeds.",
     },
     {
-      icon: <Rocket size={24} color="#7CFFEF" weight="bold" />,
+      icon: <Rocket size={24} color="#E6A100" weight="bold" />,
       title: "Portfolio tracker",
       desc: "Track your personal holdings, P&L, and performance — all integrated with the live data.",
     },
@@ -265,22 +265,22 @@ export function FutureSection() {
       <div className="future-glow" style={{
         position: "absolute", top: "-100px", right: "-100px",
         width: "700px", height: "700px",
-        background: "radial-gradient(circle, rgba(124,255,239,0.14) 0%, transparent 60%)",
+        background: "radial-gradient(circle, rgba(230,161,0,0.1) 0%, transparent 60%)",
         filter: "blur(80px)", zIndex: 0,
       }} />
       <div className="future-glow" style={{
         position: "absolute", bottom: -100, right: 100, width: "600px", height: "600px",
-        background: "radial-gradient(circle, rgba(124,255,239,0.08) 0%, transparent 60%)",
+        background: "radial-gradient(circle, rgba(230,161,0,0.06) 0%, transparent 60%)",
         filter: "blur(60px)", zIndex: 0,
       }} />
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
         {/* Eyebrow */}
         <div className="future-eyebrow" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1.5rem" }}>
-          <Sparkle size={16} color="#7CFFEF" weight="fill" />
+          <Sparkle size={16} color="#E6A100" weight="fill" />
           <span style={{
             fontFamily: "Satoshi, sans-serif", fontSize: "11px", fontWeight: 700,
-            color: "#7CFFEF", letterSpacing: "2px", textTransform: "uppercase",
+            color: "#E6A100", letterSpacing: "2px", textTransform: "uppercase",
           }}>
             What's coming
           </span>
@@ -294,7 +294,7 @@ export function FutureSection() {
           marginBottom: "1.25rem", maxWidth: "620px",
         }}>
           The future of{" "}
-          <span style={{ color: "#7CFFEF" }}>Rapid RatioG</span>
+          <span style={{ color: "#E6A100" }}>Rapid RatioG</span>
         </h2>
 
         <p className="future-sub" style={{
@@ -330,10 +330,10 @@ export function FutureSection() {
                 opacity: 0, // GSAP animates
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = "rgba(124,255,239,0.45)";
-                e.currentTarget.style.background = "rgba(124,255,239,0.05)";
+                e.currentTarget.style.borderColor = "rgba(230,161,0,0.45)";
+                e.currentTarget.style.background = "rgba(230,161,0,0.05)";
                 e.currentTarget.style.transform = "translateY(-6px)";
-                e.currentTarget.style.boxShadow = "0 16px 48px rgba(124,255,239,0.1)";
+                e.currentTarget.style.boxShadow = "0 16px 48px rgba(230,161,0,0.1)";
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
@@ -344,11 +344,11 @@ export function FutureSection() {
             >
               <div style={{
                 width: "52px", height: "52px",
-                background: "rgba(124,255,239,0.12)",
+                background: "rgba(230,161,0,0.12)",
                 borderRadius: "14px",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 marginBottom: "1.4rem",
-                border: "1px solid rgba(124,255,239,0.2)",
+                border: "1px solid rgba(230,161,0,0.2)",
               }}>
                 {item.icon}
               </div>
@@ -375,21 +375,21 @@ export function FutureSection() {
             className="future-cta"
             style={{
               display: "inline-flex", alignItems: "center", gap: "10px",
-              background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
+              background: "linear-gradient(135deg, #C68000 0%, #E6A100 100%)",
               color: "#070B14", borderRadius: "14px", padding: "15px 32px",
               fontFamily: "Satoshi, sans-serif", fontWeight: 700, fontSize: "15px",
               textDecoration: "none",
               transition: "all 0.3s cubic-bezier(0.34,1.56,0.64,1)",
-              boxShadow: "0 6px 24px rgba(124,255,239,0.35)",
+              boxShadow: "0 6px 24px rgba(230,161,0,0.35)",
               opacity: 0, // GSAP animates
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-3px) scale(1.03)";
-              e.currentTarget.style.boxShadow = "0 12px 40px rgba(124,255,239,0.5)";
+              e.currentTarget.style.boxShadow = "0 12px 40px rgba(230,161,0,0.5)";
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = "translateY(0) scale(1)";
-              e.currentTarget.style.boxShadow = "0 6px 24px rgba(124,255,239,0.35)";
+              e.currentTarget.style.boxShadow = "0 6px 24px rgba(230,161,0,0.35)";
             }}
           >
             Explore prices now

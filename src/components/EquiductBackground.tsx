@@ -41,31 +41,31 @@ export default function EquiductBackground() {
     const blobs: Blob[] = [
       // Large bright cyan blob (top-left area)
       { x: w * 0.15, y: h * 0.2, vx: 0.25, vy: 0.15, radius: baseRadius * 0.55,
-        r1: 6, g1: 182, b1: 212, r2: 13, g2: 148, b2: 136, r3: 56, g3: 189, b3: 248, r4: 167, g4: 139, b4: 250, opacity: 0.7, baseOpacity: 0.7, phase: 0 },
+        r1: 6, g1: 182, b1: 212, r2: 13, g2: 148, b2: 136, r3: 56, g3: 189, b3: 248, r4: 217, g4: 119, b4: 6, opacity: 0.7, baseOpacity: 0.7, phase: 0 },
       // Turquoise/teal blob (center-right)
       { x: w * 0.7, y: h * 0.35, vx: -0.2, vy: 0.2, radius: baseRadius * 0.5,
-        r1: 20, g1: 184, b1: 166, r2: 20, g2: 110, b2: 80, r3: 96, g3: 165, b3: 250, r4: 139, g4: 92, b4: 246, opacity: 0.65, baseOpacity: 0.65, phase: 0.2 },
+        r1: 20, g1: 184, b1: 166, r2: 20, g2: 110, b2: 80, r3: 96, g3: 165, b3: 250, r4: 245, g4: 158, b4: 11, opacity: 0.65, baseOpacity: 0.65, phase: 0.2 },
       // Bright green-teal blob (bottom area)
       { x: w * 0.4, y: h * 0.75, vx: 0.3, vy: -0.15, radius: baseRadius * 0.45,
-        r1: 45, g1: 212, b1: 191, r2: 16, g2: 185, b2: 129, r3: 129, g3: 140, b3: 248, r4: 196, g4: 181, b4: 253, opacity: 0.6, baseOpacity: 0.6, phase: 0.4 },
+        r1: 45, g1: 212, b1: 191, r2: 16, g2: 185, b2: 129, r3: 129, g3: 140, b3: 248, r4: 251, g4: 191, b4: 36, opacity: 0.6, baseOpacity: 0.6, phase: 0.4 },
       // Sky blue blob (top-right)
       { x: w * 0.85, y: h * 0.15, vx: -0.15, vy: 0.25, radius: baseRadius * 0.48,
-        r1: 56, g1: 189, b1: 248, r2: 8, g2: 145, b2: 178, r3: 147, g3: 197, b3: 253, r4: 216, g4: 180, b4: 254, opacity: 0.55, baseOpacity: 0.55, phase: 0.6 },
+        r1: 56, g1: 189, b1: 248, r2: 8, g2: 145, b2: 178, r3: 147, g3: 197, b3: 253, r4: 252, g4: 211, b4: 77, opacity: 0.55, baseOpacity: 0.55, phase: 0.6 },
       // Deep blue blob (left side)
       { x: w * 0.1, y: h * 0.6, vx: 0.2, vy: -0.1, radius: baseRadius * 0.42,
-        r1: 29, g1: 78, b1: 216, r2: 6, g2: 95, b2: 70, r3: 37, g3: 99, b3: 235, r4: 124, g4: 58, b4: 237, opacity: 0.5, baseOpacity: 0.5, phase: 0.15 },
+        r1: 29, g1: 78, b1: 216, r2: 6, g2: 95, b2: 70, r3: 37, g3: 99, b3: 235, r4: 202, g4: 138, b4: 4, opacity: 0.5, baseOpacity: 0.5, phase: 0.15 },
       // Green accent blob  
       { x: w * 0.55, y: h * 0.5, vx: -0.25, vy: -0.2, radius: baseRadius * 0.38,
-        r1: 69, g1: 225, b1: 128, r2: 45, g2: 212, b2: 191, r3: 29, g3: 78, b3: 216, r4: 91, g4: 33, b4: 182, opacity: 0.45, baseOpacity: 0.45, phase: 0.75 },
+        r1: 69, g1: 225, b1: 128, r2: 45, g2: 212, b2: 191, r3: 29, g3: 78, b3: 216, r4: 234, g4: 179, b4: 8, opacity: 0.45, baseOpacity: 0.45, phase: 0.75 },
       // Light cyan highlight (moves fast)
       { x: w * 0.3, y: h * 0.3, vx: 0.35, vy: 0.25, radius: baseRadius * 0.35,
-        r1: 103, g1: 232, b1: 249, r2: 4, g2: 120, b2: 87, r3: 103, g3: 232, b3: 249, r4: 232, g4: 121, b4: 249, opacity: 0.5, baseOpacity: 0.5, phase: 0.5 },
+        r1: 103, g1: 232, b1: 249, r2: 4, g2: 120, b2: 87, r3: 103, g3: 232, b3: 249, r4: 253, g4: 224, b4: 71, opacity: 0.5, baseOpacity: 0.5, phase: 0.5 },
       // Deep teal base blob (large, slow)
       { x: w * 0.5, y: h * 0.9, vx: 0.1, vy: -0.08, radius: baseRadius * 0.6,
-        r1: 14, g1: 116, b1: 144, r2: 2, g2: 44, b2: 34, r3: 15, g3: 32, b3: 84, r4: 46, g4: 16, b4: 101, opacity: 0.6, baseOpacity: 0.6, phase: 0.85 },
+        r1: 14, g1: 116, b1: 144, r2: 2, g2: 44, b2: 34, r3: 15, g3: 32, b3: 84, r4: 120, g4: 53, b4: 4, opacity: 0.6, baseOpacity: 0.6, phase: 0.85 },
       // Warm teal
       { x: w * 0.9, y: h * 0.7, vx: -0.18, vy: -0.12, radius: baseRadius * 0.4,
-        r1: 8, g1: 145, b1: 178, r2: 15, g2: 118, b2: 110, r3: 59, g3: 130, b3: 246, r4: 109, g4: 40, b4: 217, opacity: 0.5, baseOpacity: 0.5, phase: 0.35 },
+        r1: 8, g1: 145, b1: 178, r2: 15, g2: 118, b2: 110, r3: 59, g3: 130, b3: 246, r4: 146, g4: 64, b4: 14, opacity: 0.5, baseOpacity: 0.5, phase: 0.35 },
     ];
     blobsRef.current = blobs;
   }, []);
@@ -119,12 +119,12 @@ export default function EquiductBackground() {
       [15, 60, 140]
     ];
 
-    // Base Stops for Screen 5: Premium Radiant Lighter Purple / Lavender Glow
+    // Base Stops for Screen 5: Premium Dark Golden Amber / Warm Honey Glow
     const screen5Stops = [
-      [76, 29, 149],  // soft rich purple (#4C1D95)
-      [109, 40, 217], // mid-tone radiant violet (#6D28D9)
-      [167, 139, 250],// glowing lavender highlight (#A78BFA)
-      [76, 29, 149]
+      [74, 46, 0],    // deep dark honey (#4A2E00)
+      [99, 64, 0],    // rich dark amber (#634000)
+      [163, 107, 0],  // glowing gold highlight (#A36B00)
+      [74, 46, 0]
     ];
 
     const interpolateColor = (c1: number[], c2: number[], p: number) => {
