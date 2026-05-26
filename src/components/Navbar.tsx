@@ -23,7 +23,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
   const navRef = useRef<HTMLElement>(null);
-  const logoRef = useRef<HTMLAnchorElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -51,23 +50,6 @@ export default function Navbar() {
     load();
   }, []);
 
-  // Magnetic logo
-  const handleLogoMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    const el = logoRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const x = (e.clientX - rect.left - rect.width / 2) * 0.18;
-    const y = (e.clientY - rect.top - rect.height / 2) * 0.18;
-    el.style.transform = `translate(${x}px, ${y}px)`;
-  };
-  const handleLogoMouseLeave = () => {
-    const el = logoRef.current;
-    if (!el) return;
-    el.style.transition = "transform 0.4s cubic-bezier(0.34,1.56,0.64,1)";
-    el.style.transform = "translate(0,0)";
-    setTimeout(() => { if (el) el.style.transition = ""; }, 400);
-  };
-
   return (
     <header
       ref={navRef}
@@ -94,11 +76,10 @@ export default function Navbar() {
       }}>
         {/* Logo */}
         <Link
-          ref={logoRef}
-          href="/"
-          onMouseMove={handleLogoMouseMove}
-          onMouseLeave={handleLogoMouseLeave}
-          style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px", transition: "transform 0.1s ease" }}
+          href="https://portfolio159.vercel.app/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}
         >
           <div style={{
             width: "36px", height: "36px",
