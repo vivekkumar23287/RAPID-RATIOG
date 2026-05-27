@@ -61,13 +61,19 @@ export default function HeroNew() {
   // Word cycling with blur transition
   useEffect(() => {
     const el = wordRef.current; if (!el) return;
-    let iv: NodeJS.Timeout;
+    let iv: NodeJS.Timeout | null = null;
+    let isDestroyed = false;
+
     const run = async () => {
       const { gsap } = await import("gsap");
+      if (isDestroyed) return;
+
       el.textContent = WORDS[0]; gsap.set(el, { opacity: 1, y: 0, filter: "blur(0px)" });
       const cycle = () => {
+        if (isDestroyed) return;
         gsap.to(el, {
           opacity: 0, y: -20, filter: "blur(8px)", duration: 0.4, ease: "power2.in", onComplete: () => {
+            if (isDestroyed) return;
             wordIdx.current = (wordIdx.current + 1) % WORDS.length;
             el.textContent = WORDS[wordIdx.current];
             gsap.fromTo(el, { opacity: 0, y: 24, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.5, ease: "power3.out" });
@@ -77,7 +83,11 @@ export default function HeroNew() {
       iv = setInterval(cycle, 2800);
     };
     run();
-    return () => clearInterval(iv);
+
+    return () => {
+      isDestroyed = true;
+      if (iv) clearInterval(iv);
+    };
   }, []);
 
   // GSAP cinematic entrance + scroll parallax
@@ -332,6 +342,9 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
     if (!ctx) return;
 
     let animationId: number;
+    let isDestroyed = false;
+    let st: any = null;
+
     const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
     
     // Set high-DPI scaled canvas dimensions to prevent blurriness and pixelation
@@ -384,11 +397,10 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
       }
     };
 
-    let st: any = null;
-    let cleanupScrollTrigger: (() => void) | null = null;
-
     import("gsap/ScrollTrigger").then(({ ScrollTrigger }) => {
+      if (isDestroyed) return;
       import("gsap").then(({ gsap }) => {
+        if (isDestroyed) return;
         gsap.registerPlugin(ScrollTrigger);
         st = ScrollTrigger.create({
           trigger: ".hn-sec",
@@ -396,9 +408,6 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
           end: "bottom top",
           scrub: 1.6,
         });
-        cleanupScrollTrigger = () => {
-          if (st) st.kill();
-        };
       });
     });
 
@@ -450,6 +459,7 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
     const getBezierPoint = getSplinePoint;
 
     const draw = () => {
+      if (isDestroyed) return;
       // Clear canvas cleanly every frame to ensure transparency (preserves background gradients)
       ctx.clearRect(0, 0, w * dpr, h * dpr);
 
@@ -549,6 +559,7 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
 
     // Recalculate dimensions and curve control points on container resizing
     const handleResize = () => {
+      if (isDestroyed) return;
       const currentDpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       w = window.innerWidth;
       h = canvas.parentElement?.clientHeight || window.innerHeight;
@@ -577,9 +588,10 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
     window.addEventListener("resize", handleResize);
 
     return () => {
+      isDestroyed = true;
       cancelAnimationFrame(animationId);
       window.removeEventListener("resize", handleResize);
-      if (cleanupScrollTrigger) cleanupScrollTrigger();
+      if (st) st.kill();
     };
   }, []);
 

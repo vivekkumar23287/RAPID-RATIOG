@@ -102,12 +102,14 @@ export default function InteractiveDemo() {
                     <h3 style={{
                       fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 17,
                       color: "#FFFFFF", marginBottom: 4,
+                      opacity: active === i ? 1 : 0.6,
+                      transition: "opacity 0.4s ease",
                     }}>{step.title}</h3>
                     <p style={{
-                      fontFamily: "Satoshi,sans-serif", fontSize: 13, color: "rgba(255,255,255,0.6)",
-                      lineHeight: 1.7, maxHeight: active === i ? 100 : 0,
-                      overflow: "hidden", transition: "max-height 0.4s ease",
-                      opacity: active === i ? 1 : 0,
+                      fontFamily: "Satoshi,sans-serif", fontSize: 13, color: "rgba(255,255,255,0.55)",
+                      lineHeight: 1.7,
+                      transition: "opacity 0.4s ease",
+                      opacity: active === i ? 1 : 0.35,
                     }}>{step.desc}</p>
                   </div>
                 </div>

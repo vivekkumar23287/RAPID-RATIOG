@@ -25,28 +25,48 @@ export default function LoadingScreen() {
     let current = 0;
     let resourcesLoaded = false;
     let minTimePassed = false;
+    let isCleanedUp = false;
+
+    const timeouts: NodeJS.Timeout[] = [];
+    const intervals: NodeJS.Timeout[] = [];
+
+    const safeSetTimeout = (cb: () => void, delay: number) => {
+      const t = setTimeout(() => {
+        if (!isCleanedUp) cb();
+      }, delay);
+      timeouts.push(t);
+      return t;
+    };
+
+    const safeSetInterval = (cb: () => void, delay: number) => {
+      const i = setInterval(() => {
+        if (!isCleanedUp) cb();
+      }, delay);
+      intervals.push(i);
+      return i;
+    };
 
     // Phase timings
-    const t1 = setTimeout(() => setPhase(1), 600);
-    const t2 = setTimeout(() => setPhase(2), 1400);
-    const t3 = setTimeout(() => setPhase(3), 2400);
+    safeSetTimeout(() => setPhase(1), 600);
+    safeSetTimeout(() => setPhase(2), 1400);
+    safeSetTimeout(() => setPhase(3), 2400);
 
     const checkComplete = () => {
       if (resourcesLoaded && minTimePassed) {
         setExiting(true);
-        setTimeout(() => {
+        safeSetTimeout(() => {
           setVisible(false);
           document.body.style.overflow = "";
         }, 800);
       }
     };
 
-    const minTimer = setTimeout(() => {
+    safeSetTimeout(() => {
       minTimePassed = true;
       checkComplete();
     }, 3200);
 
-    const interval = setInterval(() => {
+    safeSetInterval(() => {
       const elapsed = Date.now() - startTime;
       const t = Math.min(elapsed / 3500, 1);
       const natural = (1 - Math.pow(1 - t, 3)) * 90;
@@ -56,7 +76,7 @@ export default function LoadingScreen() {
 
     const onLoad = () => {
       resourcesLoaded = true;
-      const fill = setInterval(() => {
+      const fill = safeSetInterval(() => {
         current = Math.min(current + 3, 100);
         setProgress(Math.round(current));
         if (current >= 100) {
@@ -67,21 +87,21 @@ export default function LoadingScreen() {
     };
 
     if (document.readyState === "complete") {
-      setTimeout(onLoad, 500);
+      safeSetTimeout(onLoad, 500);
     } else {
       window.addEventListener("load", onLoad);
     }
 
-    const fallback = setTimeout(() => {
+    safeSetTimeout(() => {
       resourcesLoaded = true;
       minTimePassed = true;
-      const fill = setInterval(() => {
+      const fill = safeSetInterval(() => {
         current = Math.min(current + 5, 100);
         setProgress(Math.round(current));
         if (current >= 100) {
           clearInterval(fill);
           setExiting(true);
-          setTimeout(() => {
+          safeSetTimeout(() => {
             setVisible(false);
             document.body.style.overflow = "";
           }, 800);
@@ -90,12 +110,9 @@ export default function LoadingScreen() {
     }, 6000);
 
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(minTimer);
-      clearTimeout(fallback);
-      clearInterval(interval);
+      isCleanedUp = true;
+      timeouts.forEach(clearTimeout);
+      intervals.forEach(clearInterval);
       window.removeEventListener("load", onLoad);
     };
   }, [visible]);

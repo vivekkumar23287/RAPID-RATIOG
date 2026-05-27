@@ -202,22 +202,23 @@ function ScrollCandleCanvas() {
     };
     hideCandles();
 
+    let isDestroyed = false;
+    let st: any = null;
+
     // ── GSAP scroll-scrub ──
-    let cleanup: (() => void) | null = null;
-    (async () => {
+    const initScrollTrigger = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+      if (isDestroyed) return;
       gsap.registerPlugin(ScrollTrigger);
 
-      // Proxy object that GSAP will tween
-      const proxy = { t: 0 };
-
-      const st = ScrollTrigger.create({
+      st = ScrollTrigger.create({
         trigger: ".ss-sec",
         start: "top bottom",   // when section top hits viewport bottom → start
         end:   "bottom top",   // when section bottom leaves viewport top → end
         scrub: 1.8,
         onUpdate: (self) => {
+          if (isDestroyed) return;
           // Map scroll progress (0→1) to t-value along the spline (0→1)
           // Candles travel from right (t=0) to left (t=1) as user scrolls
           const rawT = self.progress;
@@ -228,24 +229,26 @@ function ScrollCandleCanvas() {
           });
         },
         onLeave: () => {
+          if (isDestroyed) return;
           // Lock at left end when scrolled past
           positionCandles(1);
         },
         onEnterBack: () => {
+          if (isDestroyed) return;
           // When scrolling back up into section, restore visibility
           positionCandles(0.98);
         },
       });
-
-      cleanup = () => st.kill();
-    })();
+    };
+    initScrollTrigger();
 
     const onResize = () => resize();
     window.addEventListener("resize", onResize);
 
     return () => {
+      isDestroyed = true;
       window.removeEventListener("resize", onResize);
-      cleanup?.();
+      if (st) st.kill();
     };
   }, []);
 

@@ -57,7 +57,7 @@ export default function Navbar() {
         position: "fixed",
         top: 0, left: 0, right: 0,
         zIndex: 100,
-        transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)",
+        transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
         background: scrolled ? "rgba(12,74,110,0.85)" : "transparent",
         backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
         borderBottom: scrolled ? "1px solid rgba(124,255,239,0.12)" : "none",
@@ -120,7 +120,7 @@ export default function Navbar() {
               background: "rgba(124,255,239,0.08)",
               border: "1px solid rgba(124,255,239,0.15)",
               pointerEvents: "none",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+              transition: "all 0.65s cubic-bezier(0.16, 1, 0.3, 1)",
               transform: "translateY(-50%)",
               opacity: pillStyle.opacity,
               left: pillStyle.left,
@@ -155,7 +155,7 @@ export default function Navbar() {
                 position: "relative",
                 padding: "6px 16px",
                 borderRadius: "8px",
-                transition: "color 0.25s ease",
+                transition: "color 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                 background: "transparent",
                 zIndex: 1,
               }}
@@ -185,7 +185,7 @@ export default function Navbar() {
                     fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "14px",
                     color: "#FFFFFF", background: "transparent", border: "1.5px solid rgba(255,255,255,0.2)",
                     borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
-                    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                    transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = "#7CFFEF";
@@ -206,7 +206,7 @@ export default function Navbar() {
                     fontFamily: "Satoshi, sans-serif", fontWeight: 600, fontSize: "14px",
                     color: "#070B14", background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
                     border: "none", borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
-                    transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                    transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
                     boxShadow: "0 3px 12px rgba(124,255,239,0.3)",
                   }}
                   onMouseEnter={(e) => {
