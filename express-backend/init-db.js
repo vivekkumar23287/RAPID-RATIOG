@@ -22,7 +22,7 @@ async function initDB() {
         candle_time VARCHAR(50),
         candle_date VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(stock_symbol, candle_time)
+        UNIQUE(stock_symbol)
       );
     `;
     await pool.query(query);

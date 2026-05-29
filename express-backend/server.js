@@ -5,7 +5,6 @@ const { Server } = require('socket.io');
 const cron = require('node-cron');
 const cors = require('cors');
 const { scanStocks, pool } = require('./scanner');
-const { fetchAndSaveHistoricalCharts } = require('./archiver');
 const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
@@ -41,16 +40,6 @@ app.get('/api/today', async (req, res) => {
   }
 });
 
-// API route to get all history (optionally filtered by date, etc)
-app.get('/api/history', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM signals_history ORDER BY id DESC');
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ success: false, error: 'Internal Server Error' });
-  }
-});
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -101,66 +90,6 @@ cron.schedule('1,16,31,46 9-15 * * 1-5', async () => {
   timezone: 'Asia/Kolkata'
 });
 
-// Daily Excel export at 4:00 PM IST (Monday-Friday)
-cron.schedule('0 16 * * 1-5', async () => {
-  console.log('Running 4:00 PM automated Excel export...');
-  try {
-    const today = new Date();
-    const optionsDate = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
-    const dateParts = new Intl.DateTimeFormat('en-IN', optionsDate).formatToParts(today);
-    const todayStr = `${dateParts.find(p=>p.type==='day').value}/${dateParts.find(p=>p.type==='month').value}/${dateParts.find(p=>p.type==='year').value}`;
-
-    const { rows } = await pool.query(
-      'SELECT * FROM signals_history WHERE candle_date = $1 ORDER BY id ASC',
-      [todayStr]
-    );
-
-    if (rows.length === 0) {
-      console.log('No signals today to export.');
-      return;
-    }
-
-    const exportData = rows.map(row => ({
-      "Company Name": row.stock_name,
-      "Date": row.candle_date,
-      "Time": row.candle_time,
-      "Timeframe": row.timeframe,
-      "Signal Direction": row.direction === 'UP' ? 'Green (Bullish)' : 'Red (Bearish)'
-    }));
-
-    const ws = xlsx.utils.json_to_sheet(exportData);
-    const wb = xlsx.utils.book_new();
-    xlsx.utils.book_append_sheet(wb, ws, "Today Signals");
-
-    const exportDir = path.join(__dirname, 'exports');
-    if (!fs.existsSync(exportDir)) {
-      fs.mkdirSync(exportDir);
-    }
-
-    const safeDateStr = todayStr.replace(/\//g, '-');
-    const fileName = `Signals_History_${safeDateStr}.xlsx`;
-    const filePath = path.join(exportDir, fileName);
-
-    xlsx.writeFile(wb, filePath);
-    console.log(`Successfully exported today's signals to ${filePath}`);
-  } catch (error) {
-    console.error('Error generating Excel export:', error);
-  }
-}, {
-  timezone: 'Asia/Kolkata'
-});
-
-// Archive Historical Charts at 4:30 PM IST (Monday-Friday)
-cron.schedule('30 16 * * 1-5', async () => {
-  console.log('Triggering daily historical chart archiver...');
-  try {
-    await fetchAndSaveHistoricalCharts();
-  } catch (err) {
-    console.error("Error in historical archiver cron:", err);
-  }
-}, {
-  timezone: 'Asia/Kolkata'
-});
 
 // A manual trigger endpoint for testing without waiting for 15m
 app.post('/api/trigger-scan', async (req, res) => {

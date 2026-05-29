@@ -10,7 +10,6 @@ const navLinks = [
   { label: "Home", href: "/" },
   { label: "NSE", href: "/prices" },
   { label: "Tricks in NSE", href: "/trick-in-nse" },
-  { label: "History", href: "/signal-history" },
   { label: "Crypto", href: "/crypto" },
   { label: "Sheet Flow", href: "/sheetflow" },
 ];

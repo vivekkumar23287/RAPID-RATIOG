@@ -469,8 +469,8 @@ export default function TricksInNSE() {
                         style={{ borderBottom: "1px solid #E2E8F0", background: rowBg, transition: "background 0.2s" }}
                       >
                         <td style={{ padding: "16px 24px" }}>
-                          <div style={{ fontSize: "14px", fontWeight: 800, color: "#0F2044" }}>{sig.candle_time}</div>
-                          <div style={{ fontSize: "11px", color: "#94A3B8" }}>{sig.candle_date}</div>
+                          <div style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", lineHeight: 1.2 }}>{sig.candle_time}</div>
+                          <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>{sig.candle_date}</div>
                         </td>
                         <td style={{ padding: "16px 24px" }}>
                           <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044", cursor: "pointer" }} onClick={() => router.push(`/stock/${sig.stock_symbol}`)}>{sig.stock_symbol}</div>
@@ -482,16 +482,16 @@ export default function TricksInNSE() {
                           </div>
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: isUp ? 600 : 900, color: isUp ? "#64748B" : textColor, fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{sig.open_price.toFixed(2)}
+                          ₹{Number(sig.open_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: !isUp ? 600 : 900, color: !isUp ? "#64748B" : textColor, fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{sig.high_price.toFixed(2)}
+                          ₹{Number(sig.high_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: 600, color: "#64748B", fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{sig.low_price.toFixed(2)}
+                          ₹{Number(sig.low_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: 800, color: "#0F2044", fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{sig.close_price.toFixed(2)}
+                          ₹{Number(sig.close_price).toFixed(2)}
                         </td>
                       </tr>
                     );

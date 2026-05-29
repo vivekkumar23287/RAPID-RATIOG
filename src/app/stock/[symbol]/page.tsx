@@ -408,7 +408,7 @@ export default function StockChartPage() {
     const chart = createChart(container, {
       layout: {
         background: { type: ColorType.Solid, color: "#FFFFFF" },
-        textColor: "#64748B",
+        textColor: "#475569",
         fontFamily: "Satoshi, sans-serif",
         attributionLogo: false,
       },
@@ -429,8 +429,8 @@ export default function StockChartPage() {
       },
       crosshair: {
         mode: 0,
-        vertLine: { labelBackgroundColor: '#0F2044' },
-        horzLine: { labelBackgroundColor: '#0F2044' },
+        vertLine: { labelBackgroundColor: '#E01F2E' },
+        horzLine: { labelBackgroundColor: '#E01F2E' },
       },
       rightPriceScale: {
         borderColor: "#E2E8F0",
@@ -448,12 +448,12 @@ export default function StockChartPage() {
     });
 
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
-      downColor: "#ef4444",
-      borderDownColor: "#ef4444",
-      borderUpColor: "#22c55e",
-      wickDownColor: "#ef4444",
-      wickUpColor: "#22c55e",
+      upColor: "#26a69a",
+      downColor: "#ef5350",
+      borderDownColor: "#ef5350",
+      borderUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
+      wickUpColor: "#26a69a",
     });
 
     chartRef.current = chart;
@@ -570,7 +570,7 @@ export default function StockChartPage() {
         const rsiChart = createChart(rsiContainerRef.current, {
           width: rsiContainerRef.current.clientWidth,
           height: rsiContainerRef.current.clientHeight,
-          layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#94A3B8", fontFamily: "Satoshi, sans-serif" },
+          layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#475569", fontFamily: "Satoshi, sans-serif" },
           grid: { vertLines: { visible: false }, horzLines: { color: "#F1F5F9" } },
           timeScale: { 
             visible: false,
@@ -991,447 +991,537 @@ export default function StockChartPage() {
 
   return (
     <main style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative" }}>
-      {/* Page header */}
+      {/* Unified Top Controls Bar */}
       <div
         style={{
-          maxWidth: "1280px",
+          maxWidth: "100%",
           margin: "0 auto",
           width: "100%",
-          padding: "16px 24px 8px",
+          padding: "12px 24px 12px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: "12px",
+          gap: "16px",
           position: "relative",
-          zIndex: 2
+          zIndex: 10,
+          borderBottom: "1px solid #E2E8F0",
+          background: "#FFFFFF"
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
-            <h1
-              style={{
-                fontFamily: "Satoshi, sans-serif",
-                fontWeight: 900,
-                fontSize: "22px",
-                color: "#0F2044",
-                margin: 0,
-                letterSpacing: "-0.5px",
-              }}
-            >
-              {displayName}{" "}
-              <span style={{ color: "#94A3B8", fontWeight: 700, fontSize: "14px" }}>
-                {rawSymbol.toUpperCase()}
-              </span>
-              {isSyncing && (
-                <span style={{ fontSize: "10px", marginLeft: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite" }}>Syncing...</span>
-              )}
-            </h1>
-          </div>
-        </div>
-
-        <a
-          href="/prices"
-          style={{
-            fontFamily: "Satoshi, sans-serif",
-            fontSize: "13px",
-            fontWeight: 700,
-            color: "#0F2044",
-            textDecoration: "none",
-            border: "1.5px solid #E2E8F0",
-            borderRadius: "10px",
-            padding: "8px 18px",
-            background: "#F8FAFC",
-            transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-            display: "inline-block",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "#E01F2E";
-            e.currentTarget.style.borderColor = "#E01F2E";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "#F1F5F9";
-            e.currentTarget.style.borderColor = "#CBD5E1";
-          }}
-        >
-          ← Back to Prices
-        </a>
-      </div>
-
-      {/* Time range selector */}
-      <div
-        style={{
-          maxWidth: "1280px",
-          margin: "0 auto",
-          width: "100%",
-          padding: "4px 24px 8px",
-          display: "flex",
-          gap: "6px",
-          position: "relative",
-          zIndex: 2
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '16px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Date:</span>
-          <input
-            type="date"
-            value={selectedDate}
-            max={new Date().toISOString().split("T")[0]}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: '8px',
-              border: '1px solid #E2E8F0',
-              background: '#F8FAFC',
-              fontFamily: 'Satoshi, sans-serif',
-              fontSize: '13px',
-              color: '#0F2044',
-              outline: 'none'
-            }}
-          />
-          {selectedDate && (
-            <button
-              onClick={() => setSelectedDate("")}
-              style={{
-                background: '#E01F2E',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 12px',
-                fontSize: '12px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: "all 0.2s"
-              }}
-            >
-              Live
-            </button>
-          )}
-        </div>
-
-        {timeframes.map((tf) => (
-          <button
-            key={tf.interval}
-            onClick={() => handleTimeframeChange(tf)}
+        {/* Left Section: Stock Title Details */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <h1
             style={{
               fontFamily: "Satoshi, sans-serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              padding: "6px 14px",
-              borderRadius: "8px",
-              border: "1px solid #E2E8F0",
-              cursor: "pointer",
-              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-              background: timeframe.interval === tf.interval ? "#0F2044" : "#F8FAFC",
-              color: timeframe.interval === tf.interval ? "#FFFFFF" : "#64748B",
-            }}
-          >
-            {tf.label}
-          </button>
-        ))}
-
-        {/* Indicator Button */}
-        <div style={{ position: "relative", marginLeft: "8px" }}>
-          <button
-            onClick={() => setShowIndicatorMenu(!showIndicatorMenu)}
-            style={{
-              fontFamily: "Satoshi, sans-serif",
-              fontSize: "13px",
-              fontWeight: 700,
-              padding: "6px 14px",
-              borderRadius: "8px",
-              border: "1px solid #E2E8F0",
-              cursor: "pointer",
-              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-              background: showIndicatorMenu ? "#E01F2E" : "#F8FAFC",
-              color: showIndicatorMenu ? "#FFFFFF" : "#0F2044",
+              fontWeight: 900,
+              fontSize: "20px",
+              color: "#0F2044",
+              margin: 0,
+              letterSpacing: "-0.5px",
+              whiteSpace: "nowrap",
               display: "flex",
-              alignItems: "center",
+              alignItems: "baseline",
               gap: "6px"
             }}
           >
-            <ChartLineUp size={16} weight="bold" />
-            Indicators
-          </button>
-
-          {showIndicatorMenu && (
-            <div style={{
-              position: "absolute",
-              top: "40px",
-              left: "0",
-              width: "260px",
-              background: "rgba(15,32,68,0.85)",
-              backdropFilter: "blur(30px)",
-              borderRadius: "14px",
-              boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
-              border: "1px solid rgba(255,255,255,0.12)",
-              zIndex: 1000,
-              padding: "0",
-              display: "flex",
-              flexDirection: "column",
-              overflow: "hidden"
-            }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
-                <span style={{ fontWeight: 800, fontSize: "13px", color: "#FFFFFF", textTransform: "uppercase", letterSpacing: "0.5px" }}>Indicators</span>
-                <button onClick={() => setShowIndicatorMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: "14px" }}>✕</button>
-              </div>
-
-              <div style={{ maxHeight: "380px", overflowY: "auto", padding: "6px" }}>
-                {/* EMA Section */}
-                <div style={{ marginBottom: "6px", border: "1px solid #f1f5f9", borderRadius: "8px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "6px 10px",
-                      background: (indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled) ? "#f1f5f9" : "white",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <input
-                        id="ema-toggle"
-                        type="checkbox"
-                        checked={indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, enabled: val }, ema2: { ...indicatorSettings.ema2, enabled: val } });
-                        }}
-                      />
-                      <label htmlFor="ema-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#334155", cursor: "pointer" }}>EMA Cross</label>
-                    </div>
-                  </div>
-
-                  {(indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled) && (
-                    <div style={{ padding: "8px 10px", borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "8px" }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b" }}>SHORT EMA</span>
-                          <input type="color" value={indicatorSettings.ema1.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, color: e.target.value } })} style={{ width: "16px", height: "16px", border: "none", padding: 0, background: "none" }} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "10px", color: "#475569", width: "35px" }}>Len</span>
-                          <input type="number" value={indicatorSettings.ema1.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                        </div>
-                      </div>
-                      <div style={{ paddingTop: "8px", borderTop: "1px solid #f1f5f9" }}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                          <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748b" }}>LONG EMA</span>
-                          <input type="color" value={indicatorSettings.ema2.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema2: { ...indicatorSettings.ema2, color: e.target.value } })} style={{ width: "16px", height: "16px", border: "none", padding: 0, background: "none" }} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontSize: "10px", color: "#475569", width: "35px" }}>Len</span>
-                          <input type="number" value={indicatorSettings.ema2.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema2: { ...indicatorSettings.ema2, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Bollinger Bands Section */}
-                <div style={{ marginBottom: "6px", border: "1px solid #f1f5f9", borderRadius: "8px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "6px 10px",
-                      background: indicatorSettings.bb.enabled ? "#f1f5f9" : "white",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <input
-                        id="bb-toggle"
-                        type="checkbox"
-                        checked={indicatorSettings.bb.enabled}
-                        onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, enabled: e.target.checked } })}
-                      />
-                      <label htmlFor="bb-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#334155", cursor: "pointer" }}>Bollinger Bands</label>
-                    </div>
-                  </div>
-                  {indicatorSettings.bb.enabled && (
-                    <div style={{ padding: "8px 10px", borderTop: "1px solid #f1f5f9", display: "flex", flexDirection: "column", gap: "6px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "10px", color: "#475569", width: "35px" }}>Len</span>
-                        <input type="number" value={indicatorSettings.bb.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                        <span style={{ fontSize: "10px", color: "#475569", width: "35px" }}>StdD</span>
-                        <input type="number" step="0.1" value={indicatorSettings.bb.stdDev} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, stdDev: parseFloat(e.target.value) || 0.1 } })} style={{ flex: 1, padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* RSI Section */}
-                <div style={{ border: "1px solid #f1f5f9", borderRadius: "8px", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "6px 10px",
-                      background: indicatorSettings.rsi.enabled ? "#f1f5f9" : "white",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <input
-                        id="rsi-toggle"
-                        type="checkbox"
-                        checked={indicatorSettings.rsi.enabled}
-                        onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, enabled: e.target.checked } })}
-                      />
-                      <label htmlFor="rsi-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#334155", cursor: "pointer" }}>RSI Indicator</label>
-                    </div>
-                  </div>
-
-                  {indicatorSettings.rsi.enabled && (
-                    <div style={{ padding: "0 10px 10px 10px", borderTop: "1px solid #f1f5f9" }}>
-                      <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #f1f5f9", marginBottom: "8px" }}>
-                        <button onClick={() => setRsiTab('inputs')} style={{ padding: "4px 0", fontSize: "10px", fontWeight: 700, border: "none", background: "none", borderBottom: rsiTab === 'inputs' ? "2px solid #0F2044" : "2px solid transparent", color: rsiTab === 'inputs' ? "#0F2044" : "#94a3b8", cursor: "pointer" }}>Inputs</button>
-                        <button onClick={() => setRsiTab('style')} style={{ padding: "4px 0", fontSize: "10px", fontWeight: 700, border: "none", background: "none", borderBottom: rsiTab === 'style' ? "2px solid #0F2044" : "2px solid transparent", color: rsiTab === 'style' ? "#0F2044" : "#94a3b8", cursor: "pointer" }}>Style</button>
-                      </div>
-
-                      {rsiTab === 'inputs' ? (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "10px", color: "#475569" }}>RSI Length</span>
-                            <input type="number" value={indicatorSettings.rsi.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, period: parseInt(e.target.value) || 1 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "10px", color: "#475569" }}>Smooth Length</span>
-                            <input type="number" value={indicatorSettings.rsi.smoothingLength} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, smoothingLength: parseInt(e.target.value) || 1 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "10px" }} />
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", flexDirection: "column", gap: "5px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "10px", color: "#475569" }}>RSI Color</span>
-                            <input type="color" value={indicatorSettings.rsi.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, color: e.target.value } })} style={{ width: "16px", height: "16px", border: "none", background: "none" }} />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "10px", color: "#475569" }}>MA Color</span>
-                            <input type="color" value={indicatorSettings.rsi.maColor} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, maColor: e.target.value } })} style={{ width: "16px", height: "16px", border: "none", background: "none" }} />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "4px", borderTop: "1px dashed #f1f5f9" }}>
-                            <span style={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700 }}>UPPER</span>
-                            <input type="number" value={indicatorSettings.rsi.upperLimit} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, upperLimit: parseInt(e.target.value) || 0 } })} style={{ width: "35px", padding: "2px 4px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "9px" }} />
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <span style={{ fontSize: "9px", color: "#94a3b8", fontWeight: 700 }}>LOWER</span>
-                            <input type="number" value={indicatorSettings.rsi.lowerLimit} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, lowerLimit: parseInt(e.target.value) || 0 } })} style={{ width: "35px", padding: "2px 4px", borderRadius: "4px", border: "1px solid #e2e8f0", fontSize: "9px" }} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            {displayName}{" "}
+            <span style={{ color: "#94A3B8", fontWeight: 700, fontSize: "13px" }}>
+              {rawSymbol.toUpperCase()}
+            </span>
+          </h1>
+          {isSyncing && (
+            <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite", whiteSpace: "nowrap" }}>Syncing...</span>
           )}
         </div>
 
-        {/* Layout Manager - Moved here */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginLeft: "8px" }}>
-          <select
-            value={activeLayoutId}
-            onChange={(e) => setActiveLayoutId(e.target.value)}
-            style={{
-              padding: "6px 12px",
-              borderRadius: "8px",
-              border: "none",
-              background: "rgba(15,32,68,0.06)",
-              fontFamily: "Satoshi, sans-serif",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: "#0F2044",
-              cursor: "pointer",
-              outline: "none"
-            }}
-          >
-            {layouts.map(l => (
-              <option key={l.id} value={l.id}>{l.name}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => {
-              const name = prompt("Enter a name for the new chart layout:");
-              if (name && name.trim() !== "") {
-                const newId = Date.now().toString();
-                setLayouts(prev => [...prev, { id: newId, name: name.trim(), lines: [] }]);
-                setActiveLayoutId(newId);
-              }
-            }}
-            style={{
-              background: "#0F2044",
-              border: "none",
-              borderRadius: "8px",
-              padding: "6px 12px",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "white",
-              cursor: "pointer"
-            }}
-          >
-            + New
-          </button>
-          {layouts.length > 1 && (
-            <button
-              onClick={() => {
-                if (confirm("Are you sure you want to delete this layout?")) {
-                  const newLayouts = layouts.filter(l => l.id !== activeLayoutId);
-                  setLayouts(newLayouts);
-                  setActiveLayoutId(newLayouts[0].id);
-                }
-              }}
-              title="Delete Layout"
+        {/* Center Section: Controls (Date, Interval, Indicators, Layouts) */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start", marginLeft: "12px" }}>
+          
+          {/* Date Picker */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', fontFamily: 'Satoshi, sans-serif' }}>Date:</span>
+            <input
+              type="date"
+              value={selectedDate}
+              max={new Date().toISOString().split("T")[0]}
+              onChange={(e) => setSelectedDate(e.target.value)}
               style={{
-                background: "rgba(239,68,68,0.1)",
-                border: "none",
-                borderRadius: "8px",
-                padding: "6px 8px",
+                padding: '6px 10px',
+                borderRadius: '8px',
+                border: '1.5px solid #E2E8F0',
+                background: '#F8FAFC',
+                fontFamily: 'Satoshi, sans-serif',
+                fontSize: '12px',
+                fontWeight: 600,
+                color: '#0F2044',
+                outline: 'none',
+                transition: 'all 0.2s',
+              }}
+              onFocus={(e) => e.currentTarget.style.borderColor = "#0F2044"}
+              onBlur={(e) => e.currentTarget.style.borderColor = "#E2E8F0"}
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate("")}
+                style={{
+                  background: '#E01F2E',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '6px 12px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                  boxShadow: "0 2px 8px rgba(224, 31, 46, 0.25)"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
+                onMouseLeave={(e) => e.currentTarget.style.transform = "none"}
+              >
+                Live
+              </button>
+            )}
+          </div>
+
+          <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+
+          {/* Timeframe Selectors */}
+          <div style={{ display: "flex", gap: "4px" }}>
+            {timeframes.map((tf) => {
+              const isActive = timeframe.interval === tf.interval;
+              return (
+                <button
+                  key={tf.interval}
+                  onClick={() => handleTimeframeChange(tf)}
+                  style={{
+                    fontFamily: "Satoshi, sans-serif",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    padding: "6px 12px",
+                    borderRadius: "8px",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                    background: isActive ? "#0F2044" : "#F1F5F9",
+                    color: isActive ? "#FFFFFF" : "#475569",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "#E2E8F0";
+                      e.currentTarget.style.color = "#0F2044";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.background = "#F1F5F9";
+                      e.currentTarget.style.color = "#475569";
+                    }
+                  }}
+                >
+                  {tf.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+
+          {/* Indicator Settings Toggle Menu */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowIndicatorMenu(!showIndicatorMenu)}
+              style={{
+                fontFamily: "Satoshi, sans-serif",
                 fontSize: "12px",
                 fontWeight: 700,
-                color: "#EF4444",
-                cursor: "pointer"
+                padding: "6px 12px",
+                borderRadius: "8px",
+                border: "none",
+                cursor: "pointer",
+                transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                background: showIndicatorMenu ? "#E01F2E" : "#0F2044",
+                color: "#FFFFFF",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: showIndicatorMenu ? "0 4px 12px rgba(224, 31, 46, 0.2)" : "0 4px 12px rgba(15, 32, 68, 0.1)"
               }}
             >
-              ✕
+              <ChartLineUp size={14} weight="bold" />
+              Indicators
             </button>
-          )}
+
+            {showIndicatorMenu && (
+              <div style={{
+                position: "absolute",
+                top: "40px",
+                left: "0",
+                width: "280px",
+                background: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(24px)",
+                borderRadius: "14px",
+                boxShadow: "0 24px 80px rgba(15, 32, 68, 0.12)",
+                border: "1px solid #E2E8F0",
+                zIndex: 1000,
+                padding: "0",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden"
+              }}>
+                <div style={{ 
+                  display: "flex", 
+                  justifyContent: "space-between", 
+                  alignItems: "center", 
+                  padding: "12px 16px", 
+                  borderBottom: "1px solid #E2E8F0", 
+                  background: "#F8FAFC" 
+                }}>
+                  <span style={{ fontWeight: 800, fontSize: "12px", color: "#0F2044", textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: "Satoshi, sans-serif" }}>Indicator Options</span>
+                  <button 
+                    onClick={() => setShowIndicatorMenu(false)} 
+                    style={{ 
+                      background: "none", 
+                      border: "none", 
+                      cursor: "pointer", 
+                      color: "rgba(15, 32, 68, 0.4)", 
+                      fontSize: "14px",
+                      transition: "color 0.2s" 
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "#0F2044"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "rgba(15, 32, 68, 0.4)"}
+                  >✕</button>
+                </div>
+
+                <div style={{ maxHeight: "380px", overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                  {/* EMA Section */}
+                  <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                        background: (indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled) ? "#F1F5F9" : "transparent",
+                        borderBottom: (indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled) ? "1px solid #E2E8F0" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          id="ema-toggle"
+                          type="checkbox"
+                          checked={indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled}
+                          onChange={(e) => {
+                            const val = e.target.checked;
+                            setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, enabled: val }, ema2: { ...indicatorSettings.ema2, enabled: val } });
+                          }}
+                          style={{ cursor: "pointer", accentColor: "#E01F2E" }}
+                        />
+                        <label htmlFor="ema-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#0F2044", cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>EMA Ribbon (Cross)</label>
+                      </div>
+                    </div>
+
+                    {(indicatorSettings.ema1.enabled || indicatorSettings.ema2.enabled) && (
+                      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>SHORT EMA</span>
+                            <input type="color" value={indicatorSettings.ema1.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, color: e.target.value } })} style={{ width: "20px", height: "20px", border: "none", padding: 0, background: "none", cursor: "pointer" }} />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "10px", color: "#475569", width: "35px", fontFamily: "Satoshi, sans-serif" }}>Period</span>
+                            <input type="number" value={indicatorSettings.ema1.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema1: { ...indicatorSettings.ema1, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                          </div>
+                        </div>
+                        <div style={{ paddingTop: "10px", borderTop: "1px solid #E2E8F0" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                            <span style={{ fontSize: "10px", fontWeight: 700, color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>LONG EMA</span>
+                            <input type="color" value={indicatorSettings.ema2.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema2: { ...indicatorSettings.ema2, color: e.target.value } })} style={{ width: "20px", height: "20px", border: "none", padding: 0, background: "none", cursor: "pointer" }} />
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontSize: "10px", color: "#475569", width: "35px", fontFamily: "Satoshi, sans-serif" }}>Period</span>
+                            <input type="number" value={indicatorSettings.ema2.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, ema2: { ...indicatorSettings.ema2, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bollinger Bands Section */}
+                  <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                        background: indicatorSettings.bb.enabled ? "#F1F5F9" : "transparent",
+                        borderBottom: indicatorSettings.bb.enabled ? "1px solid #E2E8F0" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          id="bb-toggle"
+                          type="checkbox"
+                          checked={indicatorSettings.bb.enabled}
+                          onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, enabled: e.target.checked } })}
+                          style={{ cursor: "pointer", accentColor: "#E01F2E" }}
+                        />
+                        <label htmlFor="bb-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#0F2044", cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>Bollinger Bands</label>
+                      </div>
+                    </div>
+                    {indicatorSettings.bb.enabled && (
+                      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "10px", color: "#475569", width: "45px", fontFamily: "Satoshi, sans-serif" }}>Length</span>
+                          <input type="number" value={indicatorSettings.bb.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, period: parseInt(e.target.value) || 1 } })} style={{ flex: 1, padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontSize: "10px", color: "#475569", width: "45px", fontFamily: "Satoshi, sans-serif" }}>StdDev</span>
+                          <input type="number" step="0.1" value={indicatorSettings.bb.stdDev} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, bb: { ...indicatorSettings.bb, stdDev: parseFloat(e.target.value) || 0.1 } })} style={{ flex: 1, padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* RSI Section */}
+                  <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                        background: indicatorSettings.rsi.enabled ? "#F1F5F9" : "transparent",
+                        borderBottom: indicatorSettings.rsi.enabled ? "1px solid #E2E8F0" : "none"
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <input
+                          id="rsi-toggle"
+                          type="checkbox"
+                          checked={indicatorSettings.rsi.enabled}
+                          onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, enabled: e.target.checked } })}
+                          style={{ cursor: "pointer", accentColor: "#E01F2E" }}
+                        />
+                        <label htmlFor="rsi-toggle" style={{ fontWeight: 700, fontSize: "12px", color: "#0F2044", cursor: "pointer", fontFamily: "Satoshi, sans-serif" }}>RSI Oscillator</label>
+                      </div>
+                    </div>
+
+                    {indicatorSettings.rsi.enabled && (
+                      <div style={{ padding: "0 12px 12px 12px" }}>
+                        <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #E2E8F0", marginBottom: "10px" }}>
+                          <button onClick={() => setRsiTab('inputs')} style={{ padding: "6px 0", fontSize: "11px", fontWeight: 700, border: "none", background: "none", borderBottom: rsiTab === 'inputs' ? "2px solid #E01F2E" : "2px solid transparent", color: rsiTab === 'inputs' ? "#0F2044" : "rgba(15, 32, 68, 0.4)", cursor: "pointer", transition: "all 0.2s" }}>Inputs</button>
+                          <button onClick={() => setRsiTab('style')} style={{ padding: "6px 0", fontSize: "11px", fontWeight: 700, border: "none", background: "none", borderBottom: rsiTab === 'style' ? "2px solid #E01F2E" : "2px solid transparent", color: rsiTab === 'style' ? "#0F2044" : "rgba(15, 32, 68, 0.4)", cursor: "pointer", transition: "all 0.2s" }}>Style</button>
+                        </div>
+
+                        {rsiTab === 'inputs' ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "10px", color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>RSI Length</span>
+                              <input type="number" value={indicatorSettings.rsi.period} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, period: parseInt(e.target.value) || 1 } })} style={{ width: "55px", padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "10px", color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>MA Smooth</span>
+                              <input type="number" value={indicatorSettings.rsi.smoothingLength} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, smoothingLength: parseInt(e.target.value) || 1 } })} style={{ width: "55px", padding: "4px 8px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "11px", outline: "none" }} />
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "10px", color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>RSI Line</span>
+                              <input type="color" value={indicatorSettings.rsi.color} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, color: e.target.value } })} style={{ width: "20px", height: "20px", border: "none", background: "none", cursor: "pointer" }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "10px", color: "#64748B", fontFamily: "Satoshi, sans-serif" }}>Signal MA</span>
+                              <input type="color" value={indicatorSettings.rsi.maColor} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, maColor: e.target.value } })} style={{ width: "20px", height: "20px", border: "none", background: "none", cursor: "pointer" }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "6px", borderTop: "1px dashed #E2E8F0" }}>
+                              <span style={{ fontSize: "9px", color: "#64748B", fontWeight: 700, fontFamily: "Satoshi, sans-serif" }}>UPPER LIMIT</span>
+                              <input type="number" value={indicatorSettings.rsi.upperLimit} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, upperLimit: parseInt(e.target.value) || 0 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "10px", outline: "none" }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "9px", color: "#64748B", fontWeight: 700, fontFamily: "Satoshi, sans-serif" }}>LOWER LIMIT</span>
+                              <input type="number" value={indicatorSettings.rsi.lowerLimit} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, lowerLimit: parseInt(e.target.value) || 0 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "10px", outline: "none" }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+
+          {/* Layout Manager */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <select
+              value={activeLayoutId}
+              onChange={(e) => setActiveLayoutId(e.target.value)}
+              style={{
+                padding: "6px 10px",
+                borderRadius: "8px",
+                border: "1.5px solid #E2E8F0",
+                background: "#F8FAFC",
+                fontFamily: "Satoshi, sans-serif",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "#0F2044",
+                cursor: "pointer",
+                outline: "none"
+              }}
+            >
+              {layouts.map(l => (
+                <option key={l.id} value={l.id}>{l.name}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => {
+                const name = prompt("Enter a name for the new chart layout:");
+                if (name && name.trim() !== "") {
+                  const newId = Date.now().toString();
+                  setLayouts(prev => [...prev, { id: newId, name: name.trim(), lines: [], texts: [] }]);
+                  setActiveLayoutId(newId);
+                }
+              }}
+              style={{
+                background: "#0F2044",
+                border: "none",
+                borderRadius: "8px",
+                padding: "6px 12px",
+                fontSize: "12px",
+                fontWeight: 700,
+                color: "white",
+                cursor: "pointer",
+                transition: "all 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+                boxShadow: "0 2px 8px rgba(15, 32, 68, 0.15)"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-1px)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "none"}
+            >
+              + New Layout
+            </button>
+            {layouts.length > 1 && (
+              <button
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this layout?")) {
+                    const newLayouts = layouts.filter(l => l.id !== activeLayoutId);
+                    setLayouts(newLayouts);
+                    setActiveLayoutId(newLayouts[0].id);
+                  }
+                }}
+                title="Delete Layout"
+                style={{
+                  background: "rgba(239,68,68,0.1)",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#EF4444",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.1)"}
+              >
+                ✕ Delete
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Right Section: Back to Prices Action */}
+        <div>
+          <a
+            href="/prices"
+            style={{
+              fontFamily: "Satoshi, sans-serif",
+              fontSize: "12px",
+              fontWeight: 700,
+              color: "#0F2044",
+              textDecoration: "none",
+              border: "1.5px solid #E2E8F0",
+              borderRadius: "8px",
+              padding: "8px 16px",
+              background: "#F8FAFC",
+              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              display: "inline-block",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#E01F2E";
+              e.currentTarget.style.borderColor = "#E01F2E";
+              e.currentTarget.style.color = "#FFFFFF";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#F8FAFC";
+              e.currentTarget.style.borderColor = "#E2E8F0";
+              e.currentTarget.style.color = "#0F2044";
+            }}
+          >
+            ← Back to Prices
+          </a>
         </div>
       </div>
 
       {/* Workspace */}
       <div
         style={{
-          maxWidth: "1280px",
+          maxWidth: "100%",
           margin: "0 auto",
           width: "100%",
           padding: "0 24px 24px",
           flex: 1,
           display: "flex",
           gap: "16px",
+          minHeight: 0
         }}
       >
         {/* Left Toolbar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px", width: "48px", paddingTop: "8px" }}>
+        <div style={{ 
+          display: "flex", 
+          flexDirection: "column", 
+          gap: "10px", 
+          width: "56px", 
+          padding: "12px 6px",
+          background: "#FFFFFF",
+          borderRadius: "16px",
+          border: "1px solid #E2E8F0",
+          boxShadow: "0 4px 20px rgba(15,32,68,0.05)",
+          alignItems: "center"
+        }}>
           <button
             onClick={() => setDrawingMode(drawingMode === 'line' ? null : 'line')}
             title="Horizontal Line"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
+              width: "44px",
+              height: "44px",
+              borderRadius: "10px",
               border: "none",
-              background: drawingMode === 'line' ? "#0F2044" : "white",
-              color: drawingMode === 'line' ? "white" : "#0F2044",
+              background: drawingMode === 'line' ? "#E01F2E" : "transparent",
+              color: drawingMode === 'line' ? "white" : "#64748B",
               cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(15,32,68,0.06)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transition: "all 0.2s"
+              transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+              fontSize: "18px",
+              fontWeight: "bold"
+            }}
+            onMouseEnter={(e) => {
+              if (drawingMode !== 'line') {
+                e.currentTarget.style.background = "#F1F5F9";
+                e.currentTarget.style.color = "#0F2044";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (drawingMode !== 'line') {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "#64748B";
+              }
             }}
           >
             —
@@ -1441,21 +1531,32 @@ export default function StockChartPage() {
             onClick={() => setDrawingMode(drawingMode === 'text' ? null : 'text')}
             title="Note Text"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
+              width: "44px",
+              height: "44px",
+              borderRadius: "10px",
               border: "none",
-              background: drawingMode === 'text' ? "#0F2044" : "white",
-              color: drawingMode === 'text' ? "white" : "#0F2044",
+              background: drawingMode === 'text' ? "#E01F2E" : "transparent",
+              color: drawingMode === 'text' ? "white" : "#64748B",
               cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(15,32,68,0.06)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              transition: "all 0.2s",
+              transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
               fontSize: "18px",
               fontWeight: 800,
               fontFamily: "serif"
+            }}
+            onMouseEnter={(e) => {
+              if (drawingMode !== 'text') {
+                e.currentTarget.style.background = "#F1F5F9";
+                e.currentTarget.style.color = "#0F2044";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (drawingMode !== 'text') {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.color = "#64748B";
+              }
             }}
           >
             T
@@ -1463,39 +1564,46 @@ export default function StockChartPage() {
 
           <button
             onClick={() => {
-              // Clear all drawings
-              if (candleSeriesRef.current) {
-                Object.values(linesRef.current).forEach(item => {
-                  try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
+              if (confirm("Clear all drawings and annotations?")) {
+                if (candleSeriesRef.current) {
+                  Object.values(linesRef.current).forEach(item => {
+                    try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
+                  });
+                  linesRef.current = {};
+                }
+                setLayouts(prev => {
+                  const updated = prev.map(l =>
+                    l.id === activeLayoutId ? { ...l, lines: [], texts: [] } : l
+                  );
+                  const current = updated.find(l => l.id === activeLayoutId);
+                  if (current) saveLayoutToDb(current);
+                  return updated;
                 });
-                linesRef.current = {};
               }
-              // Clear from active layout state
-              setLayouts(prev => {
-                const updated = prev.map(l =>
-                  l.id === activeLayoutId ? { ...l, lines: [], texts: [] } : l
-                );
-                const current = updated.find(l => l.id === activeLayoutId);
-                if (current) saveLayoutToDb(current);
-                return updated;
-              });
             }}
             title="Clear Drawings"
             style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "12px",
+              width: "44px",
+              height: "44px",
+              borderRadius: "10px",
               border: "none",
-              background: "white",
+              background: "transparent",
               color: "#94A3B8",
               cursor: "pointer",
-              boxShadow: "0 2px 10px rgba(15,32,68,0.06)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
-              fontSize: "14px",
+              fontSize: "16px",
               marginTop: "auto"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
+              e.currentTarget.style.color = "#EF4444";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "#94A3B8";
             }}
           >
             🗑
@@ -1507,16 +1615,90 @@ export default function StockChartPage() {
           style={{
             flex: 1,
             minHeight: 0,
-            background: "white",
-            borderRadius: "20px",
+            background: "#FFFFFF",
+            borderRadius: "24px",
             overflow: "hidden",
-            boxShadow: "0 4px 32px rgba(15,32,68,0.07)",
-            border: `1.5px solid ${isPositive ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"}`,
+            boxShadow: "0 4px 32px rgba(15,32,68,0.06)",
+            border: "1px solid #E2E8F0",
             position: "relative",
             display: "flex",
             flexDirection: "column",
           }}
         >
+          {loading && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255, 255, 255, 0.8)",
+                backdropFilter: "blur(12px)",
+                zIndex: 1000,
+              }}
+            >
+              <div style={{ textAlign: "center" }}>
+                <div
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    border: "3px solid rgba(15,32,68,0.05)",
+                    borderTop: "3px solid #E01F2E",
+                    borderRadius: "50%",
+                    animation: "spin 0.8s linear infinite",
+                    margin: "0 auto 12px",
+                  }}
+                />
+                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#64748B", fontSize: "14px", fontWeight: 500 }}>
+                  Loading {displayName} chart...
+                </p>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255, 255, 255, 0.8)",
+                backdropFilter: "blur(12px)",
+                zIndex: 1000,
+              }}
+            >
+              <div style={{ textAlign: "center", padding: "40px" }}>
+                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#FF5B6A", fontSize: "16px", fontWeight: 700 }}>
+                  Failed to load chart
+                </p>
+                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#64748B", fontSize: "13px", marginTop: "8px" }}>
+                  {error}
+                </p>
+                <button
+                  onClick={() => handleTimeframeChange({ ...timeframe })}
+                  style={{
+                    marginTop: "16px",
+                    fontFamily: "Satoshi, sans-serif",
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    padding: "8px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#E01F2E",
+                    color: "white",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Floating OHLC Legend (TradingView Style) */}
           {(() => {
             const activeCandle = hoveredCandle || (stockData?.candles && stockData.candles.length > 0 ? stockData.candles[stockData.candles.length - 1] : null);
@@ -1530,7 +1712,7 @@ export default function StockChartPage() {
             const changePercentVal = openVal ? (changeVal / openVal) * 100 : 0;
             
             const isUp = closeVal >= openVal;
-            const valColor = isUp ? "#22c55e" : "#ef4444";
+            const valColor = isUp ? "#26a69a" : "#ef5350";
             
             const formatNum = (num: number) => {
               return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1539,39 +1721,39 @@ export default function StockChartPage() {
             return (
               <div style={{
                 position: "absolute",
-                top: "14px",
-                left: "14px",
+                top: "16px",
+                left: "16px",
                 zIndex: 100,
                 pointerEvents: "none",
                 display: "flex",
                 alignItems: "center",
                 flexWrap: "wrap",
-                gap: "8px",
+                gap: "10px",
                 background: "rgba(255, 255, 255, 0.85)",
-                backdropFilter: "blur(8px)",
-                padding: "6px 12px",
-                borderRadius: "8px",
-                border: "1.5px solid rgba(226, 232, 240, 0.8)",
+                backdropFilter: "blur(12px)",
+                padding: "6px 14px",
+                borderRadius: "10px",
+                border: "1px solid #E2E8F0",
                 fontFamily: "Satoshi, sans-serif",
                 fontSize: "12px",
-                fontWeight: 700,
+                fontWeight: 600,
                 boxShadow: "0 4px 20px rgba(15,32,68,0.05)",
                 color: "#1E293B"
               }}>
                 <span style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>O</span>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "4px" }}>O</span>
                   <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(openVal)}</span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>H</span>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "4px" }}>H</span>
                   <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(highVal)}</span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>L</span>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "4px" }}>L</span>
                   <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(lowVal)}</span>
                 </span>
                 <span style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "3px" }}>C</span>
+                  <span style={{ color: "#64748B", fontWeight: 700, marginRight: "4px" }}>C</span>
                   <span style={{ color: valColor, marginRight: "8px" }}>{formatNum(closeVal)}</span>
                 </span>
                 <span style={{ color: valColor, fontWeight: 800, marginLeft: "4px" }}>
@@ -1580,22 +1762,23 @@ export default function StockChartPage() {
               </div>
             );
           })()}
+
           {/* Floating Line Toolbar */}
           {lineToolbarPos && selectedLineId && (
             <div style={{
               position: "absolute",
-              left: `${Math.min(lineToolbarPos.x, (chartContainerRef.current?.clientWidth || 800) - 280)}px`,
-              top: `${Math.max(lineToolbarPos.y - 60, 10)}px`,
+              left: `${Math.min(lineToolbarPos.x, (chartContainerRef.current?.clientWidth || 800) - 340)}px`,
+              top: `${Math.max(lineToolbarPos.y - 70, 16)}px`,
               zIndex: 2000,
-              background: "rgba(15, 32, 68, 0.95)",
-              backdropFilter: "blur(8px)",
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
               borderRadius: "12px",
-              padding: "8px 12px",
+              padding: "8px 14px",
               display: "flex",
               alignItems: "center",
               gap: "12px",
-              boxShadow: "0 12px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1)",
-              color: "white",
+              boxShadow: "0 20px 48px rgba(15, 32, 68, 0.12)",
+              color: "#0F2044",
               pointerEvents: "auto",
               animation: "fadeIn 0.2s ease-out"
             }}>
@@ -1604,7 +1787,7 @@ export default function StockChartPage() {
                 onClick={(e) => { e.stopPropagation(); deleteSelectedLine(); }}
                 title="Delete Line"
                 style={{ 
-                  background: "rgba(239,68,68,0.2)", 
+                  background: "rgba(239,68,68,0.15)", 
                   border: "none", 
                   borderRadius: "6px", 
                   width: "28px", 
@@ -1617,19 +1800,19 @@ export default function StockChartPage() {
                   justifyContent: "center",
                   transition: "all 0.2s"
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.4)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.2)"}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.3)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(239,68,68,0.15)"}
               >🗑</button>
 
-              <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.15)" }} />
+              <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
               {/* Color Picker */}
-              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
                 <input
                   type="color"
                   value={layouts.find(l => l.id === activeLayoutId)?.lines.find(line => line.id === selectedLineId)?.color || "#0F2044"}
                   onChange={(e) => updateSelectedLine({ color: e.target.value })}
-                  style={{ width: "24px", height: "24px", border: "2px solid white", borderRadius: "4px", padding: 0, background: "none", cursor: "pointer" }}
+                  style={{ width: "24px", height: "24px", border: "1px solid #CBD5E1", borderRadius: "4px", padding: 0, background: "none", cursor: "pointer" }}
                 />
               </div>
 
@@ -1638,26 +1821,27 @@ export default function StockChartPage() {
                 value={layouts.find(l => l.id === activeLayoutId)?.lines.find(line => line.id === selectedLineId)?.width || 2}
                 onChange={(e) => updateSelectedLine({ width: parseInt(e.target.value) })}
                 style={{ 
-                  background: "rgba(255,255,255,0.1)", 
-                  border: "1px solid rgba(255,255,255,0.2)", 
+                  background: "#F8FAFC", 
+                  border: "1px solid #E2E8F0", 
                   borderRadius: "6px", 
-                  color: "white", 
+                  color: "#0F2044", 
                   fontSize: "12px", 
                   padding: "4px 8px",
                   cursor: "pointer",
                   outline: "none"
                 }}
               >
-                <option value="2" style={{ background: "#0F2044" }}>2px</option>
-                <option value="3" style={{ background: "#0F2044" }}>3px</option>
-                <option value="4" style={{ background: "#0F2044" }}>4px</option>
-                <option value="5" style={{ background: "#0F2044" }}>5px</option>
+                <option value="2" style={{ background: "#FFFFFF", color: "#0F2044" }}>2px</option>
+                <option value="3" style={{ background: "#FFFFFF", color: "#0F2044" }}>3px</option>
+                <option value="4" style={{ background: "#FFFFFF", color: "#0F2044" }}>4px</option>
+                <option value="5" style={{ background: "#FFFFFF", color: "#0F2044" }}>5px</option>
               </select>
 
-              <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.15)" }} />
+              <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
               {/* Price Edit */}
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span style={{ fontSize: "11px", color: "#64748B" }}>Price</span>
                 <input
                   type="number"
                   step="0.05"
@@ -1668,11 +1852,11 @@ export default function StockChartPage() {
                     updateSelectedLine({ price: newPrice });
                   }}
                   style={{ 
-                    width: "80px", 
-                    background: "rgba(255,255,255,0.1)", 
-                    border: "1px solid rgba(255,255,255,0.2)", 
+                    width: "84px", 
+                    background: "#F8FAFC", 
+                    border: "1px solid #E2E8F0", 
                     borderRadius: "6px", 
-                    color: "white", 
+                    color: "#0F2044", 
                     fontSize: "12px", 
                     padding: "4px 8px",
                     outline: "none"
@@ -1680,7 +1864,7 @@ export default function StockChartPage() {
                 />
               </div>
 
-              <div style={{ width: "1px", height: "24px", background: "rgba(255,255,255,0.15)" }} />
+              <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
               {/* Close Toolbar */}
               <button
@@ -1689,7 +1873,7 @@ export default function StockChartPage() {
                   background: "none", 
                   border: "none", 
                   cursor: "pointer", 
-                  color: "#94A3B8", 
+                  color: "rgba(15, 32, 68, 0.4)", 
                   fontSize: "16px",
                   padding: "4px",
                   display: "flex",
@@ -1697,112 +1881,23 @@ export default function StockChartPage() {
                   justifyContent: "center",
                   transition: "color 0.2s"
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.color = "white"}
-                onMouseLeave={(e) => e.currentTarget.style.color = "#94A3B8"}
+                onMouseEnter={(e) => e.currentTarget.style.color = "#0F2044"}
+                onMouseLeave={(e) => e.currentTarget.style.color = "rgba(15, 32, 68, 0.4)"}
               >✕</button>
             </div>
           )}
-      {/* Chart frame */}
-      <div style={{
-        flex: 1,
-        margin: "0 24px 24px",
-        background: "rgba(255, 255, 255, 0.05)",
-        backdropFilter: "blur(20px)",
-        borderRadius: "24px",
-        border: "1px solid rgba(255, 255, 255, 0.12)",
-        boxShadow: "0 24px 80px rgba(0, 0, 0, 0.3)",
-        position: "relative",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-        zIndex: 2
-      }}>
-        {loading && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(15, 32, 68, 0.45)",
-              backdropFilter: "blur(20px)",
-              zIndex: 10,
-            }}
-          >
-            <div style={{ textAlign: "center" }}>
-              <div
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  border: "3px solid rgba(255,255,255,0.1)",
-                  borderTop: "3px solid #E01F2E",
-                  borderRadius: "50%",
-                  animation: "spin 0.8s linear infinite",
-                  margin: "0 auto 12px",
-                }}
-              />
-              <p style={{ fontFamily: "Satoshi, sans-serif", color: "rgba(255,255,255,0.7)", fontSize: "14px" }}>
-                Loading {displayName} chart...
-              </p>
-            </div>
-          </div>
-        )}
 
-        {error && (
           <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "rgba(15, 32, 68, 0.45)",
-              backdropFilter: "blur(20px)",
-              zIndex: 10,
-            }}
-          >
-            <div style={{ textAlign: "center", padding: "40px" }}>
-              <p style={{ fontFamily: "Satoshi, sans-serif", color: "#FF6B7A", fontSize: "16px", fontWeight: 700 }}>
-                Failed to load chart
-              </p>
-              <p style={{ fontFamily: "Satoshi, sans-serif", color: "rgba(255,255,255,0.5)", fontSize: "14px", marginTop: "8px" }}>
-                {error}
-              </p>
-              <button
-                onClick={() => handleTimeframeChange({ ...timeframe })}
-                style={{
-                  marginTop: "16px",
-                  fontFamily: "Satoshi, sans-serif",
-                  fontSize: "14px",
-                  fontWeight: 700,
-                  padding: "8px 20px",
-                  borderRadius: "10px",
-                  border: "none",
-                  background: "#E01F2E",
-                  color: "white",
-                  cursor: "pointer",
-                  transition: "all 0.2s"
-                }}
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div
-          ref={chartContainerRef}
-          style={{ width: "100%", flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
-        />
-
-        {indicatorSettings.rsi.enabled && (
-          <div
-            ref={rsiContainerRef}
-            style={{ width: "100%", flex: 2, borderTop: "2px solid rgba(255,255,255,0.08)" }}
+            ref={chartContainerRef}
+            style={{ width: "100%", flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
           />
-        )}
-      </div>
+
+          {indicatorSettings.rsi.enabled && (
+            <div
+              ref={rsiContainerRef}
+              style={{ width: "100%", flex: 2, borderTop: "1px solid #E2E8F0" }}
+            />
+          )}
 
           {/* Note Texts Overlay */}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 5 }}>
@@ -1810,8 +1905,8 @@ export default function StockChartPage() {
             <svg ref={svgRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
               {layouts.find(l => l.id === activeLayoutId)?.texts?.map(t => (
                 <g key={t.id}>
-                  <line id={`svg-line-${t.id}`} stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="4 2" />
-                  <circle id={`svg-circle-${t.id}`} r="3.5" fill="#0F2044" />
+                  <line id={`svg-line-${t.id}`} stroke="rgba(15, 32, 68, 0.35)" strokeWidth="1.5" strokeDasharray="4 2" />
+                  <circle id={`svg-circle-${t.id}`} r="4" fill="#E01F2E" />
                 </g>
               ))}
             </svg>
@@ -1840,12 +1935,12 @@ export default function StockChartPage() {
                   background: "rgba(255, 255, 255, 0.95)",
                   border: "1.5px solid #0F2044",
                   color: "#0F2044",
-                  padding: "5px 10px",
-                  borderRadius: "6px",
-                  fontSize: "13px",
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  fontSize: "12px",
                   fontWeight: 600,
                   transform: "translate(-50%, -50%)",
-                  boxShadow: "0 4px 16px rgba(15,32,68,0.15)",
+                  boxShadow: "0 10px 24px rgba(15, 32, 68, 0.12)",
                   display: "none",
                   whiteSpace: "pre-wrap",
                   fontFamily: "Satoshi, sans-serif",
@@ -1853,8 +1948,8 @@ export default function StockChartPage() {
                   userSelect: "none",
                   cursor: "grab",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 6px 20px rgba(15,32,68,0.25)"}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,32,68,0.15)"}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 12px 32px rgba(15, 32, 68, 0.18)"}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 32, 68, 0.12)"}
               >
                 {t.text}
               </div>
