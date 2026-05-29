@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import { ChartLineUp } from "@phosphor-icons/react";
 
+
 // Display name mapping
 const DISPLAY_NAMES: Record<string, string> = {
   NIFTY50: "Nifty 50",
@@ -406,14 +407,14 @@ export default function StockChartPage() {
 
     const chart = createChart(container, {
       layout: {
-        background: { type: ColorType.Solid, color: "white" },
-        textColor: "#333",
+        background: { type: ColorType.Solid, color: "#FFFFFF" },
+        textColor: "#64748B",
         fontFamily: "Satoshi, sans-serif",
         attributionLogo: false,
       },
       grid: {
-        vertLines: { color: "#f0f3fa" },
-        horzLines: { color: "#f0f3fa" },
+        vertLines: { color: "#F1F5F9" },
+        horzLines: { color: "#F1F5F9" },
       },
       width: container.clientWidth,
       height: container.clientHeight,
@@ -432,12 +433,12 @@ export default function StockChartPage() {
         horzLine: { labelBackgroundColor: '#0F2044' },
       },
       rightPriceScale: {
-        borderColor: "#e2e8f0",
+        borderColor: "#E2E8F0",
         autoScale: true,
         alignLabels: true,
       },
       timeScale: {
-        borderColor: "#e2e8f0",
+        borderColor: "#E2E8F0",
         timeVisible: ["1m", "5m", "15m", "30m", "60m"].includes(timeframe.interval),
         rightOffset: 15,
         barSpacing: 10,
@@ -569,8 +570,8 @@ export default function StockChartPage() {
         const rsiChart = createChart(rsiContainerRef.current, {
           width: rsiContainerRef.current.clientWidth,
           height: rsiContainerRef.current.clientHeight,
-          layout: { background: { type: ColorType.Solid, color: "white" }, textColor: "#64748b", fontFamily: "Satoshi, sans-serif" },
-          grid: { vertLines: { visible: false }, horzLines: { color: "#f1f5f9" } },
+          layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#94A3B8", fontFamily: "Satoshi, sans-serif" },
+          grid: { vertLines: { visible: false }, horzLines: { color: "#F1F5F9" } },
           timeScale: { 
             visible: false,
             rightOffset: 15,
@@ -578,7 +579,7 @@ export default function StockChartPage() {
             minBarSpacing: 1,
             shiftVisibleRangeOnNewBar: true,
           },
-          rightPriceScale: { borderColor: "#f1f5f9", scaleMargins: { top: 0.1, bottom: 0.1 }, autoScale: true },
+          rightPriceScale: { borderColor: "#E2E8F0", scaleMargins: { top: 0.1, bottom: 0.1 }, autoScale: true },
         });
 
         const rsiSeries = rsiChart.addSeries(LineSeries, {
@@ -989,19 +990,21 @@ export default function StockChartPage() {
   };
 
   return (
-    <div style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "#F8F9FC" }}>
+    <main style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative" }}>
       {/* Page header */}
       <div
         style={{
           maxWidth: "1280px",
           margin: "0 auto",
           width: "100%",
-          padding: "4px 24px 0",
+          padding: "16px 24px 8px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: "12px",
+          position: "relative",
+          zIndex: 2
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: "0px" }}>
@@ -1009,19 +1012,19 @@ export default function StockChartPage() {
             <h1
               style={{
                 fontFamily: "Satoshi, sans-serif",
-                fontWeight: 800,
-                fontSize: "20px",
+                fontWeight: 900,
+                fontSize: "22px",
                 color: "#0F2044",
                 margin: 0,
                 letterSpacing: "-0.5px",
               }}
             >
               {displayName}{" "}
-              <span style={{ color: "#94A3B8", fontWeight: 600, fontSize: "14px" }}>
+              <span style={{ color: "#94A3B8", fontWeight: 700, fontSize: "14px" }}>
                 {rawSymbol.toUpperCase()}
               </span>
               {isSyncing && (
-                <span style={{ fontSize: "10px", marginLeft: "10px", color: "#64748B", fontWeight: 500, animation: "pulse 2s infinite" }}>Syncing...</span>
+                <span style={{ fontSize: "10px", marginLeft: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite" }}>Syncing...</span>
               )}
             </h1>
           </div>
@@ -1031,24 +1034,24 @@ export default function StockChartPage() {
           href="/prices"
           style={{
             fontFamily: "Satoshi, sans-serif",
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "#E01F2E",
+            fontSize: "13px",
+            fontWeight: 700,
+            color: "#0F2044",
             textDecoration: "none",
-            border: "1.5px solid rgba(224,31,46,0.25)",
+            border: "1.5px solid #E2E8F0",
             borderRadius: "10px",
             padding: "8px 18px",
-            background: "rgba(224,31,46,0.04)",
-            transition: "all 0.2s",
+            background: "#F8FAFC",
+            transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
             display: "inline-block",
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "#E01F2E";
-            e.currentTarget.style.color = "white";
+            e.currentTarget.style.borderColor = "#E01F2E";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(224,31,46,0.04)";
-            e.currentTarget.style.color = "#E01F2E";
+            e.currentTarget.style.background = "#F1F5F9";
+            e.currentTarget.style.borderColor = "#CBD5E1";
           }}
         >
           ← Back to Prices
@@ -1061,22 +1064,25 @@ export default function StockChartPage() {
           maxWidth: "1280px",
           margin: "0 auto",
           width: "100%",
-          padding: "0 24px 4px",
+          padding: "4px 24px 8px",
           display: "flex",
           gap: "6px",
+          position: "relative",
+          zIndex: 2
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto', marginRight: '16px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: '#64748B' }}>Date:</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B' }}>Date:</span>
           <input
             type="date"
             value={selectedDate}
             max={new Date().toISOString().split("T")[0]}
             onChange={(e) => setSelectedDate(e.target.value)}
             style={{
-              padding: '4px 8px',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
+              padding: '6px 10px',
+              borderRadius: '8px',
+              border: '1px solid #E2E8F0',
+              background: '#F8FAFC',
               fontFamily: 'Satoshi, sans-serif',
               fontSize: '13px',
               color: '#0F2044',
@@ -1090,11 +1096,12 @@ export default function StockChartPage() {
                 background: '#E01F2E',
                 color: 'white',
                 border: 'none',
-                borderRadius: '6px',
-                padding: '4px 10px',
+                borderRadius: '8px',
+                padding: '6px 12px',
                 fontSize: '12px',
-                fontWeight: 600,
-                cursor: 'pointer'
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: "all 0.2s"
               }}
             >
               Live
@@ -1109,14 +1116,14 @@ export default function StockChartPage() {
             style={{
               fontFamily: "Satoshi, sans-serif",
               fontSize: "13px",
-              fontWeight: 600,
+              fontWeight: 700,
               padding: "6px 14px",
               borderRadius: "8px",
-              border: "none",
+              border: "1px solid #E2E8F0",
               cursor: "pointer",
-              transition: "all 0.2s",
-              background: timeframe.interval === tf.interval ? "#0F2044" : "rgba(15,32,68,0.06)",
-              color: timeframe.interval === tf.interval ? "white" : "#64748B",
+              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              background: timeframe.interval === tf.interval ? "#0F2044" : "#F8FAFC",
+              color: timeframe.interval === tf.interval ? "#FFFFFF" : "#64748B",
             }}
           >
             {tf.label}
@@ -1130,14 +1137,14 @@ export default function StockChartPage() {
             style={{
               fontFamily: "Satoshi, sans-serif",
               fontSize: "13px",
-              fontWeight: 600,
+              fontWeight: 700,
               padding: "6px 14px",
               borderRadius: "8px",
-              border: "none",
+              border: "1px solid #E2E8F0",
               cursor: "pointer",
-              transition: "all 0.2s",
-              background: showIndicatorMenu ? "#E01F2E" : "rgba(15,32,68,0.06)",
-              color: showIndicatorMenu ? "white" : "#64748B",
+              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              background: showIndicatorMenu ? "#E01F2E" : "#F8FAFC",
+              color: showIndicatorMenu ? "#FFFFFF" : "#0F2044",
               display: "flex",
               alignItems: "center",
               gap: "6px"
@@ -1150,22 +1157,23 @@ export default function StockChartPage() {
           {showIndicatorMenu && (
             <div style={{
               position: "absolute",
-              top: "35px",
+              top: "40px",
               left: "0",
               width: "260px",
-              background: "white",
-              borderRadius: "12px",
-              boxShadow: "0 10px 30px rgba(15,32,68,0.25)",
-              border: "1px solid #e2e8f0",
+              background: "rgba(15,32,68,0.85)",
+              backdropFilter: "blur(30px)",
+              borderRadius: "14px",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.35)",
+              border: "1px solid rgba(255,255,255,0.12)",
               zIndex: 1000,
               padding: "0",
               display: "flex",
               flexDirection: "column",
               overflow: "hidden"
             }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderBottom: "1px solid #f1f5f9", background: "#f8fafc" }}>
-                <span style={{ fontWeight: 800, fontSize: "13px", color: "#0F2044", textTransform: "uppercase", letterSpacing: "0.5px" }}>Indicators</span>
-                <button onClick={() => setShowIndicatorMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", fontSize: "14px" }}>✕</button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
+                <span style={{ fontWeight: 800, fontSize: "13px", color: "#FFFFFF", textTransform: "uppercase", letterSpacing: "0.5px" }}>Indicators</span>
+                <button onClick={() => setShowIndicatorMenu(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)", fontSize: "14px" }}>✕</button>
               </div>
 
               <div style={{ maxHeight: "380px", overflowY: "auto", padding: "6px" }}>
@@ -1694,88 +1702,107 @@ export default function StockChartPage() {
               >✕</button>
             </div>
           )}
-          {loading && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "white",
-                zIndex: 10,
-              }}
-            >
-              <div style={{ textAlign: "center" }}>
-                <div
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    border: "3px solid #f0f3fa",
-                    borderTop: "3px solid #E01F2E",
-                    borderRadius: "50%",
-                    animation: "spin 0.8s linear infinite",
-                    margin: "0 auto 12px",
-                  }}
-                />
-                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#94A3B8", fontSize: "14px" }}>
-                  Loading {displayName} chart...
-                </p>
-              </div>
-            </div>
-          )}
-
-          {error && (
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                background: "white",
-                zIndex: 10,
-              }}
-            >
-              <div style={{ textAlign: "center", padding: "40px" }}>
-                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#ef4444", fontSize: "16px", fontWeight: 600 }}>
-                  Failed to load chart
-                </p>
-                <p style={{ fontFamily: "Satoshi, sans-serif", color: "#94A3B8", fontSize: "14px", marginTop: "8px" }}>
-                  {error}
-                </p>
-                <button
-                  onClick={() => handleTimeframeChange({ ...timeframe })}
-                  style={{
-                    marginTop: "16px",
-                    fontFamily: "Satoshi, sans-serif",
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    padding: "8px 20px",
-                    borderRadius: "10px",
-                    border: "none",
-                    background: "#E01F2E",
-                    color: "white",
-                    cursor: "pointer",
-                  }}
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          )}
-
+      {/* Chart frame */}
+      <div style={{
+        flex: 1,
+        margin: "0 24px 24px",
+        background: "rgba(255, 255, 255, 0.05)",
+        backdropFilter: "blur(20px)",
+        borderRadius: "24px",
+        border: "1px solid rgba(255, 255, 255, 0.12)",
+        boxShadow: "0 24px 80px rgba(0, 0, 0, 0.3)",
+        position: "relative",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        zIndex: 2
+      }}>
+        {loading && (
           <div
-            ref={chartContainerRef}
-            style={{ width: "100%", flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
-          />
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(15, 32, 68, 0.45)",
+              backdropFilter: "blur(20px)",
+              zIndex: 10,
+            }}
+          >
+            <div style={{ textAlign: "center" }}>
+              <div
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  border: "3px solid rgba(255,255,255,0.1)",
+                  borderTop: "3px solid #E01F2E",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite",
+                  margin: "0 auto 12px",
+                }}
+              />
+              <p style={{ fontFamily: "Satoshi, sans-serif", color: "rgba(255,255,255,0.7)", fontSize: "14px" }}>
+                Loading {displayName} chart...
+              </p>
+            </div>
+          </div>
+        )}
 
-          {indicatorSettings.rsi.enabled && (
-            <div
-              ref={rsiContainerRef}
-              style={{ width: "100%", flex: 2, borderTop: "2px solid #f1f5f9" }}
-            />
-          )}
+        {error && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "rgba(15, 32, 68, 0.45)",
+              backdropFilter: "blur(20px)",
+              zIndex: 10,
+            }}
+          >
+            <div style={{ textAlign: "center", padding: "40px" }}>
+              <p style={{ fontFamily: "Satoshi, sans-serif", color: "#FF6B7A", fontSize: "16px", fontWeight: 700 }}>
+                Failed to load chart
+              </p>
+              <p style={{ fontFamily: "Satoshi, sans-serif", color: "rgba(255,255,255,0.5)", fontSize: "14px", marginTop: "8px" }}>
+                {error}
+              </p>
+              <button
+                onClick={() => handleTimeframeChange({ ...timeframe })}
+                style={{
+                  marginTop: "16px",
+                  fontFamily: "Satoshi, sans-serif",
+                  fontSize: "14px",
+                  fontWeight: 700,
+                  padding: "8px 20px",
+                  borderRadius: "10px",
+                  border: "none",
+                  background: "#E01F2E",
+                  color: "white",
+                  cursor: "pointer",
+                  transition: "all 0.2s"
+                }}
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div
+          ref={chartContainerRef}
+          style={{ width: "100%", flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
+        />
+
+        {indicatorSettings.rsi.enabled && (
+          <div
+            ref={rsiContainerRef}
+            style={{ width: "100%", flex: 2, borderTop: "2px solid rgba(255,255,255,0.08)" }}
+          />
+        )}
+      </div>
 
           {/* Note Texts Overlay */}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 5 }}>
@@ -1849,6 +1876,6 @@ export default function StockChartPage() {
           transform: translate(-50%, -50%) scale(1.05) !important;
         }
       `}</style>
-    </div>
+    </main>
   );
 }

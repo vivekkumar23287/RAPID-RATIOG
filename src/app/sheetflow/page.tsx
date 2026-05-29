@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Workbook } from "@fortune-sheet/react";
 import "@fortune-sheet/react/dist/index.css";
 
+
 export default function SheetFlowPage() {
   // Intercept Shift+Enter to insert a new line instead of moving cells
   useEffect(() => {
@@ -49,11 +50,23 @@ export default function SheetFlowPage() {
   ]);
 
   return (
-    <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <main style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
       <Navbar />
       
       {/* We need to offset the height by the navbar height so it fits perfectly without scrolling the body */}
-      <div style={{ flex: 1, marginTop: "72px", position: "relative" }}>
+      <div style={{ 
+        flex: 1, 
+        marginTop: "84px", 
+        marginBottom: "20px", 
+        marginLeft: "20px", 
+        marginRight: "20px", 
+        position: "relative",
+        background: "#FFFFFF",
+        borderRadius: "24px",
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+        overflow: "hidden"
+      }}>
         <Workbook 
           data={sheetData} 
           onChange={(data) => {

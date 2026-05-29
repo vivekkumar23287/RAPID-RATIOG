@@ -21,6 +21,7 @@ export default function Navbar() {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [pillStyle, setPillStyle] = useState({ opacity: 0, left: 0, width: 0 });
   const pathname = usePathname();
+  const isHome = pathname === "/";
   const { isSignedIn } = useAuth();
   const navRef = useRef<HTMLElement>(null);
 
@@ -58,10 +59,12 @@ export default function Navbar() {
         top: 0, left: 0, right: 0,
         zIndex: 100,
         transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
-        background: scrolled ? "rgba(12,74,110,0.85)" : "transparent",
-        backdropFilter: scrolled ? "blur(20px) saturate(180%)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(124,255,239,0.12)" : "none",
-        boxShadow: scrolled ? "0 4px 32px rgba(0,0,0,0.15)" : "none",
+        background: scrolled
+          ? (isHome ? "rgba(12,74,110,0.85)" : "rgba(255,255,255,0.95)")
+          : (isHome ? "transparent" : "rgba(255,255,255,0.95)"),
+        backdropFilter: scrolled || !isHome ? "blur(20px) saturate(180%)" : "none",
+        borderBottom: scrolled || !isHome ? `1px solid ${isHome ? "rgba(124,255,239,0.12)" : "#E2E8F0"}` : "none",
+        boxShadow: scrolled || !isHome ? `0 4px 32px rgba(0,0,0,${isHome ? "0.15" : "0.06"})` : "none",
         padding: "0 2rem",
       }}
     >
@@ -92,10 +95,10 @@ export default function Navbar() {
             <ChartLineUp size={20} color="white" weight="bold" />
           </div>
           <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: "#FFFFFF", letterSpacing: "-0.3px" }}>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: isHome ? "#FFFFFF" : "#0F2044", letterSpacing: "-0.3px" }}>
               Rapid<span style={{ color: "#7CFFEF" }}>RatioG</span>
             </span>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: "rgba(255,255,255,0.6)", letterSpacing: "0.8px", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: isHome ? "rgba(255,255,255,0.6)" : "#94A3B8", letterSpacing: "0.8px", textTransform: "uppercase" }}>
               Live Trading Intel
             </span>
           </div>
@@ -150,7 +153,7 @@ export default function Navbar() {
                 fontFamily: "Satoshi, sans-serif",
                 fontWeight: pathname === link.href ? 600 : 500,
                 fontSize: "15px",
-                color: hoveredIdx === i ? "#7CFFEF" : pathname === link.href ? "#7CFFEF" : "#FFFFFF",
+                color: hoveredIdx === i ? "#7CFFEF" : pathname === link.href ? (isHome ? "#7CFFEF" : "#0F2044") : (isHome ? "#FFFFFF" : "#64748B"),
                 textDecoration: "none",
                 position: "relative",
                 padding: "6px 16px",
@@ -183,7 +186,7 @@ export default function Navbar() {
                   className="nav-auth-btn"
                   style={{
                     fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "14px",
-                    color: "#FFFFFF", background: "transparent", border: "1.5px solid rgba(255,255,255,0.2)",
+                    color: isHome ? "#FFFFFF" : "#0F2044", background: "transparent", border: `1.5px solid ${isHome ? "rgba(255,255,255,0.2)" : "#E2E8F0"}`,
                     borderRadius: "10px", padding: "8px 20px", cursor: "pointer",
                     transition: "all 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}
@@ -193,8 +196,8 @@ export default function Navbar() {
                     e.currentTarget.style.transform = "translateY(-2px)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-                    e.currentTarget.style.color = "#FFFFFF";
+                    e.currentTarget.style.borderColor = isHome ? "rgba(255,255,255,0.2)" : "#E2E8F0";
+                    e.currentTarget.style.color = isHome ? "#FFFFFF" : "#0F2044";
                     e.currentTarget.style.transform = "translateY(0)";
                   }}
                 >Sign In</button>
@@ -228,12 +231,12 @@ export default function Navbar() {
           onClick={() => setMenuOpen(!menuOpen)}
           className="mobile-menu-btn"
           style={{
-            background: "transparent", border: "1.5px solid rgba(255,255,255,0.2)", borderRadius: "8px",
-            cursor: "pointer", color: "#FFFFFF", display: "none", padding: "6px",
+            background: "transparent", border: `1.5px solid ${isHome ? "rgba(255,255,255,0.2)" : "#E2E8F0"}`, borderRadius: "8px",
+            cursor: "pointer", color: isHome ? "#FFFFFF" : "#0F2044", display: "none", padding: "6px",
             transition: "all 0.2s",
           }}
           onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#7CFFEF"; e.currentTarget.style.color = "#7CFFEF"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; e.currentTarget.style.color = "#FFFFFF"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = isHome ? "rgba(255,255,255,0.2)" : "#E2E8F0"; e.currentTarget.style.color = isHome ? "#FFFFFF" : "#0F2044"; }}
         >
           {menuOpen ? <X size={22} /> : <List size={22} />}
         </button>

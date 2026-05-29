@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
+
 
 const cryptoAssets = [
   { name: "Bitcoin", symbol: "BTC-USD" },
@@ -47,41 +47,39 @@ export default function CryptoPage() {
   }, []);
 
   return (
-    <div style={{ background: "#F8F9FC", minHeight: "100vh" }}>
+    <main style={{ background: "#FFFFFF", minHeight: "100vh", position: "relative" }}>
       <Navbar />
       
-      <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "120px 2rem 60px" }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 60px", position: "relative", zIndex: 1 }}>
         <header style={{ marginBottom: "40px" }}>
           <div style={{ 
             display: "inline-flex", 
             alignItems: "center", 
             gap: "8px", 
             background: "rgba(245,158,11,0.1)", 
-            padding: "4px 12px", 
+            padding: "6px 14px", 
             borderRadius: "100px",
             marginBottom: "12px",
-            border: "1px solid rgba(245,158,11,0.2)"
+            border: "1px solid rgba(245,158,11,0.25)",
           }}>
             <span style={{ color: "#F59E0B", fontWeight: 800, fontSize: "14px" }}>₿</span>
             <span style={{ color: "#F59E0B", fontSize: "11px", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>24/7 Live Crypto</span>
           </div>
-          <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#0F2044", marginBottom: "10px" }}>
-            Crypto <span style={{ color: "#F59E0B" }}>Market</span>
+          <h1 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, color: "#0F2044", marginBottom: "12px", letterSpacing: "-1px" }}>
+            Crypto <span style={{ background: "linear-gradient(135deg, #F59E0B, #FFC043)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Market</span>
           </h1>
-          <p style={{ color: "#64748B", fontSize: "16px" }}>
+          <p style={{ color: "#64748B", fontSize: "16px", maxWidth: "600px", lineHeight: "1.6" }}>
             Real-time insights and interactive charts for global cryptocurrencies.
           </p>
         </header>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "24px" }}>
           {cryptoAssets.map((stock) => (
             <CryptoCard key={stock.symbol} stock={stock} liveData={livePrices[stock.symbol]} isLoaded={isLoaded} />
           ))}
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </main>
   );
 }
 
@@ -96,42 +94,43 @@ function CryptoCard({ stock, liveData, isLoaded }: { stock: any, liveData?: any,
       <div 
         className="crypto-card"
         style={{
-          background: "white",
+          background: "#FFFFFF",
           padding: "24px",
-          borderRadius: "16px",
-          border: "2px solid transparent",
-          transition: "all 0.3s ease",
+          borderRadius: "20px",
+          border: "1px solid #E2E8F0",
+          transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           cursor: "pointer",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          height: "120px",
-          boxShadow: "0 4px 12px rgba(15,32,68,0.04)",
+          height: "130px",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, fontSize: "16px", color: "#0F2044" }}>{stock.name}</span>
-          <span style={{ fontSize: "12px", color: "#94A3B8", fontWeight: 600 }}>{symbolOnly}</span>
+          <span style={{ fontWeight: 800, fontSize: "17px", color: "#0F2044", letterSpacing: "-0.3px" }}>{stock.name}</span>
+          <span style={{ fontSize: "12px", color: "#94A3B8", fontWeight: 700 }}>{symbolOnly}</span>
         </div>
         
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "20px" }}>
           {currentPrice > 0 ? (
-            <span style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044" }}>
+            <span style={{ fontSize: "22px", fontWeight: 900, color: "#0F2044", letterSpacing: "-0.5px", fontFamily: "monospace" }}>
               ${currentPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           ) : isLoaded ? (
-            <span style={{ fontSize: "16px", fontWeight: 600, color: "#94A3B8" }}>N/A</span>
+            <span style={{ fontSize: "16px", fontWeight: 700, color: "#94A3B8" }}>N/A</span>
           ) : (
-            <span style={{ fontSize: "14px", color: "#94A3B8" }}>Loading...</span>
+            <span style={{ fontSize: "14px", color: "#94A3B8", fontWeight: 500 }}>Loading...</span>
           )}
           
           <span style={{ 
             fontSize: "13px", 
-            fontWeight: 700, 
-            color: isPositive ? "#22C55E" : "#EF4444",
-            background: isPositive ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-            padding: "4px 8px",
-            borderRadius: "6px"
+            fontWeight: 800, 
+            color: isPositive ? "#45E180" : "#FF6B7A",
+            background: isPositive ? "rgba(69,225,128,0.15)" : "rgba(255,107,122,0.15)",
+            padding: "4px 10px",
+            borderRadius: "8px",
+            border: `1px solid ${isPositive ? "rgba(69,225,128,0.1)" : "rgba(255,107,122,0.1)"}`
           }}>
             {isPositive ? "+" : ""}{changePercent.toFixed(2)}%
           </span>
@@ -139,9 +138,10 @@ function CryptoCard({ stock, liveData, isLoaded }: { stock: any, liveData?: any,
       </div>
       <style jsx>{`
         .crypto-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(15,32,68,0.08);
-          border-color: #F59E0B !important;
+          transform: translateY(-5px) scale(1.02);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.1), 0 0 0 1px rgba(245,158,11,0.25) !important;
+          border-color: rgba(245,158,11,0.4) !important;
+          background: #F8FAFC !important;
         }
       `}</style>
     </Link>

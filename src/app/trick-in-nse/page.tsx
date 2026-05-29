@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
 
+
 type SignalData = {
   id: number;
   stock_symbol: string;
@@ -155,10 +156,10 @@ export default function TricksInNSE() {
   const bearishCount = signals.filter(s => s.direction === "DOWN").length;
 
   return (
-    <div style={{ background: "#F8F9FC", minHeight: "100vh", paddingBottom: "100px" }}>
+    <main style={{ background: "#FFFFFF", minHeight: "100vh", paddingBottom: "100px", position: "relative" }}>
       <Navbar />
       
-      <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 0px" }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 0px", position: "relative", zIndex: 1 }}>
         
         {/* Page Header */}
         <div style={{ marginBottom: "50px" }}>
@@ -184,9 +185,9 @@ export default function TricksInNSE() {
         </div>
 
         {/* Section 1: Gap Scanner */}
-        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>1. True Gap Scanner</h2>
-          <div style={{ background: "#E2E8F0", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700 }}>
+          <div style={{ background: "#F1F5F9", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, border: "1px solid #E2E8F0" }}>
             9:15 AM - 9:30 AM
           </div>
         </div>
@@ -195,14 +196,14 @@ export default function TricksInNSE() {
           
           {/* Column 1: Gap Ups */}
           <div style={{
-            background: "white",
-            border: "1px solid rgba(226,232,240,0.8)",
+            background: "#FFFFFF",
+            border: "1px solid #E2E8F0",
             borderRadius: "24px",
             padding: "32px",
-            boxShadow: "0 10px 30px rgba(15,32,68,0.03)"
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
-              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#10B981" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(16,185,129,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#45E180" }}>
                 <ArrowUpRight size={22} weight="bold" />
               </div>
               <div>
@@ -222,8 +223,8 @@ export default function TricksInNSE() {
                   justifyContent: "center",
                   padding: "48px 24px",
                   borderRadius: "20px",
-                  background: "rgba(248,250,252,0.6)",
-                  border: "2px dashed rgba(226,232,240,0.8)",
+                  background: "rgba(255,255,255,0.02)",
+                  border: "2px dashed rgba(255,255,255,0.1)",
                   textAlign: "center"
                 }}>
                   <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Ups</div>
@@ -246,14 +247,14 @@ export default function TricksInNSE() {
 
           {/* Column 2: Gap Downs */}
           <div style={{
-            background: "white",
-            border: "1px solid rgba(226,232,240,0.8)",
+            background: "#FFFFFF",
+            border: "1px solid #E2E8F0",
             borderRadius: "24px",
             padding: "32px",
-            boxShadow: "0 10px 30px rgba(15,32,68,0.03)"
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)"
           }}>
             <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
-              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#EF4444" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(239,68,68,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#FF6B7A" }}>
                 <ArrowDownRight size={22} weight="bold" />
               </div>
               <div>
@@ -273,8 +274,8 @@ export default function TricksInNSE() {
                   justifyContent: "center",
                   padding: "48px 24px",
                   borderRadius: "20px",
-                  background: "rgba(248,250,252,0.6)",
-                  border: "2px dashed rgba(226,232,240,0.8)",
+                  background: "#F8FAFC",
+                  border: "2px dashed #E2E8F0",
                   textAlign: "center"
                 }}>
                   <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Downs</div>
@@ -296,24 +297,24 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* Section 2: Mother Range Scanner */}
-        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+        {/* Section 2: Mother Range Setup */}
+        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>2. 5-Candle Mother Range Setup</h2>
-          <div style={{ background: "#E2E8F0", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700 }}>
+          <div style={{ background: "#F1F5F9", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, border: "1px solid #E2E8F0" }}>
             Intraday Breakout
           </div>
         </div>
 
         <div style={{
-          background: "white",
-          border: "1px solid rgba(226,232,240,0.8)",
+          background: "#FFFFFF",
+          border: "1px solid #E2E8F0",
           borderRadius: "24px",
           padding: "32px",
-          boxShadow: "0 10px 30px rgba(15,32,68,0.03)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
           marginBottom: "60px"
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "28px" }}>
-            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(59,130,246,0.1)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3B82F6" }}>
+            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(59,130,246,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#3B82F6" }}>
               <Crosshair size={22} weight="bold" />
             </div>
             <div>
@@ -334,8 +335,8 @@ export default function TricksInNSE() {
                 justifyContent: "center",
                 padding: "48px 24px",
                 borderRadius: "20px",
-                background: "rgba(248,250,252,0.6)",
-                border: "2px dashed rgba(226,232,240,0.8)",
+                background: "#F8FAFC",
+                border: "2px dashed #E2E8F0",
                 textAlign: "center"
               }}>
                 <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Mother Range Setups</div>
@@ -356,9 +357,9 @@ export default function TricksInNSE() {
         </div>
 
         {/* Section 3: Live 15-Min Signals */}
-        <div style={{ marginBottom: "20px", display: "flex", alignItems: "center", gap: "10px" }}>
+        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>3. Live 15-Min Open=High & Open=Low Signals</h2>
-          <div style={{ background: "rgba(59,130,246,0.1)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+          <div style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(59,130,246,0.2)" }}>
             <span style={{ width: "6px", height: "6px", background: "#3B82F6", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
             LIVE
           </div>
@@ -372,19 +373,19 @@ export default function TricksInNSE() {
           </div>
 
           <div style={{ display: "flex", gap: "16px" }}>
-            <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "16px", padding: "16px 24px", minWidth: "140px" }}>
-              <div style={{ fontSize: "12px", color: "#10B981", fontWeight: 700, marginBottom: "4px" }}>BULLISH (O=L)</div>
+            <div style={{ background: "rgba(69,225,128,0.15)", border: "1px solid rgba(69,225,128,0.2)", borderRadius: "16px", padding: "16px 24px", minWidth: "140px" }}>
+              <div style={{ fontSize: "12px", color: "#16A34A", fontWeight: 800, marginBottom: "4px" }}>BULLISH (O=L)</div>
               <div style={{ fontSize: "28px", fontWeight: 900, color: "#0F2044" }}>{bullishCount}</div>
             </div>
-            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "16px", padding: "16px 24px", minWidth: "140px" }}>
-              <div style={{ fontSize: "12px", color: "#EF4444", fontWeight: 700, marginBottom: "4px" }}>BEARISH (O=H)</div>
+            <div style={{ background: "rgba(255,107,122,0.15)", border: "1px solid rgba(255,107,122,0.2)", borderRadius: "16px", padding: "16px 24px", minWidth: "140px" }}>
+              <div style={{ fontSize: "12px", color: "#DC2626", fontWeight: 800, marginBottom: "4px" }}>BEARISH (O=H)</div>
               <div style={{ fontSize: "28px", fontWeight: 900, color: "#0F2044" }}>{bearishCount}</div>
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "white", padding: "16px 24px", borderRadius: "16px", boxShadow: "0 4px 20px rgba(15,32,68,0.02)", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FFFFFF", border: "1px solid #E2E8F0", padding: "16px 24px", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: "300px" }}>
             <div style={{ position: "relative", flex: 1, maxWidth: "400px" }}>
               <MagnifyingGlass size={18} color="#94A3B8" style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)" }} />
@@ -393,11 +394,11 @@ export default function TricksInNSE() {
                 placeholder="Search stocks..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                style={{ width: "100%", background: "#F1F5F9", border: "none", padding: "12px 16px 12px 44px", borderRadius: "10px", fontSize: "14px", fontWeight: 600, color: "#0F2044", outline: "none" }}
+                style={{ width: "100%", background: "#F8FAFC", border: "1px solid #E2E8F0", padding: "12px 16px 12px 44px", borderRadius: "10px", fontSize: "14px", fontWeight: 600, color: "#0F2044", outline: "none" }}
               />
             </div>
             
-            <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px" }}>
+            <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
               {(["ALL", "UP", "DOWN"] as const).map(type => (
                 <button
                   key={type}
@@ -406,12 +407,12 @@ export default function TricksInNSE() {
                     padding: "8px 16px",
                     borderRadius: "8px",
                     border: "none",
-                    background: filter === type ? "white" : "transparent",
+                    background: filter === type ? "#FFFFFF" : "transparent",
                     color: filter === type ? "#0F2044" : "#64748B",
                     fontWeight: 700,
                     fontSize: "13px",
                     cursor: "pointer",
-                    boxShadow: filter === type ? "0 2px 8px rgba(0,0,0,0.05)" : "none",
+                    boxShadow: filter === type ? "0 4px 12px rgba(0,0,0,0.15)" : "none",
                     transition: "all 0.2s"
                   }}
                 >
@@ -423,7 +424,7 @@ export default function TricksInNSE() {
 
           <button 
             onClick={() => setSoundEnabled(!soundEnabled)}
-            style={{ display: "flex", alignItems: "center", gap: "8px", background: soundEnabled ? "rgba(59,130,246,0.1)" : "#F1F5F9", color: soundEnabled ? "#3B82F6" : "#94A3B8", border: "none", padding: "10px 16px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", cursor: "pointer", transition: "all 0.2s" }}
+            style={{ display: "flex", alignItems: "center", gap: "8px", background: soundEnabled ? "rgba(59,130,246,0.1)" : "#F1F5F9", color: soundEnabled ? "#3B82F6" : "#64748B", border: "1px solid " + (soundEnabled ? "rgba(59,130,246,0.2)" : "#E2E8F0"), padding: "10px 16px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", cursor: "pointer", transition: "all 0.2s" }}
           >
             {soundEnabled ? <BellRinging size={18} weight="bold" /> : <BellSlash size={18} weight="bold" />}
             Sound Alerts
@@ -431,7 +432,7 @@ export default function TricksInNSE() {
         </div>
 
         {/* Table */}
-        <div style={{ background: "white", borderRadius: "20px", overflow: "hidden", border: "1px solid rgba(226,232,240,0.8)", boxShadow: "0 10px 30px rgba(15,32,68,0.03)" }}>
+        <div style={{ background: "#FFFFFF", borderRadius: "20px", overflow: "hidden", border: "1px solid #E2E8F0", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
               <thead>
@@ -446,7 +447,7 @@ export default function TricksInNSE() {
               <tbody>
                 {loadingSignals ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#94A3B8", fontWeight: 600 }}>Loading signals...</td>
+                    <td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#64748B", fontWeight: 600 }}>Loading signals...</td>
                   </tr>
                 ) : filteredSignals.length === 0 ? (
                   <tr>
@@ -458,25 +459,25 @@ export default function TricksInNSE() {
                 ) : (
                   filteredSignals.map(sig => {
                     const isUp = sig.direction === "UP";
-                    const rowBg = isUp ? "rgba(16,185,129,0.04)" : "rgba(239,68,68,0.04)";
-                    const textColor = isUp ? "#10B981" : "#EF4444";
+                    const rowBg = isUp ? "rgba(69,225,128,0.08)" : "rgba(255,107,122,0.08)";
+                    const textColor = isUp ? "#16A34A" : "#DC2626";
                     const Icon = isUp ? CaretUp : CaretDown;
 
                     return (
                       <tr 
                         key={sig.id || `${sig.stock_symbol}-${sig.candle_time}`}
-                        style={{ borderBottom: "1px solid #F1F5F9", background: rowBg, transition: "background 0.2s" }}
+                        style={{ borderBottom: "1px solid #E2E8F0", background: rowBg, transition: "background 0.2s" }}
                       >
                         <td style={{ padding: "16px 24px" }}>
                           <div style={{ fontSize: "14px", fontWeight: 800, color: "#0F2044" }}>{sig.candle_time}</div>
-                          <div style={{ fontSize: "11px", color: "#64748B" }}>{sig.candle_date}</div>
+                          <div style={{ fontSize: "11px", color: "#94A3B8" }}>{sig.candle_date}</div>
                         </td>
                         <td style={{ padding: "16px 24px" }}>
                           <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044", cursor: "pointer" }} onClick={() => router.push(`/stock/${sig.stock_symbol}`)}>{sig.stock_symbol}</div>
-                          <div style={{ fontSize: "12px", color: "#64748B" }}>{sig.stock_name}</div>
+                          <div style={{ fontSize: "12px", color: "#94A3B8" }}>{sig.stock_name}</div>
                         </td>
                         <td style={{ padding: "16px 24px" }}>
-                          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: isUp ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: textColor, padding: "6px 12px", borderRadius: "8px", fontSize: "13px", fontWeight: 800 }}>
+                          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: isUp ? "rgba(69,225,128,0.15)" : "rgba(255,107,122,0.15)", color: textColor, padding: "6px 12px", borderRadius: "8px", fontSize: "13px", fontWeight: 800 }}>
                             <Icon weight="bold" /> {sig.signal_type}
                           </div>
                         </td>
@@ -501,7 +502,7 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-      </main>
+      </div>
 
       <style>{`
         @keyframes pulse {
@@ -523,7 +524,7 @@ export default function TricksInNSE() {
           main { padding: 120px 1rem 0 !important; }
         }
       `}</style>
-    </div>
+    </main>
   );
 }
 
@@ -544,10 +545,10 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
         borderRadius: "16px",
         background: hovered ? "#F8FAFC" : "#FFFFFF",
         border: "1px solid",
-        borderColor: hovered ? "rgba(226,232,240,0.8)" : "rgba(241,245,249,0.6)",
+        borderColor: hovered ? "#CBD5E1" : "#E2E8F0",
         cursor: "pointer",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: hovered ? "translateY(-2px)" : "translateY(0)"
+        transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+        transform: hovered ? "translateY(-2px) scale(1.01)" : "translateY(0)"
       }}
     >
       {/* Left section: Icon and Names */}
@@ -556,8 +557,8 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
           width: "44px",
           height: "44px",
           borderRadius: "12px",
-          background: isUp ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
-          color: isUp ? "#10B981" : "#EF4444",
+          background: isUp ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+          color: isUp ? "#16A34A" : "#DC2626",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -592,7 +593,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
         </span>
         <div style={{ 
           fontSize: "11px", 
-          color: stock.changePercent >= 0 ? "#10B981" : "#EF4444", 
+          color: stock.changePercent >= 0 ? "#16A34A" : "#DC2626", 
           fontWeight: 700, 
           marginTop: "2px",
           display: "flex",
@@ -610,8 +611,8 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
           <span style={{ 
             fontSize: "13px", 
             fontWeight: 800, 
-            color: isUp ? "#10B981" : "#EF4444",
-            background: isUp ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)",
+            color: isUp ? "#16A34A" : "#DC2626",
+            background: isUp ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
             padding: "4px 10px",
             borderRadius: "8px",
             display: "inline-flex",
@@ -627,7 +628,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
           width: "24px", 
           height: "24px", 
           borderRadius: "50%", 
-          background: hovered ? (isUp ? "#10B981" : "#EF4444") : "transparent",
+          background: hovered ? (isUp ? "#16A34A" : "#DC2626") : "transparent",
           color: hovered ? "white" : "#94A3B8",
           display: "flex", 
           alignItems: "center", 
@@ -659,10 +660,10 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
         borderRadius: "16px",
         background: hovered ? "#F8FAFC" : "#FFFFFF",
         border: "1px solid",
-        borderColor: hovered ? "rgba(226,232,240,0.8)" : "rgba(241,245,249,0.6)",
+        borderColor: hovered ? "#CBD5E1" : "#E2E8F0",
         cursor: "pointer",
-        transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)",
-        transform: hovered ? "translateY(-2px)" : "translateY(0)"
+        transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+        transform: hovered ? "translateY(-2px) scale(1.01)" : "translateY(0)"
       }}
     >
       {/* Left section: Icon and Names */}
@@ -671,7 +672,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
           width: "44px",
           height: "44px",
           borderRadius: "12px",
-          background: "rgba(59,130,246,0.06)",
+          background: "rgba(59,130,246,0.15)",
           color: "#3B82F6",
           display: "flex",
           alignItems: "center",
@@ -707,7 +708,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
         </span>
         <div style={{ 
           fontSize: "11px", 
-          color: isUp ? "#10B981" : "#EF4444", 
+          color: isUp ? "#16A34A" : "#DC2626", 
           fontWeight: 700, 
           marginTop: "2px",
           display: "flex",
@@ -723,7 +724,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
       <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: "120px", justifyContent: "flex-end" }}>
         <div style={{ textAlign: "right" }}>
           <span style={{ 
-            fontSize: "12px", fontWeight: 700, color: "#475569", background: "#F1F5F9",
+            fontSize: "12px", fontWeight: 700, color: "#0F2044", background: "#F1F5F9",
             padding: "4px 8px", borderRadius: "6px", display: "inline-flex", alignItems: "center", gap: "4px"
           }}>
             Vol: {(stock.totalVolume / 100000).toFixed(1)}L

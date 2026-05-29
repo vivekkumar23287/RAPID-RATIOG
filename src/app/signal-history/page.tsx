@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import { Workbook } from "@fortune-sheet/react";
 import "@fortune-sheet/react/dist/index.css";
 
+
 export default function SignalHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [sheetData, setSheetData] = useState([{ name: "Signal History", celldata: [] as any[] }]);
@@ -58,14 +59,14 @@ export default function SignalHistoryPage() {
 
             values.forEach((val, c) => {
               let bg = "#FFFFFF";
-              let fc = "#000000";
+              let fc = "#0F2044";
               let bl = 0;
 
               // Color rows based on direction
               if (row.direction === "UP") {
-                bg = "rgba(16,185,129,0.06)";
+                bg = "rgba(16,185,129,0.15)";
               } else if (row.direction === "DOWN") {
-                bg = "rgba(239,68,68,0.06)";
+                bg = "rgba(239,68,68,0.15)";
               }
 
               // Emphasize signal type column
@@ -91,13 +92,30 @@ export default function SignalHistoryPage() {
   }, []);
 
   return (
-    <main style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
+    <main style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
       <Navbar />
-      <div style={{ padding: "100px 2rem 20px", background: "#F8F9FC" }}>
+      
+      <div style={{ 
+        padding: "100px 2rem 24px", 
+        background: "#FFFFFF", 
+        borderBottom: "1px solid #E2E8F0",
+        position: "relative",
+        zIndex: 1
+      }}>
          <h1 style={{ fontSize: "28px", fontWeight: 900, color: "#0F2044", marginBottom: "8px", letterSpacing: "-0.5px" }}>Signal History</h1>
          <p style={{ color: "#64748B", fontSize: "14px", margin: 0 }}>Explore and analyze historical Trick in NSE data in an interactive Excel-like interface.</p>
       </div>
-      <div style={{ flex: 1, position: "relative" }}>
+
+      <div style={{ 
+        flex: 1, 
+        position: "relative", 
+        margin: "20px", 
+        background: "#FFFFFF",
+        borderRadius: "24px",
+        border: "1px solid #E2E8F0",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+        overflow: "hidden"
+      }}>
         {loading ? (
           <div style={{ padding: "40px", textAlign: "center", color: "#64748B", fontWeight: 600 }}>Loading history...</div>
         ) : (

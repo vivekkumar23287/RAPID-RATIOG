@@ -114,9 +114,9 @@ export default function HeroNew() {
         .to(".hn-mock", { opacity: 1, x: 0, rotationY: 0, scale: 1, filter: "blur(0px)", duration: 1.4, ease: "power3.out" }, "-=1");
 
       // Scroll parallax
-      gsap.to(".hn-left", { y: -100, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 1.2 } });
-      gsap.to(".hn-mock", { y: -50, rotationY: 8, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 1.8 } });
-      gsap.to(".hn-canvas", { y: 80, opacity: 0.2, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 1.5 } });
+      gsap.to(".hn-left", { y: -100, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 2.0 } });
+      gsap.to(".hn-mock", { y: -50, rotationY: 8, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 2.2 } });
+      gsap.to(".hn-canvas", { y: 80, opacity: 0.2, ease: "none", scrollTrigger: { trigger: ".hn-sec", start: "top top", end: "bottom top", scrub: 2.0 } });
     };
     load();
   }, []);
@@ -235,10 +235,28 @@ export default function HeroNew() {
         </div>
       </div>
 
-      {/* Scroll indicator */}
+      {/* Premium animated scroll mouse indicator */}
       <div style={{ position: "absolute", bottom: 36, left: "50%", transform: "translateX(-50%)", zIndex: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 600, color: "rgba(124,255,239,0.6)", letterSpacing: "3px", textTransform: "uppercase" }}>Scroll</span>
-        <div style={{ width: 1, height: 28, background: "linear-gradient(to bottom, #7CFFEF, transparent)", borderRadius: 1 }} />
+        <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, color: "rgba(124,255,239,0.45)", letterSpacing: "3px", textTransform: "uppercase" }}>Scroll</span>
+        <div style={{
+          width: 20,
+          height: 32,
+          borderRadius: 10,
+          border: "2px solid rgba(124,255,239,0.25)",
+          position: "relative",
+          display: "flex",
+          justifyContent: "center",
+          paddingTop: 6,
+        }}>
+          <div style={{
+            width: 4,
+            height: 8,
+            borderRadius: 2,
+            background: "linear-gradient(135deg, #00C9A7, #7CFFEF)",
+            animation: "scrollMouse 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite",
+            boxShadow: "0 0 8px rgba(124,255,239,0.6)",
+          }} />
+        </div>
       </div>
 
       <style>{`
@@ -298,6 +316,11 @@ export default function HeroNew() {
         @keyframes trendLineDraw { from{stroke-dashoffset:800} to{stroke-dashoffset:0} }
         @keyframes candleFadeIn { from{opacity:0;transform:translateY(20px) scale(0.8)} to{opacity:1;transform:translateY(0) scale(1)} }
         @keyframes glowPulse { 0%,100%{opacity:0.4} 50%{opacity:0.8} }
+        @keyframes scrollMouse { 
+          0% { transform: translateY(0); opacity: 1; } 
+          50% { transform: translateY(8px); opacity: 0.3; } 
+          100% { transform: translateY(0); opacity: 1; } 
+        }
       `}</style>
     </section>
   );
@@ -406,7 +429,7 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
           trigger: ".hn-sec",
           start: "top top",
           end: "bottom top",
-          scrub: 1.6,
+          scrub: 2.2,
         });
       });
     });

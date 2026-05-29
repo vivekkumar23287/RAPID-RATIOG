@@ -216,7 +216,7 @@ function ScrollCandleCanvas() {
         trigger: ".ss-sec",
         start: "top bottom",   // when section top hits viewport bottom → start
         end:   "bottom top",   // when section bottom leaves viewport top → end
-        scrub: 1.8,
+        scrub: 2.4,
         onUpdate: (self) => {
           if (isDestroyed) return;
           // Map scroll progress (0→1) to t-value along the spline (0→1)
@@ -374,6 +374,7 @@ function PremiumCard({ feature }: { feature: typeof FEATURES[0] }) {
     const r = el.getBoundingClientRect();
     const x = ((e.clientX - r.left) / r.width - 0.5) * 10;
     const y = ((e.clientY - r.top) / r.height - 0.5) * -10;
+    el.style.transition = "transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
     el.style.transform = `perspective(800px) rotateX(${y}deg) rotateY(${x}deg) scale3d(1.02,1.02,1.02)`;
     el.style.boxShadow = "0 20px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(124,255,239,0.15)";
     const sh = el.querySelector(".ss-sh") as HTMLElement;
@@ -381,6 +382,7 @@ function PremiumCard({ feature }: { feature: typeof FEATURES[0] }) {
   };
   const handleLeave = () => {
     const el = ref.current; if (!el) return;
+    el.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
     el.style.transform = "perspective(800px) rotateX(0) rotateY(0) scale3d(1,1,1)";
     el.style.boxShadow = "0 4px 24px rgba(0,0,0,0.15)";
   };
@@ -388,7 +390,7 @@ function PremiumCard({ feature }: { feature: typeof FEATURES[0] }) {
   return (
     <div ref={ref} className="ss-card" onMouseMove={handleMove} onMouseLeave={handleLeave} style={{
       background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 24, padding: "2.25rem",
-      position: "relative", overflow: "hidden", transition: "transform 0.12s ease, box-shadow 0.4s ease",
+      position: "relative", overflow: "hidden", transition: "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
       transformStyle: "preserve-3d", cursor: "default", boxShadow: "0 4px 24px rgba(0,0,0,0.15)", backdropFilter: "blur(16px)",
     }}>
       <div className="ss-sh" style={{ position: "absolute", inset: 0, borderRadius: 24, pointerEvents: "none", zIndex: 1 }} />

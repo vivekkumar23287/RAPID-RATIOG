@@ -11,6 +11,30 @@ const STEPS = [
 
 export default function InteractiveDemo() {
   const [active, setActive] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (el) {
+      el.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
+      el.style.transform = `perspective(1000px) rotateX(0deg) rotateY(${active * 2 - 2}deg) scale3d(1, 1, 1)`;
+    }
+  }, [active]);
+
+  const handlePanelMove = (e: React.MouseEvent) => {
+    const el = panelRef.current; if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = ((e.clientX - r.left) / r.width - 0.5) * 6;
+    const y = ((e.clientY - r.top) / r.height - 0.5) * -6;
+    el.style.transition = "transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1)";
+    el.style.transform = `perspective(1000px) rotateX(${y}deg) rotateY(${active * 2 - 2 + x}deg) scale3d(1.01, 1.01, 1.01)`;
+  };
+
+  const handlePanelLeave = () => {
+    const el = panelRef.current; if (!el) return;
+    el.style.transition = "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1)";
+    el.style.transform = `perspective(1000px) rotateX(0deg) rotateY(${active * 2 - 2}deg) scale3d(1, 1, 1)`;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -84,14 +108,14 @@ export default function InteractiveDemo() {
                     background: active === i ? "rgba(255,255,255,0.1)" : "transparent",
                     border: active === i ? `1px solid rgba(124,255,239,0.3)` : "1px solid transparent",
                     boxShadow: active === i ? `0 8px 32px rgba(0,0,0,0.15)` : "none",
-                    transition: "all 0.4s cubic-bezier(0.4,0,0.2,1)",
+                    transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                     transform: active === i ? "translateX(8px)" : "translateX(0)",
                   }}>
                   <div style={{
                     width: 48, height: 48, borderRadius: 14, flexShrink: 0,
                     background: active === i ? step.color : "rgba(255,255,255,0.15)",
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    transition: "all 0.4s ease",
+                    transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                   }}>
                     <span style={{
                       fontFamily: "Satoshi,sans-serif", fontWeight: 800, fontSize: 14,
@@ -103,12 +127,12 @@ export default function InteractiveDemo() {
                       fontFamily: "Satoshi,sans-serif", fontWeight: 700, fontSize: 17,
                       color: "#FFFFFF", marginBottom: 4,
                       opacity: active === i ? 1 : 0.6,
-                      transition: "opacity 0.4s ease",
+                      transition: "opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                     }}>{step.title}</h3>
                     <p style={{
                       fontFamily: "Satoshi,sans-serif", fontSize: 13, color: "rgba(255,255,255,0.55)",
                       lineHeight: 1.7,
-                      transition: "opacity 0.4s ease",
+                      transition: "opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                       opacity: active === i ? 1 : 0.35,
                     }}>{step.desc}</p>
                   </div>
@@ -123,19 +147,20 @@ export default function InteractiveDemo() {
               <div style={{
                 height: "100%", background: STEPS[active].color, borderRadius: 3,
                 width: `${((active + 1) / STEPS.length) * 100}%`,
-                transition: "width 0.5s ease, background 0.3s ease",
+                transition: "width 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
               }} />
             </div>
           </div>
 
           {/* Right — visual panel */}
-          <div className="id-panel" style={{ perspective: 1000 }}>
-            <div style={{
+          <div className="id-panel" style={{ perspective: 1000 }} onMouseMove={handlePanelMove} onMouseLeave={handlePanelLeave}>
+            <div ref={panelRef} style={{
               background: "rgba(255,255,255,0.06)", backdropFilter: "blur(20px)",
               borderRadius: 24, border: "1px solid rgba(255,255,255,0.1)", padding: "2rem",
               boxShadow: "0 24px 80px rgba(0,0,0,0.15)",
-              transition: "all 0.5s cubic-bezier(0.4,0,0.2,1)",
-              transform: `rotateY(${active * 2 - 2}deg)`,
+              transition: "transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.6s cubic-bezier(0.16, 1, 0.3, 1)",
+              transform: `perspective(1000px) rotateX(0deg) rotateY(${active * 2 - 2}deg) scale3d(1, 1, 1)`,
+              transformStyle: "preserve-3d",
             }}>
               {/* Mock search bar */}
               <div style={{
@@ -147,7 +172,7 @@ export default function InteractiveDemo() {
                 <span style={{
                   fontFamily: "Satoshi,sans-serif", fontSize: 14, color: active === 0 ? "#FFFFFF" : "rgba(255,255,255,0.5)",
                   fontWeight: active === 0 ? 600 : 400,
-                  transition: "all 0.3s ease",
+                  transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}>
                   {active === 0 ? "POLYCAB INDIA" : "Search stocks & crypto..."}
                 </span>
@@ -157,7 +182,7 @@ export default function InteractiveDemo() {
               <div style={{
                 background: active === 1 ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.05)",
                 borderRadius: 18, padding: "1.5rem", marginBottom: 16,
-                transition: "all 0.5s ease", minHeight: 200,
+                transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)", minHeight: 200,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 position: "relative", overflow: "hidden",
               }}>
@@ -204,7 +229,7 @@ export default function InteractiveDemo() {
                   <div key={i} style={{
                     width: active === i ? 24 : 8, height: 8, borderRadius: 4,
                     background: active === i ? STEPS[i].color : "rgba(255,255,255,0.15)",
-                    transition: "all 0.4s ease", cursor: "pointer",
+                    transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)", cursor: "pointer",
                   }} onClick={() => setActive(i)} />
                 ))}
               </div>

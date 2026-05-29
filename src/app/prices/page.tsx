@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import Link from "next/link";
+
 
 const premiumStocks = [
   { name: "Nifty 50", symbol: "NIFTY50", isIndex: true, change: 1.2 },
@@ -101,48 +101,44 @@ export default function PricesPage() {
   }, []);
 
   return (
-    <div style={{ background: "#F8F9FC", minHeight: "100vh" }}>
+    <main style={{ background: "#FFFFFF", minHeight: "100vh", position: "relative" }}>
       <Navbar />
       
-      <main style={{ maxWidth: "1280px", margin: "0 auto", padding: "120px 2rem 60px" }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 60px", position: "relative", zIndex: 1 }}>
         <header style={{ marginBottom: "40px" }}>
-          <h1 style={{ fontSize: "32px", fontWeight: 800, color: "#0F2044", marginBottom: "10px" }}>
-            NSE <span style={{ color: "#E01F2E" }}>Market</span>
+          <h1 style={{ fontSize: "clamp(32px, 5vw, 48px)", fontWeight: 900, color: "#0F2044", marginBottom: "12px", letterSpacing: "-1px" }}>
+            NSE <span style={{ background: "linear-gradient(135deg, #E01F2E, #FF6B7A)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Market</span>
           </h1>
-          <p style={{ color: "#64748B", fontSize: "16px" }}>
+          <p style={{ color: "#64748B", fontSize: "16px", maxWidth: "600px", lineHeight: "1.6" }}>
             Real-time insights and interactive charts for Nifty 50 and premium stocks.
           </p>
         </header>
 
         {/* Premium Section */}
         <section style={{ marginBottom: "60px" }}>
-          <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1px" }}>
+          <h2 style={{ fontSize: "19px", fontWeight: 800, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1.5px" }}>
             Premium Watchlist
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "24px" }}>
             {premiumStocks.map((stock) => (
               <StockCard key={stock.symbol} stock={stock} liveData={livePrices[stock.symbol]} isLoaded={isLoaded} />
             ))}
           </div>
         </section>
 
-
-
         {/* Nifty 50 Section */}
         <section>
-          <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1px" }}>
+          <h2 style={{ fontSize: "19px", fontWeight: 800, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1.5px" }}>
             Nifty 50 Companies
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "16px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "20px" }}>
             {nifty50Stocks.map((stock) => (
               <StockCard key={stock.symbol} stock={stock} liveData={livePrices[stock.symbol]} isLoaded={isLoaded} />
             ))}
           </div>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </main>
   );
 }
 
@@ -161,42 +157,43 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any, liveData?: any, 
       <div 
         className="stock-card"
         style={{
-          background: "white",
+          background: "#FFFFFF",
           padding: "24px",
-          borderRadius: "16px",
-          border: "2px solid transparent",
-          transition: "all 0.3s ease",
+          borderRadius: "20px",
+          border: "1px solid #E2E8F0",
+          transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
           cursor: "pointer",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          height: "120px",
-          boxShadow: "0 4px 12px rgba(15,32,68,0.04)",
+          height: "130px",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontWeight: 700, fontSize: "16px", color: "#0F2044" }}>{stock.name}</span>
-          <span style={{ fontSize: "12px", color: "#94A3B8", fontWeight: 600 }}>{stock.symbol}</span>
+          <span style={{ fontWeight: 800, fontSize: "17px", color: "#0F2044", letterSpacing: "-0.3px" }}>{stock.name}</span>
+          <span style={{ fontSize: "12px", color: "#94A3B8", fontWeight: 700 }}>{stock.symbol}</span>
         </div>
         
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginTop: "20px" }}>
           {currentPrice > 0 ? (
-            <span style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044" }}>
+            <span style={{ fontSize: "22px", fontWeight: 900, color: "#0F2044", letterSpacing: "-0.5px", fontFamily: "monospace" }}>
               {currencySymbol}{currentPrice.toLocaleString(isCrypto ? "en-US" : "en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           ) : isLoaded ? (
-            <span style={{ fontSize: "16px", fontWeight: 600, color: "#94A3B8" }}>N/A</span>
+            <span style={{ fontSize: "16px", fontWeight: 700, color: "#94A3B8" }}>N/A</span>
           ) : (
-            <span style={{ fontSize: "14px", color: "#94A3B8" }}>Loading...</span>
+            <span style={{ fontSize: "14px", color: "#94A3B8", fontWeight: 500 }}>Loading...</span>
           )}
           
           <span style={{ 
             fontSize: "13px", 
-            fontWeight: 700, 
-            color: isPositive ? "#22C55E" : "#EF4444",
-            background: isPositive ? "rgba(34,197,94,0.1)" : "rgba(239,68,68,0.1)",
-            padding: "4px 8px",
-            borderRadius: "6px"
+            fontWeight: 800, 
+            color: isPositive ? "#45E180" : "#FF6B7A",
+            background: isPositive ? "rgba(69,225,128,0.15)" : "rgba(255,107,122,0.15)",
+            padding: "4px 10px",
+            borderRadius: "8px",
+            border: `1px solid ${isPositive ? "rgba(69,225,128,0.1)" : "rgba(255,107,122,0.1)"}`
           }}>
             {isPositive ? "+" : ""}{changePercent.toFixed(2)}%
           </span>
@@ -204,9 +201,10 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any, liveData?: any, 
       </div>
       <style jsx>{`
         .stock-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(15,32,68,0.08);
-          border-color: ${isPositive ? "#22C55E" : "#EF4444"} !important;
+          transform: translateY(-5px) scale(1.02);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.1), 0 0 0 1px ${isPositive ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)"} !important;
+          border-color: ${isPositive ? "rgba(34,197,94,0.4)" : "rgba(239,68,68,0.4)"} !important;
+          background: #F8FAFC !important;
         }
       `}</style>
     </Link>
