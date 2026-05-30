@@ -107,8 +107,124 @@ const SCAN_SYMBOLS = [
   {"symbol": "IOC", "name": "Indian Oil Corp"}
 ];
 
+async function scanNifty50() {
+  try {
+    const ticker = '^NSEI';
+    // Fetch 2d range, 15m interval for Nifty 50 Index
+    const result = await fetchYahooChart(ticker, '15m', '2d');
+    if (!result || !result.quotes || result.quotes.length === 0) return null;
+
+    // Find the last fully completed candle
+    let lastCandleIndex = -1;
+    for (let i = result.quotes.length - 1; i >= 0; i--) {
+      const quote = result.quotes[i];
+      const ageMs = Date.now() - quote.date.getTime();
+      if (ageMs >= 15 * 60 * 1000) {
+        lastCandleIndex = i;
+        break;
+      }
+    }
+
+    if (lastCandleIndex < 3) return null; // Need at least 4 completed candles
+
+    const c1 = result.quotes[lastCandleIndex - 3];
+    const c2 = result.quotes[lastCandleIndex - 2];
+    const c3 = result.quotes[lastCandleIndex - 1];
+    const c4 = result.quotes[lastCandleIndex];
+
+    const getISTDateString = (date) => {
+      const optionsDate = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
+      const dateParts = new Intl.DateTimeFormat('en-IN', optionsDate).formatToParts(date);
+      return `${dateParts.find(p=>p.type==='day').value}/${dateParts.find(p=>p.type==='month').value}/${dateParts.find(p=>p.type==='year').value}`;
+    };
+
+    const d1 = getISTDateString(c1.date);
+    const d2 = getISTDateString(c2.date);
+    const d3 = getISTDateString(c3.date);
+    const d4 = getISTDateString(c4.date);
+
+    // All candles in the setup must occur on the same trading day (IST)
+    if (d1 !== d4 || d2 !== d4 || d3 !== d4) {
+      return null;
+    }
+
+    // Pattern Rules:
+    // Bearish Setup:
+    // 1st: Red (close < open)
+    // 2nd: Green (close > open) & break 1st low (low < c1.low)
+    // 3rd: Red (close < open) & break 2nd high (high > c2.high)
+    // 4th: Red (close < open)
+    const isBearish = 
+      (c1.close < c1.open) && 
+      (c2.close > c2.open) && 
+      (c2.low < c1.low) && 
+      (c3.close < c3.open) && 
+      (c3.high > c2.high) && 
+      (c4.close < c4.open);
+
+    // Bullish Setup:
+    // 1st: Green (close > open)
+    // 2nd: Red (close < open) & break 1st high (high > c1.high)
+    // 3rd: Green (close > open) & break 2nd low (low < c2.low)
+    // 4th: Green (close > open)
+    const isBullish = 
+      (c1.close > c1.open) && 
+      (c2.close < c2.open) && 
+      (c2.high > c1.high) && 
+      (c3.close > c3.open) && 
+      (c3.low < c2.low) && 
+      (c4.close > c4.open);
+
+    if (!isBearish && !isBullish) return null;
+
+    const signalType = isBullish ? "Nifty 50 Bullish Setup" : "Nifty 50 Bearish Setup";
+    const direction = isBullish ? "UP" : "DOWN";
+
+    const open = Number(c4.open.toFixed(2));
+    const high = Number(c4.high.toFixed(2));
+    const low = Number(c4.low.toFixed(2));
+    const close = Number(c4.close.toFixed(2));
+
+    const optionsTime = { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true };
+    const candleTimeStart = new Intl.DateTimeFormat('en-IN', optionsTime).format(c4.date).toUpperCase();
+    const dEnd = new Date(c4.date.getTime() + 15 * 60 * 1000);
+    const candleTimeEnd = new Intl.DateTimeFormat('en-IN', optionsTime).format(dEnd).toUpperCase();
+    const candleTime = `${candleTimeStart} - ${candleTimeEnd}`;
+
+    return {
+      stock_symbol: "NIFTY50",
+      stock_name: "Nifty 50 Index",
+      signal_type: signalType,
+      direction: direction,
+      timeframe: "15m",
+      open_price: open,
+      high_price: high,
+      low_price: low,
+      close_price: close,
+      candle_time: candleTime,
+      candle_date: d4
+    };
+  } catch (e) {
+    console.error("Error scanning Nifty 50:", e.message);
+    return null;
+  }
+}
+
 async function scanStocks() {
   const newSignals = [];
+
+  // Scan Nifty 50 Index for the special 15-min setup
+  try {
+    console.log("Scanning Nifty 50 for custom setup...");
+    const niftySignal = await scanNifty50();
+    if (niftySignal) {
+      newSignals.push(niftySignal);
+      console.log("Detected Nifty 50 setup:", niftySignal.signal_type);
+    }
+  } catch (err) {
+    console.error("Error in scanNifty50:", err.message);
+  }
+
 
   for (const stock of SCAN_SYMBOLS) {
     try {

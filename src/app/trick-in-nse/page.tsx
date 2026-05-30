@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import { 
   MagnifyingGlass, Clock, CaretUp, CaretDown, BellRinging, BellSlash, 
-  ArrowUpRight, ArrowDownRight, CaretRight, Crosshair 
+  ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
 
@@ -33,6 +33,32 @@ type LiveStockData = {
   gapPercent: number;
 };
 
+const getNiftySetupStatus = (candles: any[]) => {
+  if (candles.length < 4) return { matched: false, type: "", text: "No Setup" };
+  const [c1, c2, c3, c4] = candles;
+
+  const isBearish = 
+    (c1.close < c1.open) && 
+    (c2.close > c2.open) && 
+    (c2.low < c1.low) && 
+    (c3.close < c3.open) && 
+    (c3.high > c2.high) && 
+    (c4.close < c4.open);
+
+  const isBullish = 
+    (c1.close > c1.open) && 
+    (c2.close < c2.open) && 
+    (c2.high > c1.high) && 
+    (c3.close > c3.open) && 
+    (c3.low < c2.low) && 
+    (c4.close > c4.open);
+
+  if (isBullish) return { matched: true, type: "BULLISH", text: "Bullish Setup Active" };
+  if (isBearish) return { matched: true, type: "BEARISH", text: "Bearish Setup Active" };
+  
+  return { matched: false, type: "", text: "No Active Setup" };
+};
+
 export default function TricksInNSE() {
   const router = useRouter();
   
@@ -44,7 +70,11 @@ export default function TricksInNSE() {
   const [loadingMother, setLoadingMother] = useState(true);
   const [motherMatches, setMotherMatches] = useState<any[]>([]);
 
-  // -- State for Section 3 (Live signals) --
+  // -- State for Section 3 (Nifty 50 Custom Setup) --
+  const [niftyCandles, setNiftyCandles] = useState<any[]>([]);
+  const [loadingNiftySetup, setLoadingNiftySetup] = useState(true);
+
+  // -- State for Section 4 (Live signals) --
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
@@ -88,9 +118,44 @@ export default function TricksInNSE() {
     }
   };
 
+  const fetchNiftySetupData = async () => {
+    setLoadingNiftySetup(true);
+    try {
+      const res = await fetch("/api/stock-data?symbol=NIFTY50&interval=15m&range=2d", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.candles) {
+          const candles = data.candles;
+          let lastCompletedIdx = -1;
+          const nowMs = Date.now();
+          for (let i = candles.length - 1; i >= 0; i--) {
+            const cTimeMs = candles[i].time * 1000;
+            if (nowMs - cTimeMs >= 15 * 60 * 1000) {
+              lastCompletedIdx = i;
+              break;
+            }
+          }
+          if (lastCompletedIdx >= 3) {
+            setNiftyCandles([
+              candles[lastCompletedIdx - 3],
+              candles[lastCompletedIdx - 2],
+              candles[lastCompletedIdx - 1],
+              candles[lastCompletedIdx]
+            ]);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to load Nifty 50 candles:", error);
+    } finally {
+      setLoadingNiftySetup(false);
+    }
+  };
+
   useEffect(() => {
     fetchGaps();
     fetchMotherRange();
+    fetchNiftySetupData();
   }, []);
 
   useEffect(() => {
@@ -101,12 +166,34 @@ export default function TricksInNSE() {
     fetch("http://localhost:8080/api/today")
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
-          setSignals(data.data || []);
-          setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        if (data.success && data.data) {
+          const signalsList = data.data;
+          setSignals(signalsList);
+          
+          if (signalsList.length > 0) {
+            // Find the most recent created_at timestamp in the signals
+            const latest = signalsList.reduce((acc: any, curr: any) => {
+              if (!acc) return curr;
+              return new Date(curr.created_at) > new Date(acc.created_at) ? curr : acc;
+            }, null);
+            
+            if (latest && latest.created_at) {
+              const updateDate = new Date(latest.created_at);
+              setLastUpdated(updateDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            } else {
+              setLastUpdated("N/A");
+            }
+          } else {
+            setLastUpdated("N/A");
+          }
+        } else {
+          setLastUpdated("N/A");
         }
       })
-      .catch(err => console.warn("Error fetching initial data:", err))
+      .catch(err => {
+        console.warn("Error fetching initial data:", err);
+        setLastUpdated("N/A");
+      })
       .finally(() => setLoadingSignals(false));
 
     // Connect to WebSocket
@@ -119,6 +206,11 @@ export default function TricksInNSE() {
     socket.on("new_signals", (newSignals: SignalData[]) => {
       console.log("Received new signals:", newSignals);
       
+      const hasNifty = newSignals.some(s => s.stock_symbol === "NIFTY50");
+      if (hasNifty) {
+        fetchNiftySetupData();
+      }
+
       setSignals(prev => {
         // Prepend new signals, filtering out duplicates
         const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
@@ -126,7 +218,19 @@ export default function TricksInNSE() {
         return [...toAdd, ...prev];
       });
 
-      setLastUpdated(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      if (newSignals.length > 0) {
+        const latest = newSignals.reduce((acc: any, curr: any) => {
+          if (!acc) return curr;
+          const currMs = curr.created_at ? new Date(curr.created_at).getTime() : Date.now();
+          const accMs = acc.created_at ? new Date(acc.created_at).getTime() : Date.now();
+          return currMs > accMs ? curr : acc;
+        }, null);
+
+        if (latest) {
+          const updateTime = latest.created_at ? new Date(latest.created_at) : new Date();
+          setLastUpdated(updateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        }
+      }
       
       // Play sound
       if (soundEnabled && audioRef.current) {
@@ -207,7 +311,7 @@ export default function TricksInNSE() {
                 <ArrowUpRight size={22} weight="bold" />
               </div>
               <div>
-                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>🚀 Verified Gap Ups</h3>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>Verified Gap Ups</h3>
                 <span style={{ fontSize: "12px", color: "#94A3B8" }}>First 15-min low holds above prev day high</span>
               </div>
             </div>
@@ -258,7 +362,7 @@ export default function TricksInNSE() {
                 <ArrowDownRight size={22} weight="bold" />
               </div>
               <div>
-                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>📉 Verified Gap Downs</h3>
+                <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>Verified Gap Downs</h3>
                 <span style={{ fontSize: "12px", color: "#94A3B8" }}>First 15-min high stays below prev day low</span>
               </div>
             </div>
@@ -318,7 +422,7 @@ export default function TricksInNSE() {
               <Crosshair size={22} weight="bold" />
             </div>
             <div>
-              <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>🎯 Volatility Contraction (Mother Range)</h3>
+              <h3 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: "0" }}>Volatility Contraction (Mother Range)</h3>
               <span style={{ fontSize: "12px", color: "#94A3B8" }}>Identifies inside-range consolidation where the first 15-m candle encapsulates the previous and next candles.</span>
             </div>
           </div>
@@ -356,9 +460,131 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* Section 3: Live 15-Min Signals */}
+        {/* Section 3: Nifty 50 15-Min Special Setup */}
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>3. Live 15-Min Open=High & Open=Low Signals</h2>
+          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>3. Nifty 50 15-Min Special Setup</h2>
+          <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
+            <span style={{ width: "6px", height: "6px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
+            ACTIVE TRACKER
+          </div>
+        </div>
+
+        {(() => {
+          const niftySignal = signals.find(s => s.stock_symbol === "NIFTY50");
+          
+          if (!niftySignal) {
+            return (
+              <div style={{
+                background: "#FFFFFF",
+                border: "1px solid #E2E8F0",
+                borderRadius: "24px",
+                padding: "36px 32px",
+                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                marginBottom: "60px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                position: "relative",
+                overflow: "hidden"
+              }}>
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "4px", background: "#CBD5E1" }} />
+                <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748B", marginBottom: "16px" }}>
+                  <Info size={22} weight="bold" />
+                </div>
+                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>No Nifty 50 Setup Detected Today</div>
+                <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "420px", lineHeight: "1.5" }}>
+                  The strict multi-candle sweep pattern has not been triggered on Nifty 50 today yet. We are scanning tick-by-tick.
+                </div>
+              </div>
+            );
+          }
+
+          const isBull = niftySignal.direction === "UP";
+          const themeColor = isBull ? "#10B981" : "#EF4444";
+          const glowColor = isBull ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
+
+          return (
+            <div
+              onClick={() => {
+                localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
+                router.push("/stock/NIFTY50");
+              }}
+              style={{
+                background: "#FFFFFF",
+                border: `1.5px solid ${themeColor}`,
+                borderRadius: "24px",
+                padding: "32px",
+                boxShadow: `0 10px 30px ${glowColor}, 0 2px 12px rgba(0,0,0,0.04)`,
+                marginBottom: "60px",
+                position: "relative",
+                overflow: "hidden",
+                cursor: "pointer",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+              className="nifty-setup-card"
+            >
+              {/* Left Accent Glow Stripe */}
+              <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "6px", background: themeColor }} />
+
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "24px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+                  <div style={{
+                    width: "56px",
+                    height: "56px",
+                    borderRadius: "14px",
+                    background: isBull ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
+                    color: themeColor,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0
+                  }}>
+                    <BellRinging size={28} weight="bold" />
+                  </div>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
+                      <span style={{ fontSize: "20px", fontWeight: 900, color: "#0F2044" }}>Nifty 50 {isBull ? "Bullish Setup" : "Bearish Setup"}</span>
+                      <span style={{
+                        background: isBull ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
+                        color: themeColor,
+                        padding: "4px 10px",
+                        borderRadius: "8px",
+                        fontSize: "11px",
+                        fontWeight: 900,
+                        letterSpacing: "0.5px"
+                      }}>
+                        ACTIVE TIME
+                      </span>
+                    </div>
+                    <p style={{ color: "#475569", fontSize: "14px", fontWeight: 600, margin: 0 }}>
+                      Setup Formed on: <span style={{ color: "#0F2044", fontWeight: 800 }}>{niftySignal.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 800 }}>{niftySignal.candle_time}</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* Right Call to action button */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 800, color: themeColor }}>
+                    Click to Open 15-Min Candle Chart ➔
+                  </span>
+                </div>
+              </div>
+
+              <style>{`
+                .nifty-setup-card:hover {
+                  transform: translateY(-3px);
+                  box-shadow: 0 16px 36px ${glowColor}, 0 4px 16px rgba(0,0,0,0.06);
+                }
+              `}</style>
+            </div>
+          );
+        })()}
+
+        {/* Section 4: Live 15-Min Signals */}
+        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>4. Live 15-Min Open=High & Open=Low Signals</h2>
           <div style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(59,130,246,0.2)" }}>
             <span style={{ width: "6px", height: "6px", background: "#3B82F6", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
             LIVE

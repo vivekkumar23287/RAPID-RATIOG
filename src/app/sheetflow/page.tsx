@@ -34,6 +34,8 @@ export default function SheetFlowPage() {
   const [sheetData, setSheetData] = useState([
     {
       name: "Sheet1",
+      row: 84,
+      column: 60,
       celldata: [
         { r: 0, c: 0, v: { v: "Welcome to Sheet Flow", m: "Welcome to Sheet Flow", bg: "#0F2044", fc: "#FFFFFF", bl: 1 } },
         { r: 1, c: 0, v: { v: "This is a fully functional Excel clone in your browser." } },
@@ -54,26 +56,59 @@ export default function SheetFlowPage() {
       <Navbar />
       
       {/* We need to offset the height by the navbar height so it fits perfectly without scrolling the body */}
-      <div style={{ 
-        flex: 1, 
-        marginTop: "84px", 
-        marginBottom: "20px", 
-        marginLeft: "20px", 
-        marginRight: "20px", 
-        position: "relative",
-        background: "#FFFFFF",
-        borderRadius: "24px",
-        border: "1px solid #E2E8F0",
-        boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-        overflow: "hidden"
-      }}>
-        <Workbook 
-          data={sheetData} 
-          onChange={(data) => {
-            // This captures all changes (typing, formatting, etc.)
-            console.log("Sheet data changed", data);
-          }}
-        />
+      <div 
+        className="excel-scroll-container"
+        style={{ 
+          height: "calc(100vh - 124px)", 
+          marginTop: "84px", 
+          marginLeft: "20px", 
+          marginRight: "20px", 
+          position: "relative",
+          background: "#FFFFFF",
+          borderRadius: "24px",
+          border: "1px solid #E2E8F0",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
+          overflow: "scroll" // Force browser scrollbars to always show
+        }}
+      >
+        <div style={{ width: "3200px", height: "1800px" }}>
+          <Workbook 
+            data={sheetData} 
+            onChange={(data) => {
+              // This captures all changes (typing, formatting, etc.)
+              console.log("Sheet data changed", data);
+            }}
+          />
+        </div>
+
+        <style>{`
+          /* Premium Custom Scrollbars for the Excel Sheet page only */
+          .excel-scroll-container::-webkit-scrollbar {
+            width: 16px !important;
+            height: 16px !important;
+            display: block !important;
+          }
+          .excel-scroll-container::-webkit-scrollbar-track {
+            background: #F8FAFC !important;
+            border-left: 1px solid #E2E8F0 !important;
+            border-top: 1px solid #E2E8F0 !important;
+            border-bottom-right-radius: 24px;
+            border-top-right-radius: 24px;
+          }
+          .excel-scroll-container::-webkit-scrollbar-thumb {
+            background: #CBD5E1 !important;
+            border-radius: 10px !important;
+            border: 4px solid #F8FAFC !important;
+          }
+          .excel-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8 !important;
+          }
+          /* Corner spacer where horizontal and vertical scrollbars meet */
+          .excel-scroll-container::-webkit-scrollbar-corner {
+            background: #F8FAFC !important;
+            border-bottom-right-radius: 24px;
+          }
+        `}</style>
       </div>
     </main>
   );

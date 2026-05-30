@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import LoadingScreen from "@/components/LoadingScreen";
+import GlobalNotification from "@/components/GlobalNotification";
 
 export const metadata: Metadata = {
 
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
         <body style={{ margin: 0, padding: 0, fontFamily: "Satoshi, sans-serif" }}>
           <LoadingScreen />
+          <GlobalNotification />
           <SmoothScroll>
             {children}
           </SmoothScroll>
