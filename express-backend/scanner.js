@@ -1,311 +1,206 @@
+/**
+ * scanner.js
+ * 
+ * Scans pre-imported 15-min candles for trading signals.
+ * 
+ * IMPORTANT: This module does NOT fetch candles from Yahoo Finance directly.
+ * It receives already-filtered, completed candles from candle-importer.js.
+ * This guarantees the scanner always uses correct, verified candles.
+ * 
+ * Tricks:
+ *   1. OPEN = HIGH (Bearish ↓) — candle's high equals its open
+ *   2. OPEN = LOW  (Bullish ↑) — candle's low equals its open
+ *   3. Nifty 50 4-Candle Setup — special multi-candle pattern
+ */
+
 require('dotenv').config({ path: '../.env.local' });
-async function fetchYahooChart(ticker, interval, range) {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=${interval}&range=${range}`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Yahoo Finance API returned status ${response.status}`);
-  }
-  const data = await response.json();
-  if (data.chart && data.chart.error) {
-    throw new Error(data.chart.error.description || "Yahoo Finance API error");
-  }
-  const result = data.chart && data.chart.result && data.chart.result[0];
-  if (!result || !result.timestamp || result.timestamp.length === 0) {
-    return { quotes: [] };
-  }
-  
-  const quotes = [];
-  const quoteData = result.indicators.quote[0];
-  for (let i = 0; i < result.timestamp.length; i++) {
-    if (
-      quoteData.open[i] !== null &&
-      quoteData.high[i] !== null &&
-      quoteData.low[i] !== null &&
-      quoteData.close[i] !== null
-    ) {
-      quotes.push({
-        date: new Date(result.timestamp[i] * 1000),
-        open: quoteData.open[i],
-        high: quoteData.high[i],
-        low: quoteData.low[i],
-        close: quoteData.close[i],
-        volume: quoteData.volume[i] || 0
-      });
-    }
-  }
-  return { quotes, meta: result.meta };
-}
 const { Pool } = require('pg');
+const { getISTTimeString, getISTDateString } = require('./candle-importer');
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
+  connectionString: process.env.DATABASE_URL,
 });
 
-const SCAN_SYMBOLS = [
-  {"symbol": "RELIANCE", "name": "Reliance Industries"},
-  {"symbol": "TCS", "name": "Tata Consultancy Services"},
-  {"symbol": "HDFCBANK", "name": "HDFC Bank"},
-  {"symbol": "ICICIBANK", "name": "ICICI Bank"},
-  {"symbol": "INFY", "name": "Infosys"},
-  {"symbol": "POLYCAB", "name": "Polycab India"},
-  {"symbol": "TMPV", "name": "Tata Motors Passenger"},
-  {"symbol": "TMCV", "name": "Tata Motors Commercial"},
-  {"symbol": "SBIN", "name": "State Bank of India"},
-  {"symbol": "BHARTIARTL", "name": "Bharti Airtel"},
-  {"symbol": "ITC", "name": "ITC Limited"},
-  {"symbol": "LT", "name": "Larsen & Toubro"},
-  {"symbol": "AXISBANK", "name": "Axis Bank"},
-  {"symbol": "WIPRO", "name": "Wipro"},
-  {"symbol": "HCLTECH", "name": "HCL Technologies"},
-  {"symbol": "MARUTI", "name": "Maruti Suzuki"},
-  {"symbol": "KOTAKBANK", "name": "Kotak Mahindra Bank"},
-  {"symbol": "HINDUNILVR", "name": "Hindustan Unilever"},
-  {"symbol": "BAJFINANCE", "name": "Bajaj Finance"},
-  {"symbol": "ADANIENT", "name": "Adani Enterprises"},
-  {"symbol": "SUNPHARMA", "name": "Sun Pharmaceutical"},
-  {"symbol": "TITAN", "name": "Titan Company"},
-  {"symbol": "BAJAJFINSV", "name": "Bajaj Finserv"},
-  {"symbol": "ULTRACEMCO", "name": "UltraTech Cement"},
-  {"symbol": "TATASTEEL", "name": "Tata Steel"},
-  {"symbol": "NTPC", "name": "NTPC"},
-  {"symbol": "JSWSTEEL", "name": "JSW Steel"},
-  {"symbol": "ASIANPAINT", "name": "Asian Paints"},
-  {"symbol": "M&M", "name": "Mahindra & Mahindra"},
-  {"symbol": "POWERGRID", "name": "Power Grid Corp"},
-  {"symbol": "ONGC", "name": "ONGC"},
-  {"symbol": "ADANIPORTS", "name": "Adani Ports & SEZ"},
-  {"symbol": "COALINDIA", "name": "Coal India"},
-  {"symbol": "TECHM", "name": "Tech Mahindra"},
-  {"symbol": "INDUSINDBK", "name": "IndusInd Bank"},
-  {"symbol": "NESTLEIND", "name": "Nestle India"},
-  {"symbol": "LTM", "name": "LTI Mindtree"},
-  {"symbol": "HINDALCO", "name": "Hindalco Industries"},
-  {"symbol": "BRITANNIA", "name": "Britannia Industries"},
-  {"symbol": "GRASIM", "name": "Grasim Industries"},
-  {"symbol": "DRREDDY", "name": "Dr. Reddy's"},
-  {"symbol": "APOLLOHOSP", "name": "Apollo Hospitals"},
-  {"symbol": "EICHERMOT", "name": "Eicher Motors"},
-  {"symbol": "SBILIFE", "name": "SBI Life Insurance"},
-  {"symbol": "BPCL", "name": "BPCL"},
-  {"symbol": "CIPLA", "name": "Cipla"},
-  {"symbol": "BAJAJ-AUTO", "name": "Bajaj Auto"},
-  {"symbol": "DIVISLAB", "name": "Divi's Laboratories"},
-  {"symbol": "HEROMOTOCO", "name": "Hero MotoCorp"},
-  {"symbol": "UPL", "name": "UPL"},
-  {"symbol": "TATACONSUM", "name": "Tata Consumer Products"},
-  {"symbol": "DLF", "name": "DLF Limited"},
-  {"symbol": "BHEL", "name": "BHEL"},
-  {"symbol": "CANBK", "name": "Canara Bank"},
-  {"symbol": "PNB", "name": "Punjab National Bank"},
-  {"symbol": "TATAPOWER", "name": "Tata Power"},
-  {"symbol": "IRCTC", "name": "IRCTC"},
-  {"symbol": "UNIONBANK", "name": "Union Bank of India"},
-  {"symbol": "FEDERALBNK", "name": "Federal Bank"},
-  {"symbol": "SAIL", "name": "Steel Authority of India"},
-  {"symbol": "GMRAIRPORT", "name": "GMR Airports"},
-  {"symbol": "IDFCFIRSTB", "name": "IDFC First Bank"},
-  {"symbol": "IOC", "name": "Indian Oil Corp"}
-];
 
-async function scanNifty50() {
-  try {
-    const ticker = '^NSEI';
-    // Fetch 2d range, 15m interval for Nifty 50 Index
-    const result = await fetchYahooChart(ticker, '15m', '2d');
-    if (!result || !result.quotes || result.quotes.length === 0) return null;
+// ─────────────────────────────────────────────────────────────
+// NIFTY 50 — 4-Candle Special Setup Scanner
+// ─────────────────────────────────────────────────────────────
 
-    // Find the last fully completed candle
-    let lastCandleIndex = -1;
-    for (let i = result.quotes.length - 1; i >= 0; i--) {
-      const quote = result.quotes[i];
-      const ageMs = Date.now() - quote.date.getTime();
-      if (ageMs >= 15 * 60 * 1000) {
-        lastCandleIndex = i;
-        break;
-      }
-    }
-
-    if (lastCandleIndex < 3) return null; // Need at least 4 completed candles
-
-    const c1 = result.quotes[lastCandleIndex - 3];
-    const c2 = result.quotes[lastCandleIndex - 2];
-    const c3 = result.quotes[lastCandleIndex - 1];
-    const c4 = result.quotes[lastCandleIndex];
-
-    const getISTDateString = (date) => {
-      const optionsDate = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
-      const dateParts = new Intl.DateTimeFormat('en-IN', optionsDate).formatToParts(date);
-      return `${dateParts.find(p=>p.type==='day').value}/${dateParts.find(p=>p.type==='month').value}/${dateParts.find(p=>p.type==='year').value}`;
-    };
-
-    const d1 = getISTDateString(c1.date);
-    const d2 = getISTDateString(c2.date);
-    const d3 = getISTDateString(c3.date);
-    const d4 = getISTDateString(c4.date);
-
-    // All candles in the setup must occur on the same trading day (IST)
-    if (d1 !== d4 || d2 !== d4 || d3 !== d4) {
-      return null;
-    }
-
-    // Pattern Rules:
-    // Bearish Setup:
-    // 1st: Red (close < open)
-    // 2nd: Green (close > open) & break 1st low (low < c1.low)
-    // 3rd: Red (close < open) & break 2nd high (high > c2.high)
-    // 4th: Red (close < open)
-    const isBearish = 
-      (c1.close < c1.open) && 
-      (c2.close > c2.open) && 
-      (c2.low < c1.low) && 
-      (c3.close < c3.open) && 
-      (c3.high > c2.high) && 
-      (c4.close < c4.open);
-
-    // Bullish Setup:
-    // 1st: Green (close > open)
-    // 2nd: Red (close < open) & break 1st high (high > c1.high)
-    // 3rd: Green (close > open) & break 2nd low (low < c2.low)
-    // 4th: Green (close > open)
-    const isBullish = 
-      (c1.close > c1.open) && 
-      (c2.close < c2.open) && 
-      (c2.high > c1.high) && 
-      (c3.close > c3.open) && 
-      (c3.low < c2.low) && 
-      (c4.close > c4.open);
-
-    if (!isBearish && !isBullish) return null;
-
-    const signalType = isBullish ? "Nifty 50 Bullish Setup" : "Nifty 50 Bearish Setup";
-    const direction = isBullish ? "UP" : "DOWN";
-
-    const open = Number(c4.open.toFixed(2));
-    const high = Number(c4.high.toFixed(2));
-    const low = Number(c4.low.toFixed(2));
-    const close = Number(c4.close.toFixed(2));
-
-    const optionsTime = { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true };
-    const candleTimeStart = new Intl.DateTimeFormat('en-IN', optionsTime).format(c4.date).toUpperCase();
-    const dEnd = new Date(c4.date.getTime() + 15 * 60 * 1000);
-    const candleTimeEnd = new Intl.DateTimeFormat('en-IN', optionsTime).format(dEnd).toUpperCase();
-    const candleTime = `${candleTimeStart} - ${candleTimeEnd}`;
-
-    return {
-      stock_symbol: "NIFTY50",
-      stock_name: "Nifty 50 Index",
-      signal_type: signalType,
-      direction: direction,
-      timeframe: "15m",
-      open_price: open,
-      high_price: high,
-      low_price: low,
-      close_price: close,
-      candle_time: candleTime,
-      candle_date: d4
-    };
-  } catch (e) {
-    console.error("Error scanning Nifty 50:", e.message);
+/**
+ * Scans the last 4 completed candles of NIFTY 50 for the special setup.
+ * All 4 candles must be from the same trading day.
+ *
+ * Bearish Setup:
+ *   C1: Red (close < open)
+ *   C2: Green (close > open) & breaks C1's low (C2.low < C1.low)
+ *   C3: Red (close < open) & breaks C2's high (C3.high > C2.high)
+ *   C4: Red (close < open)
+ *
+ * Bullish Setup:
+ *   C1: Green (close > open)
+ *   C2: Red (close < open) & breaks C1's high (C2.high > C1.high)
+ *   C3: Green (close > open) & breaks C2's low (C3.low < C2.low)
+ *   C4: Green (close > open)
+ */
+function scanNifty50Setup(niftyData) {
+  const { quotes } = niftyData;
+  if (!quotes || quotes.length < 4) {
+    console.log('[SCANNER] Nifty 50: Not enough candles for 4-candle setup');
     return null;
   }
-}
 
-async function scanStocks() {
-  const newSignals = [];
+  // Get the last 4 completed candles
+  const c1 = quotes[quotes.length - 4];
+  const c2 = quotes[quotes.length - 3];
+  const c3 = quotes[quotes.length - 2];
+  const c4 = quotes[quotes.length - 1];
 
-  // Scan Nifty 50 Index for the special 15-min setup
-  try {
-    console.log("Scanning Nifty 50 for custom setup...");
-    const niftySignal = await scanNifty50();
-    if (niftySignal) {
-      newSignals.push(niftySignal);
-      console.log("Detected Nifty 50 setup:", niftySignal.signal_type);
-    }
-  } catch (err) {
-    console.error("Error in scanNifty50:", err.message);
+  // All 4 candles must be from the SAME trading day (IST)
+  if (c1.dateStr !== c4.dateStr || c2.dateStr !== c4.dateStr || c3.dateStr !== c4.dateStr) {
+    console.log('[SCANNER] Nifty 50: Candles span multiple days — skipping');
+    return null;
   }
 
+  // Bearish Setup
+  const isBearish =
+    (c1.close < c1.open) &&
+    (c2.close > c2.open) &&
+    (c2.low < c1.low) &&
+    (c3.close < c3.open) &&
+    (c3.high > c2.high) &&
+    (c4.close < c4.open);
 
-  for (const stock of SCAN_SYMBOLS) {
+  // Bullish Setup
+  const isBullish =
+    (c1.close > c1.open) &&
+    (c2.close < c2.open) &&
+    (c2.high > c1.high) &&
+    (c3.close > c3.open) &&
+    (c3.low < c2.low) &&
+    (c4.close > c4.open);
+
+  if (!isBearish && !isBullish) return null;
+
+  const signalType = isBullish ? 'Nifty 50 Bullish Setup' : 'Nifty 50 Bearish Setup';
+  const direction = isBullish ? 'UP' : 'DOWN';
+
+  // Build candle time range string (start of C4 → end of C4)
+  const candleTimeStart = c4.timeStr;
+  const candleEndTs = c4.timestamp + 15 * 60;
+  const candleTimeEnd = getISTTimeString(candleEndTs);
+  const candleTime = `${candleTimeStart} - ${candleTimeEnd}`;
+
+  return {
+    stock_symbol: 'NIFTY50',
+    stock_name: 'Nifty 50 Index',
+    signal_type: signalType,
+    direction: direction,
+    timeframe: '15m',
+    open_price: c4.open,
+    high_price: c4.high,
+    low_price: c4.low,
+    close_price: c4.close,
+    candle_time: candleTime,
+    candle_date: c4.dateStr,
+  };
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// MAIN SCANNER
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Scan all pre-imported candles for trading signals.
+ *
+ * @param {Object} importedCandles — from candle-importer.js importAllCandles()
+ *   Format: { [symbol]: { quotes: [...], meta: {...}, name: string } }
+ *
+ * @returns {Array} — saved signals from DB
+ */
+async function scanStocks(importedCandles) {
+  const newSignals = [];
+
+  // ── 1. Scan NIFTY 50 for the 4-candle setup ──
+  if (importedCandles['NIFTY50']) {
     try {
-      const ticker = `${stock.symbol}.NS`;
-      // Fetch 1d range, 15m interval
-      const result = await fetchYahooChart(ticker, '15m', '1d');
-      
-      if (!result || !result.quotes || result.quotes.length === 0) continue;
-      
-      // Find the last fully completed candle by searching backwards
-      let lastCandle = null;
-      for (let i = result.quotes.length - 1; i >= 0; i--) {
-        const quote = result.quotes[i];
-        const ageMs = Date.now() - quote.date.getTime();
-        // A candle is fully completed if the current time is at least 15 minutes past its starting time.
-        if (ageMs >= 15 * 60 * 1000) {
-          lastCandle = quote;
-          break;
-        }
+      console.log('[SCANNER] Scanning Nifty 50 for 4-candle setup...');
+      const niftySignal = scanNifty50Setup(importedCandles['NIFTY50']);
+      if (niftySignal) {
+        newSignals.push(niftySignal);
+        console.log(`[SCANNER] ✓ Detected: ${niftySignal.signal_type}`);
+      } else {
+        console.log('[SCANNER] ✗ No Nifty 50 setup detected');
       }
-      
-      if (!lastCandle || !lastCandle.open) continue;
+    } catch (err) {
+      console.error('[SCANNER] Error in Nifty 50 scan:', err.message);
+    }
+  }
 
-      const open = Number(lastCandle.open.toFixed(2));
-      const high = Number(lastCandle.high.toFixed(2));
-      const low = Number(lastCandle.low.toFixed(2));
-      const close = Number(lastCandle.close.toFixed(2));
+  // ── 2. Scan all stocks for Open=High / Open=Low trick ──
+  console.log('[SCANNER] Scanning stocks for O=H / O=L signals...');
+  let signalCount = 0;
+
+  for (const [symbol, data] of Object.entries(importedCandles)) {
+    if (symbol === 'NIFTY50') continue; // Already handled above
+
+    try {
+      const { quotes, name } = data;
+      if (!quotes || quotes.length === 0) continue;
+
+      // Use the LAST completed candle (guaranteed by importer)
+      const lastCandle = quotes[quotes.length - 1];
+      if (!lastCandle) continue;
+
+      const { open, high, low, close, timestamp, dateStr, timeStr } = lastCandle;
 
       let signalType = null;
       let direction = null;
 
-      // RULE 1: If candle HIGH == OPEN -> signal = DOWN (Bearish)
+      // RULE 1: If candle HIGH == OPEN → signal = DOWN (Bearish)
       if (high === open) {
-        signalType = "OPEN = HIGH ↓";
-        direction = "DOWN";
-      } 
-      // RULE 2: If candle LOW == OPEN -> signal = UP (Bullish)
+        signalType = 'OPEN = HIGH ↓';
+        direction = 'DOWN';
+      }
+      // RULE 2: If candle LOW == OPEN → signal = UP (Bullish)
       else if (low === open) {
-        signalType = "OPEN = LOW ↑";
-        direction = "UP";
+        signalType = 'OPEN = LOW ↑';
+        direction = 'UP';
       }
 
       if (signalType) {
-        const d = new Date(lastCandle.date);
-        
-        // Convert to IST representation for storing
-        // A simple way to format it locally:
-        const optionsDate = { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' };
-        const optionsTime = { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true };
-        
-        const dateParts = new Intl.DateTimeFormat('en-IN', optionsDate).formatToParts(d);
-        const candleDate = `${dateParts.find(p=>p.type==='day').value}/${dateParts.find(p=>p.type==='month').value}/${dateParts.find(p=>p.type==='year').value}`;
-        
-        const candleTimeStart = new Intl.DateTimeFormat('en-IN', optionsTime).format(d).toUpperCase();
-        const dEnd = new Date(d.getTime() + 15 * 60 * 1000);
-        const candleTimeEnd = new Intl.DateTimeFormat('en-IN', optionsTime).format(dEnd).toUpperCase();
-        const candleTime = `${candleTimeStart} - ${candleTimeEnd}`;
+        // Build candle time range: "09:15 AM - 09:30 AM"
+        const candleEndTs = timestamp + 15 * 60;
+        const candleTimeEnd = getISTTimeString(candleEndTs);
+        const candleTime = `${timeStr} - ${candleTimeEnd}`;
 
         newSignals.push({
-          stock_symbol: stock.symbol,
-          stock_name: stock.name,
+          stock_symbol: symbol,
+          stock_name: name,
           signal_type: signalType,
           direction: direction,
-          timeframe: "15m",
+          timeframe: '15m',
           open_price: open,
           high_price: high,
           low_price: low,
           close_price: close,
           candle_time: candleTime,
-          candle_date: candleDate
+          candle_date: dateStr,
         });
+        signalCount++;
       }
-
     } catch (e) {
-      console.error(`Error scanning ${stock.symbol}:`, e.message);
+      console.error(`[SCANNER] Error scanning ${symbol}:`, e.message);
     }
   }
 
-  // Insert to DB
+  console.log(`[SCANNER] Found ${signalCount} O=H/O=L signals`);
+
+  // ── 3. Save signals to database ──
   const validSavedSignals = [];
   if (newSignals.length > 0) {
+    console.log(`[SCANNER] Saving ${newSignals.length} total signals to DB...`);
+
     for (const sig of newSignals) {
       try {
         const query = `
@@ -327,20 +222,23 @@ async function scanStocks() {
         `;
         const values = [
           sig.stock_symbol, sig.stock_name, sig.signal_type, sig.direction, sig.timeframe,
-          sig.open_price, sig.high_price, sig.low_price, sig.close_price, sig.candle_time, sig.candle_date
+          sig.open_price, sig.high_price, sig.low_price, sig.close_price, sig.candle_time, sig.candle_date,
         ];
-        
+
         const res = await pool.query(query, values);
         if (res.rowCount > 0) {
           validSavedSignals.push(res.rows[0]);
         }
       } catch (err) {
-        console.error("DB Insert Error for", sig.stock_symbol, ":", err.message);
+        console.error('[SCANNER] DB Insert Error for', sig.stock_symbol, ':', err.message);
       }
     }
+
+    console.log(`[SCANNER] ✅ Saved ${validSavedSignals.length} signals to DB`);
   }
 
   return validSavedSignals;
 }
+
 
 module.exports = { scanStocks, pool };

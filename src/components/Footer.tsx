@@ -61,32 +61,19 @@ export default function Footer() {
         >
           {/* Brand col */}
           <div>
-            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px", marginBottom: "1.25rem" }}>
-              <div
+            <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", marginBottom: "1.25rem", position: "relative" }}>
+              <img
+                src="/logo1.png"
+                alt="RapidRatioG Logo"
                 style={{
-                  width: "36px",
-                  height: "36px",
-                  background: "linear-gradient(135deg, #00C9A7, #7CFFEF)",
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
+                  height: "100px",
+                  width: "auto",
+                  display: "block",
+                  position: "relative",
+                  zIndex: 1,
+                  filter: "contrast(1.5) brightness(1.1)",
                 }}
-              >
-                <ChartLineUp size={20} color="#070B14" weight="bold" />
-              </div>
-              <span
-                style={{
-                  fontFamily: "Syne, sans-serif",
-                  fontWeight: 800,
-                  fontSize: "18px",
-                  color: "#FFFFFF",
-                  letterSpacing: "-0.3px",
-                }}
-              >
-                Rapid<span style={{ color: "#7CFFEF" }}>RatioG</span>
-              </span>
+              />
             </Link>
 
             <p

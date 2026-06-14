@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, TrendUp } from "@phosphor-icons/react";
 import { SignUpButton } from "@clerk/nextjs";
+import { TransparentCandle } from "@/components/TransparentImage";
 
 const WORDS = ["Intelligence", "Precision", "Speed", "Clarity", "Power"];
 const FONT = "Satoshi, sans-serif";
@@ -636,70 +637,4 @@ function CandlestickChart({ candleRefs }: { candleRefs: CandleRefs }) {
   );
 }
 
-/* Canvas-based background removal: strips dark/checkerboard pixels */
-function TransparentCandle({ src }: { src: string }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return;
-
-    const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        // Support both vibrant green/blue (green/blue dominant over red) AND vibrant red (red dominant over green/blue)
-        const greenBlueExcess = Math.max(g - r, b - r);
-        const redExcess = r - Math.max(g, b);
-        const colorExcess = Math.max(greenBlueExcess, redExcess);
-
-        // Calculate brightness (0-255)
-        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
-
-        if (colorExcess < 35) {
-          // Definitely background (gray checkerboard, white lines, dark areas).
-          // Keep only the extremely bright white highlights of the candle's inner glow.
-          if (r > 235 && g > 235 && b > 235) {
-            const alpha = Math.max(0, Math.floor(((brightness - 235) / 20) * 255));
-            data[i + 3] = Math.min(data[i + 3], alpha);
-          } else {
-            data[i + 3] = 0; // fully transparent
-          }
-        } else if (colorExcess < 55) {
-          // Smooth feathering transition zone for the candle's outer edges
-          const factor = (colorExcess - 35) / 20; // 0 to 1
-          const alpha = Math.floor(factor * 255);
-          data[i + 3] = Math.min(data[i + 3], alpha);
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-    };
-    img.src = src;
-  }, [src]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "contain",
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
+/* Canvas-based background removal: imported from shared component */

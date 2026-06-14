@@ -8,7 +8,7 @@ import GlobalNotification from "@/components/GlobalNotification";
 
 export const metadata: Metadata = {
 
-  title: "RapidRatioG — Live Trading Intel",
+  title: "RapidRatioG",
   description: "Live Indian stock prices, interactive charts, and Excel integration in one platform.",
 };
 

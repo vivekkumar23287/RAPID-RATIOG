@@ -73,7 +73,7 @@ export default function Navbar() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: scrolled ? "64px" : "72px",
+        height: scrolled ? "80px" : "106px",
         transition: "height 0.3s ease",
       }}>
         {/* Logo */}
@@ -81,26 +81,21 @@ export default function Navbar() {
           href="https://portfolio159.vercel.app/"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}
+          style={{ textDecoration: "none", display: "flex", alignItems: "center", position: "relative" }}
         >
-          <div style={{
-            width: "36px", height: "36px",
-            background: "linear-gradient(135deg, #00C9A7 0%, #7CFFEF 100%)",
-            borderRadius: "10px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            flexShrink: 0,
-            boxShadow: "0 4px 12px rgba(124,255,239,0.3)",
-          }}>
-            <ChartLineUp size={20} color="white" weight="bold" />
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1 }}>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "17px", color: isHome ? "#FFFFFF" : "#0F2044", letterSpacing: "-0.3px" }}>
-              Rapid<span style={{ color: "#7CFFEF" }}>RatioG</span>
-            </span>
-            <span style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 400, fontSize: "10px", color: isHome ? "rgba(255,255,255,0.6)" : "#94A3B8", letterSpacing: "0.8px", textTransform: "uppercase" }}>
-              Live Trading Intel
-            </span>
-          </div>
+          <img
+            src="/logo1.png"
+            alt="RapidRatioG Logo"
+            style={{
+              height: scrolled ? "68px" : "86px",
+              width: "auto",
+              display: "block",
+              position: "relative",
+              zIndex: 1,
+              transition: "height 0.3s ease",
+              filter: "contrast(1.5) brightness(1.1)",
+            }}
+          />
         </Link>
 
         {/* Desktop Nav — Sliding Hover Pill */}
