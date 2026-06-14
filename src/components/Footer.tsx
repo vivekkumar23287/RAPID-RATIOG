@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { GithubLogo, LinkedinLogo, Globe, ChartLineUp, ArrowRight } from "@phosphor-icons/react";
 
-// TODO: Replace these with your actual links
 const SOCIAL_LINKS = {
   github: "https://github.com/YOUR_GITHUB",
   linkedin: "https://linkedin.com/in/YOUR_LINKEDIN",
@@ -48,7 +47,7 @@ export default function Footer() {
           padding: "0 2rem",
         }}
       >
-        {/* Top row */}
+        
         <div
           style={{
             display: "grid",
@@ -59,7 +58,7 @@ export default function Footer() {
           }}
           className="footer-grid"
         >
-          {/* Brand col */}
+          
           <div>
             <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", marginBottom: "1.25rem", position: "relative" }}>
               <img
@@ -89,7 +88,7 @@ export default function Footer() {
               Live trading intelligence for Indian markets. Prices, charts, and Excel — all in one place.
             </p>
 
-            {/* Social links */}
+            
             <div style={{ display: "flex", gap: "12px" }}>
               {[
                 { icon: <GithubLogo size={18} weight="fill" />, href: SOCIAL_LINKS.github, label: "GitHub" },
@@ -132,7 +131,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Nav link groups */}
+          
           {NAV_LINKS.map((group) => (
             <div key={group.group}>
               <h4
@@ -172,7 +171,7 @@ export default function Footer() {
           ))}
         </div>
 
-        {/* Newsletter CTA strip */}
+        
         <div
           style={{
             display: "flex",
@@ -237,7 +236,7 @@ export default function Footer() {
           </Link>
         </div>
 
-        {/* Bottom bar */}
+        
         <div
           style={{
             display: "flex",

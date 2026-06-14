@@ -50,12 +50,12 @@ export default function InteractiveDemo() {
         { opacity: 1, y: 0, filter: "blur(0px)", duration: 1.1, ease: "power4.out",
           scrollTrigger: { trigger: ".id-section", start: "top 75%" } });
 
-      // Steps stagger
+      
       gsap.fromTo(".id-step", { opacity: 0, x: -40, filter: "blur(4px)" },
         { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.8, stagger: 0.12, ease: "power3.out",
           scrollTrigger: { trigger: ".id-steps", start: "top 82%" } });
 
-      // Right panel
+      
       gsap.fromTo(".id-panel", { opacity: 0, x: 80, rotationY: -10, filter: "blur(8px)" },
         { opacity: 1, x: 0, rotationY: 0, filter: "blur(0px)", duration: 1.4, ease: "power3.out",
           scrollTrigger: { trigger: ".id-section", start: "top 70%" } });
@@ -63,7 +63,7 @@ export default function InteractiveDemo() {
     load();
   }, []);
 
-  // Auto-cycle steps
+  
   useEffect(() => {
     const timer = setInterval(() => {
       setActive(p => (p + 1) % STEPS.length);
@@ -76,12 +76,11 @@ export default function InteractiveDemo() {
       padding: "9rem 2rem", background: "transparent", position: "relative", overflow: "hidden",
     }}>
 
-
       <div style={{ maxWidth: 1280, margin: "0 auto", position: "relative", zIndex: 1 }}>
         <div className="id-grid" style={{
           display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: "5rem", alignItems: "center",
         }}>
-          {/* Left — steps */}
+          
           <div>
             <span className="id-eyebrow" style={{
               fontFamily: "Satoshi, sans-serif", fontSize: 11, fontWeight: 700,
@@ -140,7 +139,7 @@ export default function InteractiveDemo() {
               ))}
             </div>
 
-            {/* Progress bar */}
+            
             <div style={{
               marginTop: 24, height: 3, background: "rgba(255,255,255,0.15)", borderRadius: 3, overflow: "hidden",
             }}>
@@ -152,7 +151,7 @@ export default function InteractiveDemo() {
             </div>
           </div>
 
-          {/* Right — visual panel */}
+          
           <div className="id-panel" style={{ perspective: 1000 }} onMouseMove={handlePanelMove} onMouseLeave={handlePanelLeave}>
             <div ref={panelRef} style={{
               background: "rgba(255,255,255,0.06)", backdropFilter: "blur(20px)",
@@ -162,7 +161,7 @@ export default function InteractiveDemo() {
               transform: `perspective(1000px) rotateX(0deg) rotateY(${active * 2 - 2}deg) scale3d(1, 1, 1)`,
               transformStyle: "preserve-3d",
             }}>
-              {/* Mock search bar */}
+              
               <div style={{
                 background: "rgba(255,255,255,0.05)", borderRadius: 14, padding: "12px 18px",
                 border: "1px solid rgba(255,255,255,0.1)", marginBottom: 20,
@@ -178,7 +177,7 @@ export default function InteractiveDemo() {
                 </span>
               </div>
 
-              {/* Mock chart area */}
+              
               <div style={{
                 background: active === 1 ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.05)",
                 borderRadius: 18, padding: "1.5rem", marginBottom: 16,
@@ -196,7 +195,7 @@ export default function InteractiveDemo() {
                     </defs>
                     <path d="M0,100 L40,85 L80,90 L120,60 L160,50 L200,55 L240,35 L280,40 L320,20 L360,25 L400,10 L400,120 L0,120Z" fill="url(#demoGrad)" />
                     <path d="M0,100 L40,85 L80,90 L120,60 L160,50 L200,55 L240,35 L280,40 L320,20 L360,25 L400,10" fill="none" stroke="#7CFFEF" strokeWidth="2.5" strokeLinecap="round" />
-                    {/* Candlesticks */}
+                    
                     {[40,80,120,160,200,240,280,320,360].map((x, i) => (
                       <g key={i}>
                         <line x1={x} y1={90-i*8} x2={x} y2={70-i*8} stroke={i%2===0?"#16A34A":"#DC2626"} strokeWidth="4" strokeLinecap="round" />
@@ -223,7 +222,7 @@ export default function InteractiveDemo() {
                 )}
               </div>
 
-              {/* Step indicator */}
+              
               <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
                 {STEPS.map((_, i) => (
                   <div key={i} style={{

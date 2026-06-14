@@ -63,7 +63,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         opacity: 0, // GSAP will animate this
       }}
     >
-      {/* Shine sweep on hover */}
+      
       <div style={{
         position: "absolute",
         inset: 0,
@@ -74,7 +74,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         zIndex: 1,
       }} />
 
-      {/* Corner accent */}
+      
       {accent && (
         <div style={{
           position: "absolute",
@@ -85,7 +85,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         }} />
       )}
 
-      {/* Tag */}
+      
       <div style={{
         display: "inline-flex", alignItems: "center", gap: "6px",
         background: accent ? "rgba(124,255,239,0.15)" : "rgba(124,255,239,0.1)",
@@ -100,7 +100,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         {tag}
       </div>
 
-      {/* Title */}
+      
       <h3 style={{
         fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "22px",
         color: "#FFFFFF",
@@ -109,7 +109,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         {title}
       </h3>
 
-      {/* Description */}
+      
       <p style={{
         fontFamily: "Satoshi, sans-serif", fontSize: "14px",
         color: "rgba(255,255,255,0.55)",
@@ -118,7 +118,7 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
         {description}
       </p>
 
-      {/* Items */}
+      
       <div style={{ display: "flex", flexDirection: "column", gap: "8px", position: "relative", zIndex: 2 }}>
         {items.map((item, i) => (
           <div
@@ -156,14 +156,14 @@ function ThreeDCard({ title, description, icon, tag, items, accent, index }: Car
 export default function ServicesSection() {
   const sectionRef = useRef<HTMLElement>(null);
 
-  // GSAP ScrollTrigger animations
+  
   useEffect(() => {
     const load = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
 
-      // Header reveal with blur
+      
       gsap.fromTo(".services-label",
         { opacity: 0, y: 24, letterSpacing: "6px", filter: "blur(8px)" },
         {
@@ -179,7 +179,7 @@ export default function ServicesSection() {
         }
       );
 
-      // Cards staggered with blur + 3D
+      
       gsap.fromTo(".service-card",
         { opacity: 0, y: 70, scale: 0.94, rotationX: -8, filter: "blur(6px)" },
         {
@@ -199,9 +199,8 @@ export default function ServicesSection() {
       className="services-section"
     >
 
-
       <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {/* Header */}
+        
         <div style={{ textAlign: "center", marginBottom: "4.5rem" }}>
           <span
             className="services-label"
@@ -227,7 +226,7 @@ export default function ServicesSection() {
           </h2>
         </div>
 
-        {/* Cards */}
+        
         <div
           className="services-grid"
           style={{

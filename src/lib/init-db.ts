@@ -4,7 +4,7 @@ export async function initDatabase() {
   try {
     console.log('Initializing database...');
     
-    // Create the live_prices table
+    
     await sql`
       CREATE TABLE IF NOT EXISTS live_prices (
         symbol TEXT PRIMARY KEY,
@@ -15,7 +15,7 @@ export async function initDatabase() {
       );
     `;
 
-    // Create the chart_layouts table
+    
     await sql`
       CREATE TABLE IF NOT EXISTS chart_layouts (
         id TEXT PRIMARY KEY,
@@ -28,7 +28,7 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_layouts_user_symbol ON chart_layouts(user_id, symbol);
     `;
 
-    // Create the signals_history table for Trick in NSE
+    
     await sql`
       CREATE TABLE IF NOT EXISTS signals_history (
         id SERIAL PRIMARY KEY,

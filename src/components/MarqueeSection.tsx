@@ -19,7 +19,7 @@ export default function MarqueeSection() {
       const section = sectionRef.current;
       if (!section || !r1.current || !r2.current) return;
 
-      // Row 1: moves LEFT when scrolling down, RIGHT when scrolling up
+      
       gsap.fromTo(r1.current,
         { x: "1%" },
         {
@@ -35,7 +35,7 @@ export default function MarqueeSection() {
         }
       );
 
-      // Row 2: moves RIGHT when scrolling down, LEFT when scrolling up (opposite)
+      
       gsap.fromTo(r2.current,
         { x: "-4%" },
         {
@@ -51,7 +51,7 @@ export default function MarqueeSection() {
         }
       );
 
-      // Section fade-in
+      
       gsap.fromTo(section,
         { opacity: 0.3 },
         {
@@ -61,7 +61,7 @@ export default function MarqueeSection() {
         }
       );
 
-      // Skew effect based on scroll velocity
+      
       let skewProxy = { skew: 0 };
       let clamp = gsap.utils.clamp(-4, 4);
 
@@ -119,7 +119,7 @@ export default function MarqueeSection() {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Center glow */}
+      
       <div style={{
         position: "absolute", top: "50%", left: "50%",
         transform: "translate(-50%,-50%)",
@@ -129,7 +129,7 @@ export default function MarqueeSection() {
         pointerEvents: "none",
       }} />
 
-      {/* Row 1 */}
+      
       <div style={{ overflow: "hidden", marginBottom: 20 }}>
         <div ref={r1} style={{
           display: "flex",
@@ -143,7 +143,7 @@ export default function MarqueeSection() {
         </div>
       </div>
 
-      {/* Row 2 */}
+      
       <div style={{ overflow: "hidden" }}>
         <div ref={r2} style={{
           display: "flex",

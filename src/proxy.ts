@@ -1,6 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Only the Home Page (/) is public. All other pages require authentication.
 const isPublicRoute = createRouteMatcher([
   "/",
 ]);

@@ -1,17 +1,4 @@
-/**
- * scanner.js
- * 
- * Scans pre-imported 15-min candles for trading signals.
- * 
- * IMPORTANT: This module does NOT fetch candles from Yahoo Finance directly.
- * It receives already-filtered, completed candles from candle-importer.js.
- * This guarantees the scanner always uses correct, verified candles.
- * 
- * Tricks:
- *   1. OPEN = HIGH (Bearish ↓) — candle's high equals its open
- *   2. OPEN = LOW  (Bullish ↑) — candle's low equals its open
- *   3. Nifty 50 4-Candle Setup — special multi-candle pattern
- */
+
 
 require('dotenv').config({ path: '../.env.local' });
 const { Pool } = require('pg');
@@ -21,27 +8,6 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-
-// ─────────────────────────────────────────────────────────────
-// NIFTY 50 — 4-Candle Special Setup Scanner
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Scans the last 4 completed candles of NIFTY 50 for the special setup.
- * All 4 candles must be from the same trading day.
- *
- * Bearish Setup:
- *   C1: Red (close < open)
- *   C2: Green (close > open) & breaks C1's low (C2.low < C1.low)
- *   C3: Red (close < open) & breaks C2's high (C3.high > C2.high)
- *   C4: Red (close < open)
- *
- * Bullish Setup:
- *   C1: Green (close > open)
- *   C2: Red (close < open) & breaks C1's high (C2.high > C1.high)
- *   C3: Green (close > open) & breaks C2's low (C3.low < C2.low)
- *   C4: Green (close > open)
- */
 function scanNifty50Setup(niftyData) {
   const { quotes } = niftyData;
   if (!quotes || quotes.length < 4) {
@@ -49,19 +15,19 @@ function scanNifty50Setup(niftyData) {
     return null;
   }
 
-  // Get the last 4 completed candles
+  
   const c1 = quotes[quotes.length - 4];
   const c2 = quotes[quotes.length - 3];
   const c3 = quotes[quotes.length - 2];
   const c4 = quotes[quotes.length - 1];
 
-  // All 4 candles must be from the SAME trading day (IST)
+  
   if (c1.dateStr !== c4.dateStr || c2.dateStr !== c4.dateStr || c3.dateStr !== c4.dateStr) {
     console.log('[SCANNER] Nifty 50: Candles span multiple days — skipping');
     return null;
   }
 
-  // Bearish Setup
+  
   const isBearish =
     (c1.close < c1.open) &&
     (c2.close > c2.open) &&
@@ -70,7 +36,7 @@ function scanNifty50Setup(niftyData) {
     (c3.high > c2.high) &&
     (c4.close < c4.open);
 
-  // Bullish Setup
+  
   const isBullish =
     (c1.close > c1.open) &&
     (c2.close < c2.open) &&
@@ -84,7 +50,7 @@ function scanNifty50Setup(niftyData) {
   const signalType = isBullish ? 'Nifty 50 Bullish Setup' : 'Nifty 50 Bearish Setup';
   const direction = isBullish ? 'UP' : 'DOWN';
 
-  // Build candle time range string (start of C4 → end of C4)
+  
   const candleTimeStart = c4.timeStr;
   const candleEndTs = c4.timestamp + 15 * 60;
   const candleTimeEnd = getISTTimeString(candleEndTs);
@@ -105,23 +71,10 @@ function scanNifty50Setup(niftyData) {
   };
 }
 
-
-// ─────────────────────────────────────────────────────────────
-// MAIN SCANNER
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Scan all pre-imported candles for trading signals.
- *
- * @param {Object} importedCandles — from candle-importer.js importAllCandles()
- *   Format: { [symbol]: { quotes: [...], meta: {...}, name: string } }
- *
- * @returns {Array} — saved signals from DB
- */
 async function scanStocks(importedCandles) {
   const newSignals = [];
 
-  // ── 1. Scan NIFTY 50 for the 4-candle setup ──
+  
   if (importedCandles['NIFTY50']) {
     try {
       console.log('[SCANNER] Scanning Nifty 50 for 4-candle setup...');
@@ -137,18 +90,18 @@ async function scanStocks(importedCandles) {
     }
   }
 
-  // ── 2. Scan all stocks for Open=High / Open=Low trick ──
+  
   console.log('[SCANNER] Scanning stocks for O=H / O=L signals...');
   let signalCount = 0;
 
   for (const [symbol, data] of Object.entries(importedCandles)) {
-    if (symbol === 'NIFTY50') continue; // Already handled above
+    if (symbol === 'NIFTY50') continue; 
 
     try {
       const { quotes, name } = data;
       if (!quotes || quotes.length === 0) continue;
 
-      // Use the LAST completed candle (guaranteed by importer)
+      
       const lastCandle = quotes[quotes.length - 1];
       if (!lastCandle) continue;
 
@@ -157,7 +110,7 @@ async function scanStocks(importedCandles) {
       let signalType = null;
       let direction = null;
 
-      // RULE 1: If candle HIGH == OPEN → signal = DOWN (Bearish)
+      
       if (high === open) {
         signalType = 'OPEN = HIGH ↓';
         direction = 'DOWN';
@@ -169,7 +122,7 @@ async function scanStocks(importedCandles) {
       }
 
       if (signalType) {
-        // Build candle time range: "09:15 AM - 09:30 AM"
+        
         const candleEndTs = timestamp + 15 * 60;
         const candleTimeEnd = getISTTimeString(candleEndTs);
         const candleTime = `${timeStr} - ${candleTimeEnd}`;
@@ -196,7 +149,7 @@ async function scanStocks(importedCandles) {
 
   console.log(`[SCANNER] Found ${signalCount} O=H/O=L signals`);
 
-  // ── 3. Save signals to database ──
+  
   const validSavedSignals = [];
   if (newSignals.length > 0) {
     console.log(`[SCANNER] Saving ${newSignals.length} total signals to DB...`);
@@ -239,6 +192,5 @@ async function scanStocks(importedCandles) {
 
   return validSavedSignals;
 }
-
 
 module.exports = { scanStocks, pool };

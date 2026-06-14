@@ -1,28 +1,16 @@
 "use client";
 import { useEffect, useRef, useCallback } from "react";
 
-/*
-  Equiduct-inspired animated gradient background.
-  
-  Smoothly transitions colors across five screens:
-    - Screen 1: Vibrant bright Equiduct Cyan/Teal/Turquoise
-    - Screen 2: Rich deep Dark Forest Green / Teal Green
-    - Screen 3 ("Everything you need to trade smarter"): Premium Lighter Blue / Royal Sky Blue
-    - Screen 4 ("Three steps to market mastery"): Same Premium Lighter Blue
-    - Screen 5 ("Your portfolio, all in one view"): Premium Radiant Lighter Purple / Lavender Glow
-    - All transitions are 100% smooth, fluidly morphing as you scroll.
-*/
-
 interface Blob {
   x: number;
   y: number;
   vx: number;
   vy: number;
   radius: number;
-  r1: number; g1: number; b1: number; // Screen 1 color (Cyan/Teal)
-  r2: number; g2: number; b2: number; // Screen 2 color (Forest Green)
-  r3: number; g3: number; b3: number; // Screen 3/4 color (Lighter Sky Blue)
-  r4: number; g4: number; b4: number; // Screen 5 color (Lighter Purple/Lavender)
+  r1: number; g1: number; b1: number; 
+  r2: number; g2: number; b2: number; 
+  r3: number; g3: number; b3: number; 
+  r4: number; g4: number; b4: number; 
   opacity: number;
   baseOpacity: number;
   phase: number;
@@ -39,31 +27,31 @@ export default function EquiductBackground() {
   const initBlobs = useCallback((w: number, h: number) => {
     const baseRadius = Math.min(w, h);
     const blobs: Blob[] = [
-      // Large bright cyan blob (top-left area)
+      
       { x: w * 0.15, y: h * 0.2, vx: 0.25, vy: 0.15, radius: baseRadius * 0.55,
         r1: 6, g1: 182, b1: 212, r2: 13, g2: 148, b2: 136, r3: 56, g3: 189, b3: 248, r4: 217, g4: 119, b4: 6, opacity: 0.7, baseOpacity: 0.7, phase: 0 },
-      // Turquoise/teal blob (center-right)
+      
       { x: w * 0.7, y: h * 0.35, vx: -0.2, vy: 0.2, radius: baseRadius * 0.5,
         r1: 20, g1: 184, b1: 166, r2: 20, g2: 110, b2: 80, r3: 96, g3: 165, b3: 250, r4: 245, g4: 158, b4: 11, opacity: 0.65, baseOpacity: 0.65, phase: 0.2 },
-      // Bright green-teal blob (bottom area)
+      
       { x: w * 0.4, y: h * 0.75, vx: 0.3, vy: -0.15, radius: baseRadius * 0.45,
         r1: 45, g1: 212, b1: 191, r2: 16, g2: 185, b2: 129, r3: 129, g3: 140, b3: 248, r4: 251, g4: 191, b4: 36, opacity: 0.6, baseOpacity: 0.6, phase: 0.4 },
-      // Sky blue blob (top-right)
+      
       { x: w * 0.85, y: h * 0.15, vx: -0.15, vy: 0.25, radius: baseRadius * 0.48,
         r1: 56, g1: 189, b1: 248, r2: 8, g2: 145, b2: 178, r3: 147, g3: 197, b3: 253, r4: 252, g4: 211, b4: 77, opacity: 0.55, baseOpacity: 0.55, phase: 0.6 },
-      // Deep blue blob (left side)
+      
       { x: w * 0.1, y: h * 0.6, vx: 0.2, vy: -0.1, radius: baseRadius * 0.42,
         r1: 29, g1: 78, b1: 216, r2: 6, g2: 95, b2: 70, r3: 37, g3: 99, b3: 235, r4: 202, g4: 138, b4: 4, opacity: 0.5, baseOpacity: 0.5, phase: 0.15 },
-      // Green accent blob  
+      
       { x: w * 0.55, y: h * 0.5, vx: -0.25, vy: -0.2, radius: baseRadius * 0.38,
         r1: 69, g1: 225, b1: 128, r2: 45, g2: 212, b2: 191, r3: 29, g3: 78, b3: 216, r4: 234, g4: 179, b4: 8, opacity: 0.45, baseOpacity: 0.45, phase: 0.75 },
-      // Light cyan highlight (moves fast)
+      
       { x: w * 0.3, y: h * 0.3, vx: 0.35, vy: 0.25, radius: baseRadius * 0.35,
         r1: 103, g1: 232, b1: 249, r2: 4, g2: 120, b2: 87, r3: 103, g3: 232, b3: 249, r4: 253, g4: 224, b4: 71, opacity: 0.5, baseOpacity: 0.5, phase: 0.5 },
-      // Deep teal base blob (large, slow)
+      
       { x: w * 0.5, y: h * 0.9, vx: 0.1, vy: -0.08, radius: baseRadius * 0.6,
         r1: 14, g1: 116, b1: 144, r2: 2, g2: 44, b2: 34, r3: 15, g3: 32, b3: 84, r4: 120, g4: 53, b4: 4, opacity: 0.6, baseOpacity: 0.6, phase: 0.85 },
-      // Warm teal
+      
       { x: w * 0.9, y: h * 0.7, vx: -0.18, vy: -0.12, radius: baseRadius * 0.4,
         r1: 8, g1: 145, b1: 178, r2: 15, g2: 118, b2: 110, r3: 59, g3: 130, b3: 246, r4: 146, g4: 64, b4: 14, opacity: 0.5, baseOpacity: 0.5, phase: 0.35 },
     ];
@@ -95,7 +83,7 @@ export default function EquiductBackground() {
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("mousemove", onMouse, { passive: true });
 
-    // Base Stops for Screen 1: Vibrant Equiduct Cyan/Teal/Turquoise
+    
     const screen1Stops = [
       [10, 126, 140], // vibrant Equiduct cyan
       [20, 160, 150], // bright turquoise
@@ -103,7 +91,7 @@ export default function EquiductBackground() {
       [10, 126, 140]
     ];
 
-    // Base Stops for Screen 2: Deep Equiduct Forest Green / Teal Green
+    
     const screen2Stops = [
       [6, 75, 62],    // deep Equiduct green
       [12, 90, 80],   // rich dark forest green
@@ -111,7 +99,7 @@ export default function EquiductBackground() {
       [6, 75, 62]
     ];
 
-    // Base Stops for Screen 3 & 4: Premium Lighter Blue / Royal Sky Blue
+    
     const screen3Stops = [
       [15, 60, 140],  // lighter royal/sky blue (#0F3C8C)
       [28, 80, 180],  // mid-tone bright royal blue (#1C50B4)
@@ -119,7 +107,7 @@ export default function EquiductBackground() {
       [15, 60, 140]
     ];
 
-    // Base Stops for Screen 5: Premium Dark Golden Amber / Warm Honey Glow
+    
     const screen5Stops = [
       [74, 46, 0],    // deep dark honey (#4A2E00)
       [99, 64, 0],    // rich dark amber (#634000)
@@ -141,16 +129,16 @@ export default function EquiductBackground() {
       timeRef.current += 0.003;
       const t = timeRef.current;
       
-      // segment 1: 0 to h (Screen 1 to Screen 2)
+      
       const p1 = Math.min(Math.max(0, scrollRef.current / h), 1);
       
-      // segment 2: h to h * 2.2 (Screen 2 to Screen 3)
+      
       const p2 = Math.min(Math.max(0, (scrollRef.current - h) / (h * 1.2)), 1);
 
-      // segment 4: h * 3.4 to h * 4.8 (Screen 4 to Screen 5)
+      
       const p4 = Math.min(Math.max(0, (scrollRef.current - h * 3.4) / (h * 1.4)), 1);
 
-      // Base gradient background interpolation based on active segment
+      
       let stops;
       if (scrollRef.current <= h) {
         stops = screen1Stops.map((c, idx) => interpolateColor(c, screen2Stops[idx], p1));
@@ -168,20 +156,20 @@ export default function EquiductBackground() {
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, w, h);
 
-      // Update & draw blobs
+      
       blobsRef.current.forEach((blob, i) => {
-        // Organic drift
+        
         blob.x += blob.vx + Math.sin(t * 0.5 + i * 1.3) * 0.5;
         blob.y += blob.vy + Math.cos(t * 0.4 + i * 1.7) * 0.4;
 
-        // Wrap around edges smoothly
+        
         const margin = blob.radius * 0.5;
         if (blob.x < -margin) blob.x = w + margin;
         if (blob.x > w + margin) blob.x = -margin;
         if (blob.y < -margin) blob.y = h + margin;
         if (blob.y > h + margin) blob.y = -margin;
 
-        // Gentle mouse repulsion
+        
         const dx = mouseRef.current.x - blob.x;
         const dy = mouseRef.current.y - blob.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
@@ -190,17 +178,17 @@ export default function EquiductBackground() {
           blob.y -= dy * 0.002;
         }
 
-        // Scroll-based opacity wave
+        
         const activeProgress = scrollRef.current <= h ? p1 : (scrollRef.current <= h * 3.4 ? p2 : p4);
         const scrollWave = Math.sin((activeProgress * Math.PI * 4) + blob.phase * Math.PI * 2 + t * 0.2);
         const opacityMod = 0.5 + 0.5 * scrollWave;
         blob.opacity = blob.baseOpacity * (0.4 + 0.6 * opacityMod);
 
-        // Breathing / pulse
+        
         const pulseScale = 1 + 0.1 * Math.sin(t * 0.6 + i * 0.9);
         const currentRadius = blob.radius * pulseScale;
 
-        // Dynamic morphed radius
+        
         ctx.beginPath();
         const steps = 60;
         for (let j = 0; j <= steps; j++) {
@@ -216,11 +204,11 @@ export default function EquiductBackground() {
         }
         ctx.closePath();
 
-        // Shifting light center inside the liquid blob for 3D liquid highlight
+        
         const gradX = blob.x + Math.sin(t * 0.6 + i) * currentRadius * 0.15;
         const gradY = blob.y + Math.cos(t * 0.5 - i * 1.5) * currentRadius * 0.15;
 
-        // Smoothly transition blob colors
+        
         let r, g, b;
         if (scrollRef.current <= h) {
           r = Math.round(blob.r1 + (blob.r2 - blob.r1) * p1);
@@ -249,7 +237,7 @@ export default function EquiductBackground() {
         ctx.fill();
       });
 
-      // Bright center highlight — transitions along with page
+      
       const centerGlow = ctx.createRadialGradient(
         w * 0.45 + Math.sin(t * 0.3) * 50,
         h * 0.4 + Math.cos(t * 0.25) * 40,

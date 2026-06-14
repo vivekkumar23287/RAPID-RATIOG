@@ -30,7 +30,7 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // GSAP entrance
+  
   useEffect(() => {
     const load = async () => {
       const { gsap } = await import("gsap");
@@ -76,7 +76,7 @@ export default function Navbar() {
         height: scrolled ? "80px" : "106px",
         transition: "height 0.3s ease",
       }}>
-        {/* Logo */}
+        
         <Link
           href="https://portfolio159.vercel.app/"
           target="_blank"
@@ -98,7 +98,7 @@ export default function Navbar() {
           />
         </Link>
 
-        {/* Desktop Nav — Sliding Hover Pill */}
+        
         <div
           style={{ display: "flex", alignItems: "center", gap: "0.25rem", position: "relative" }}
           className="desktop-nav"
@@ -107,7 +107,7 @@ export default function Navbar() {
             setPillStyle({ opacity: 0, left: 0, width: 0 });
           }}
         >
-          {/* Animated background pill */}
+          
           <div
             style={{
               position: "absolute",
@@ -171,7 +171,7 @@ export default function Navbar() {
           ))}
         </div>
 
-        {/* Auth Buttons */}
+        
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }} className="desktop-nav">
           {!isSignedIn ? (
             <>
@@ -220,7 +220,7 @@ export default function Navbar() {
           ) : <UserButton />}
         </div>
 
-        {/* Mobile Toggle */}
+        
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="mobile-menu-btn"
@@ -236,7 +236,7 @@ export default function Navbar() {
         </button>
       </nav>
 
-      {/* Mobile Menu */}
+      
       <div style={{
         maxHeight: menuOpen ? "400px" : "0",
         overflow: "hidden",

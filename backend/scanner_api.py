@@ -14,7 +14,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Enable CORS so Next.js frontend can easily fetch
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -90,26 +89,20 @@ SCAN_SYMBOLS = [
 
 def analyze_stock(symbol: str, name: str) -> Optional[Dict[str, Any]]:
     ticker_symbol = f"{symbol}.NS"
-    # Download last 5 days of 15-minute candlestick data
     df = yf.download(tickers=ticker_symbol, period="5d", interval="15m", progress=False)
     
     if df.empty or len(df) < 5:
         return None
 
-    # Reset index to get timestamps
     df = df.reset_index()
     
-    # Ensure correct column naming (yfinance v2 has multi-index or single depending on downloads)
-    # Flatten columns if multi-index exists
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = [col[0] for col in df.columns]
 
-    # Convert timestamps to IST (Asia/Kolkata)
     ist = pytz.timezone('Asia/Kolkata')
     df['Datetime_IST'] = df['Datetime'].dt.tz_convert(ist)
     df['Date_Str'] = df['Datetime_IST'].dt.strftime('%d/%m/%Y')
     
-    # Create clean candle dictionary
     candles = []
     for _, row in df.iterrows():
         candles.append({
@@ -122,7 +115,6 @@ def analyze_stock(symbol: str, name: str) -> Optional[Dict[str, Any]]:
             "date": row['Date_Str']
         })
 
-    # Group candles by date
     grouped: Dict[str, List[Dict[str, Any]]] = {}
     for c in candles:
         d = c['date']
@@ -130,13 +122,11 @@ def analyze_stock(symbol: str, name: str) -> Optional[Dict[str, Any]]:
             grouped[d] = []
         grouped[d].append(c)
 
-    # Sort dates chronologically ascending
     sorted_dates = sorted(list(grouped.keys()), key=lambda x: datetime.strptime(x, '%d/%m/%Y'))
 
     if len(sorted_dates) < 2:
         return None
 
-    # Find the latest date with >= 3 candles and preceding date with >= 2 candles
     today_index = -1
     for d in range(len(sorted_dates) - 1, 0, -1):
         date_str = sorted_dates[d]
@@ -151,18 +141,15 @@ def analyze_stock(symbol: str, name: str) -> Optional[Dict[str, Any]]:
     today_date = sorted_dates[today_index]
     yesterday_date = sorted_dates[today_index - 1]
 
-    # Chronologically ascending candles for yesterday and today
     today_candles = sorted(grouped[today_date], key=lambda x: x['timestamp'])
     yesterday_candles = sorted(grouped[yesterday_date], key=lambda x: x['timestamp'])
 
-    # Extract 5 candles
     C1 = yesterday_candles[-2]
     C2 = yesterday_candles[-1]
-    C3 = today_candles[0]  # Mother Candle (first 15m candle today)
+    C3 = today_candles[0]
     C4 = today_candles[1]
     C5 = today_candles[2]
 
-    # Pattern check
     is_high_ok = (C1['high'] < C3['high']) and (C2['high'] < C3['high']) and (C4['high'] < C3['high']) and (C5['high'] < C3['high'])
     is_low_ok = (C1['low'] > C3['low']) and (C2['low'] > C3['low']) and (C4['low'] > C3['low']) and (C5['low'] > C3['low'])
     
@@ -171,7 +158,6 @@ def analyze_stock(symbol: str, name: str) -> Optional[Dict[str, Any]]:
     current_price = float(round(today_candles[-1]['close'], 2))
     total_volume = sum([c['volume'] for c in today_candles])
 
-    # Fetch regular market change percent if possible
     change_pct = 0.0
     try:
         info = yf.Ticker(ticker_symbol).fast_info
@@ -219,7 +205,6 @@ def get_scanner(symbol: Optional[str] = None):
         except Exception as e:
             print(f"Error scanning {s['symbol']}: {e}")
 
-    # Sort matches by total volume descending
     matches = sorted(matches, key=lambda x: x['totalVolume'], reverse=True)
     time_taken = time.time() - start_time
 

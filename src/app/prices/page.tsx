@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 
-
 const premiumStocks = [
   { name: "Nifty 50", symbol: "NIFTY50", isIndex: true, change: 1.2 },
   { name: "India VIX", symbol: "INDIAVIX", isIndex: true, change: -2.4 },
@@ -13,8 +12,6 @@ const premiumStocks = [
   { name: "Indian Energy Exchange", symbol: "IEX", change: -1.5 },
   { name: "Deepak Nitrite", symbol: "DEEPAKNTR", change: 0.5 },
 ];
-
-
 
 const nifty50Stocks = [
   { name: "Reliance Industries", symbol: "RELIANCE", change: 0.45 },
@@ -74,7 +71,7 @@ export default function PricesPage() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // Gather all symbols to fetch
+    
     const allSymbols = [
       ...premiumStocks.map(s => s.symbol),
       ...nifty50Stocks.map(s => s.symbol)
@@ -95,7 +92,7 @@ export default function PricesPage() {
     };
 
     fetchPrices();
-    // Poll every 10 seconds for live updates
+    
     const interval = setInterval(fetchPrices, 10000);
     return () => clearInterval(interval);
   }, []);
@@ -114,7 +111,7 @@ export default function PricesPage() {
           </p>
         </header>
 
-        {/* Premium Section */}
+        
         <section style={{ marginBottom: "60px" }}>
           <h2 style={{ fontSize: "19px", fontWeight: 800, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1.5px" }}>
             Premium Watchlist
@@ -126,7 +123,7 @@ export default function PricesPage() {
           </div>
         </section>
 
-        {/* Nifty 50 Section */}
+        
         <section>
           <h2 style={{ fontSize: "19px", fontWeight: 800, color: "#0F2044", marginBottom: "24px", textTransform: "uppercase", letterSpacing: "1.5px" }}>
             Nifty 50 Companies
@@ -143,7 +140,7 @@ export default function PricesPage() {
 }
 
 function StockCard({ stock, liveData, isLoaded }: { stock: any, liveData?: any, isLoaded: boolean }) {
-  // Use live data if available, otherwise fallback to static mock data
+  
   const currentPrice = liveData?.currentPrice || 0;
   const change = liveData?.change || stock.change;
   const changePercent = liveData?.changePercent || 0;

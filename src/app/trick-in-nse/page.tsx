@@ -9,7 +9,6 @@ import {
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
 
-
 type SignalData = {
   id: number;
   stock_symbol: string;
@@ -62,7 +61,7 @@ const getNiftySetupStatus = (candles: any[]) => {
 export default function TricksInNSE() {
   const router = useRouter();
   
-  // -- State for Section 1 (Gap) & Section 2 (Mother) --
+  
   const [loadingGaps, setLoadingGaps] = useState(true);
   const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
   const [gapDowns, setGapDowns] = useState<LiveStockData[]>([]);
@@ -70,11 +69,11 @@ export default function TricksInNSE() {
   const [loadingMother, setLoadingMother] = useState(true);
   const [motherMatches, setMotherMatches] = useState<any[]>([]);
 
-  // -- State for Section 3 (Nifty 50 Custom Setup) --
+  
   const [niftyCandles, setNiftyCandles] = useState<any[]>([]);
   const [loadingNiftySetup, setLoadingNiftySetup] = useState(true);
 
-  // -- State for Section 4 (Live signals) --
+  
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
@@ -159,10 +158,10 @@ export default function TricksInNSE() {
   }, []);
 
   useEffect(() => {
-    // Create an audio element for notifications
+    
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     
-    // Fetch initial data for today
+    
     fetch("http://localhost:8080/api/today")
       .then(res => res.json())
       .then(data => {
@@ -171,7 +170,7 @@ export default function TricksInNSE() {
           setSignals(signalsList);
           
           if (signalsList.length > 0) {
-            // Find the most recent created_at timestamp in the signals
+            
             const latest = signalsList.reduce((acc: any, curr: any) => {
               if (!acc) return curr;
               return new Date(curr.created_at) > new Date(acc.created_at) ? curr : acc;
@@ -196,7 +195,7 @@ export default function TricksInNSE() {
       })
       .finally(() => setLoadingSignals(false));
 
-    // Connect to WebSocket
+    
     const socket: Socket = io("http://localhost:8080");
     
     socket.on("connect", () => {
@@ -212,7 +211,7 @@ export default function TricksInNSE() {
       }
 
       setSignals(prev => {
-        // Prepend new signals, filtering out duplicates
+        
         const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
         const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
         return [...toAdd, ...prev];
@@ -232,7 +231,7 @@ export default function TricksInNSE() {
         }
       }
       
-      // Play sound
+      
       if (soundEnabled && audioRef.current) {
         audioRef.current.play().catch(e => console.warn("Audio play failed:", e));
       }
@@ -265,7 +264,7 @@ export default function TricksInNSE() {
       
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 0px", position: "relative", zIndex: 1 }}>
         
-        {/* Page Header */}
+        
         <div style={{ marginBottom: "50px" }}>
           <h1 style={{ 
             fontSize: "clamp(32px, 5vw, 44px)", 
@@ -288,7 +287,7 @@ export default function TricksInNSE() {
           </p>
         </div>
 
-        {/* Section 1: Gap Scanner */}
+        
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>1. True Gap Scanner</h2>
           <div style={{ background: "#F1F5F9", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, border: "1px solid #E2E8F0" }}>
@@ -298,7 +297,7 @@ export default function TricksInNSE() {
         
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(500px, 1fr))", gap: "32px", marginBottom: "60px" }}>
           
-          {/* Column 1: Gap Ups */}
+          
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -349,7 +348,7 @@ export default function TricksInNSE() {
             </div>
           </div>
 
-          {/* Column 2: Gap Downs */}
+          
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -401,7 +400,7 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* Section 2: Mother Range Setup */}
+        
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>2. 5-Candle Mother Range Setup</h2>
           <div style={{ background: "#F1F5F9", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, border: "1px solid #E2E8F0" }}>
@@ -460,7 +459,7 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* Section 3: Nifty 50 15-Min Special Setup */}
+        
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>3. Nifty 50 15-Min Special Setup</h2>
           <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
@@ -525,7 +524,7 @@ export default function TricksInNSE() {
               }}
               className="nifty-setup-card"
             >
-              {/* Left Accent Glow Stripe */}
+              
               <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "6px", background: themeColor }} />
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "24px" }}>
@@ -564,7 +563,7 @@ export default function TricksInNSE() {
                   </div>
                 </div>
 
-                {/* Right Call to action button */}
+                
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                   <span style={{ fontSize: "13px", fontWeight: 800, color: themeColor }}>
                     Click to Open 15-Min Candle Chart ➔
@@ -582,7 +581,7 @@ export default function TricksInNSE() {
           );
         })()}
 
-        {/* Section 4: Live 15-Min Signals */}
+        
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>4. Live 15-Min Open=High & Open=Low Signals</h2>
           <div style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(59,130,246,0.2)" }}>
@@ -610,7 +609,7 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* Filters */}
+        
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#FFFFFF", border: "1px solid #E2E8F0", padding: "16px 24px", borderRadius: "16px", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", marginBottom: "24px", flexWrap: "wrap", gap: "16px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: "300px" }}>
             <div style={{ position: "relative", flex: 1, maxWidth: "400px" }}>
@@ -657,7 +656,7 @@ export default function TricksInNSE() {
           </button>
         </div>
 
-        {/* Table */}
+        
         <div style={{ background: "#FFFFFF", borderRadius: "20px", overflow: "hidden", border: "1px solid #E2E8F0", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "1000px" }}>
@@ -754,7 +753,6 @@ export default function TricksInNSE() {
   );
 }
 
-// Sleek individual stock card component for Gaps
 function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolean; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
 
@@ -777,7 +775,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
         transform: hovered ? "translateY(-2px) scale(1.01)" : "translateY(0)"
       }}
     >
-      {/* Left section: Icon and Names */}
+      
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
         <div style={{
           width: "44px",
@@ -812,7 +810,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
         </div>
       </div>
 
-      {/* Middle section: Price */}
+      
       <div style={{ textAlign: "right", marginLeft: "auto", marginRight: "auto" }}>
         <span style={{ fontWeight: 800, color: "#0F2044", fontSize: "16px", fontFamily: "monospace" }}>
           ₹{stock.price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -831,7 +829,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
         </div>
       </div>
 
-      {/* Right section: Gap and Redirect Indicator */}
+      
       <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: "120px", justifyContent: "flex-end" }}>
         <div style={{ textAlign: "right" }}>
           <span style={{ 
@@ -849,7 +847,7 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
           </span>
         </div>
 
-        {/* Beautiful slide-in caret on hover */}
+        
         <div style={{ 
           width: "24px", 
           height: "24px", 
@@ -868,7 +866,6 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
   );
 }
 
-// Sleek individual stock card component for Mother Range
 function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const isUp = stock.changePercent >= 0;
@@ -892,7 +889,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
         transform: hovered ? "translateY(-2px) scale(1.01)" : "translateY(0)"
       }}
     >
-      {/* Left section: Icon and Names */}
+      
       <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
         <div style={{
           width: "44px",
@@ -927,7 +924,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
         </div>
       </div>
 
-      {/* Middle section: Price */}
+      
       <div style={{ textAlign: "right", marginLeft: "auto", marginRight: "auto" }}>
         <span style={{ fontWeight: 800, color: "#0F2044", fontSize: "16px", fontFamily: "monospace" }}>
           ₹{stock.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -946,7 +943,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
         </div>
       </div>
 
-      {/* Right section: Vol/Time and Indicator */}
+      
       <div style={{ display: "flex", alignItems: "center", gap: "16px", minWidth: "120px", justifyContent: "flex-end" }}>
         <div style={{ textAlign: "right" }}>
           <span style={{ 
@@ -960,7 +957,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
           </div>
         </div>
 
-        {/* Slide-in caret */}
+        
         <div style={{ 
           width: "24px", height: "24px", borderRadius: "50%", background: hovered ? "#3B82F6" : "transparent",
           color: hovered ? "white" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s ease"
@@ -972,7 +969,6 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
   );
 }
 
-// Cool shimmering skeleton loader component
 function SkeletonLoader() {
   return (
     <div style={{

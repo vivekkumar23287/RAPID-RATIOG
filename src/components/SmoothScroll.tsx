@@ -23,7 +23,7 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     let tickFunc: ((time: number) => void) | null = null;
     let activeGsap: any = null;
 
-    // Integrate with GSAP ScrollTrigger
+    
     const initGSAP = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");

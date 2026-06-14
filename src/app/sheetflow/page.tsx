@@ -5,29 +5,28 @@ import Navbar from "@/components/Navbar";
 import { Workbook } from "@fortune-sheet/react";
 import "@fortune-sheet/react/dist/index.css";
 
-
 export default function SheetFlowPage() {
-  // Intercept Shift+Enter to insert a new line instead of moving cells
+  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Enter" && e.shiftKey) {
         const target = e.target as HTMLElement;
-        // Check if we are typing inside the FortuneSheet cell editor
+        
         if (
           target.isContentEditable || 
           target.classList.contains("luckysheet-input-box-inner") ||
           target.classList.contains("fortune-fx-input")
         ) {
-          e.stopPropagation(); // Stop FortuneSheet from moving the cell up
-          e.preventDefault();  // Stop default browser behavior
+          e.stopPropagation(); 
+          e.preventDefault();  
           
-          // Insert a line break (like Alt+Enter)
+          
           document.execCommand("insertText", false, "\n");
         }
       }
     };
 
-    // Use capture phase (true) to intercept the event BEFORE FortuneSheet handles it
+    
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, []);
@@ -55,7 +54,7 @@ export default function SheetFlowPage() {
     <main style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
       <Navbar />
       
-      {/* We need to offset the height by the navbar height so it fits perfectly without scrolling the body */}
+      
       <div 
         className="excel-scroll-container"
         style={{ 
@@ -68,14 +67,14 @@ export default function SheetFlowPage() {
           borderRadius: "24px",
           border: "1px solid #E2E8F0",
           boxShadow: "0 4px 24px rgba(0,0,0,0.06)",
-          overflow: "scroll" // Force browser scrollbars to always show
+          overflow: "scroll" 
         }}
       >
         <div style={{ width: "3200px", height: "1800px" }}>
           <Workbook 
             data={sheetData} 
             onChange={(data) => {
-              // This captures all changes (typing, formatting, etc.)
+              
               console.log("Sheet data changed", data);
             }}
           />

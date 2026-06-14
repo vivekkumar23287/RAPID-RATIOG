@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const symbols = symbolsParam.split(",");
   const result: Record<string, any> = {};
   
-  // DIRECT MODE: Bypassing database completely to fix N/A issue
+  
   let symbolsToFetch = [...symbols];
 
   try {
@@ -66,7 +66,7 @@ export async function GET(request: Request) {
             }
           }
         } else {
-          // Fallback to Quote API
+          
           const fallbackUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodedSymbols}`;
           const fbRes = await fetch(fallbackUrl, {
             headers: { "User-Agent": "Mozilla/5.0" }

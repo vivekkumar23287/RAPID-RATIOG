@@ -54,7 +54,7 @@ export default function ScrollCTA() {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
 
-      // Reveal heading with blur
+      
       gsap.fromTo(".cta-heading", { opacity: 0, y: 60, scale: 0.9, filter: "blur(12px)" },
         { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 1.4, ease: "power4.out",
           scrollTrigger: { trigger: ".cta-section", start: "top 70%" } });
@@ -67,19 +67,19 @@ export default function ScrollCTA() {
         { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out", delay: 0.4,
           scrollTrigger: { trigger: ".cta-section", start: "top 70%" } });
 
-      // Counter trigger
+      
       ScrollTrigger.create({
         trigger: ".cta-counters",
         start: "top 85%",
         onEnter: () => setTriggered(true),
       });
 
-      // Counter card reveals with blur
+      
       gsap.fromTo(".cta-counter", { opacity: 0, y: 30, scale: 0.9, filter: "blur(6px)" },
         { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.7, stagger: 0.1, ease: "back.out(1.4)",
           scrollTrigger: { trigger: ".cta-counters", start: "top 85%" } });
 
-      // Parallax glow
+      
       gsap.to(".cta-glow-1", { y: -80, ease: "none",
         scrollTrigger: { trigger: ".cta-section", scrub: 2 } });
       gsap.to(".cta-glow-2", { y: 60, ease: "none",
@@ -93,8 +93,7 @@ export default function ScrollCTA() {
       padding: "9rem 2rem", background: "transparent", position: "relative", overflow: "hidden",
     }}>
 
-
-      {/* Glows */}
+      
       <div className="cta-glow-1" style={{
         position: "absolute", top: -100, right: -100, width: 600, height: 600,
         background: "radial-gradient(circle, rgba(124,255,239,0.15), transparent 60%)",
@@ -160,7 +159,7 @@ export default function ScrollCTA() {
           </a>
         </div>
 
-        {/* Counters */}
+        
         <div className="cta-counters" style={{
           display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24,
         }}>

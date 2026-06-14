@@ -2,20 +2,15 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-/* ───────────────────────────────────────────
-   LOADING SCREEN — Connection Animation
-   API ──→ Website ←── Database
-   ─────────────────────────────────────────── */
-
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);
   const [visible, setVisible] = useState(true);
   const [exiting, setExiting] = useState(false);
   const [phase, setPhase] = useState(0);
-  // phase 0: initial (icons appear)
-  // phase 1: API line starts drawing
-  // phase 2: Database line starts drawing
-  // phase 3: both connected, pulse
+  
+  
+  
+  
 
   useEffect(() => {
     if (!visible) return;
@@ -46,7 +41,7 @@ export default function LoadingScreen() {
       return i;
     };
 
-    // Phase timings
+    
     safeSetTimeout(() => setPhase(1), 600);
     safeSetTimeout(() => setPhase(2), 1400);
     safeSetTimeout(() => setPhase(3), 2400);
@@ -138,7 +133,7 @@ export default function LoadingScreen() {
         overflow: "hidden",
       }}
     >
-      {/* Subtle animated background circles */}
+      
       <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
         <div
           style={{
@@ -179,7 +174,7 @@ export default function LoadingScreen() {
         />
       </div>
 
-      {/* Main content */}
+      
       <div
         style={{
           position: "relative",
@@ -190,7 +185,7 @@ export default function LoadingScreen() {
           gap: "48px",
         }}
       >
-        {/* Connection diagram */}
+        
         <div
           style={{
             position: "relative",
@@ -201,7 +196,7 @@ export default function LoadingScreen() {
             justifyContent: "center",
           }}
         >
-          {/* SVG for connecting lines */}
+          
           <svg
             viewBox="0 0 500 200"
             style={{
@@ -212,7 +207,7 @@ export default function LoadingScreen() {
             }}
           >
             <defs>
-              {/* Glow filters */}
+              
               <filter id="blueGlow" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
                 <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.13  0 0 0 0 0.59  0 0 0 0 0.95  0 0 0 0.6 0" result="glow" />
@@ -230,7 +225,7 @@ export default function LoadingScreen() {
                 </feMerge>
               </filter>
 
-              {/* Line gradients */}
+              
               <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#42A5F5" stopOpacity="0.2" />
                 <stop offset="40%" stopColor="#2196F3" stopOpacity="0.8" />
@@ -242,7 +237,7 @@ export default function LoadingScreen() {
                 <stop offset="100%" stopColor="#388E3C" stopOpacity="1" />
               </linearGradient>
 
-              {/* Particle gradients */}
+              
               <radialGradient id="blueDot">
                 <stop offset="0%" stopColor="#90CAF9" />
                 <stop offset="100%" stopColor="#2196F3" />
@@ -253,8 +248,8 @@ export default function LoadingScreen() {
               </radialGradient>
             </defs>
 
-            {/* API → Website: beautiful S-curve */}
-            {/* Background glow line */}
+            
+            
             <path
               d="M 100 100 C 130 100, 140 60, 170 60 C 200 60, 200 100, 215 100"
               fill="none"
@@ -268,7 +263,7 @@ export default function LoadingScreen() {
                 transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
-            {/* Main line */}
+            
             <path
               d="M 100 100 C 130 100, 140 60, 170 60 C 200 60, 200 100, 215 100"
               fill="none"
@@ -283,7 +278,7 @@ export default function LoadingScreen() {
               }}
             />
 
-            {/* Data particles on API line */}
+            
             {phase >= 1 && (
               <>
                 <circle r="4" fill="url(#blueDot)" opacity="0.9" filter="url(#blueGlow)">
@@ -312,8 +307,8 @@ export default function LoadingScreen() {
               </>
             )}
 
-            {/* Database → Website: beautiful S-curve (mirrored) */}
-            {/* Background glow line */}
+            
+            
             <path
               d="M 400 100 C 370 100, 360 140, 330 140 C 300 140, 300 100, 285 100"
               fill="none"
@@ -327,7 +322,7 @@ export default function LoadingScreen() {
                 transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             />
-            {/* Main line */}
+            
             <path
               d="M 400 100 C 370 100, 360 140, 330 140 C 300 140, 300 100, 285 100"
               fill="none"
@@ -342,7 +337,7 @@ export default function LoadingScreen() {
               }}
             />
 
-            {/* Data particles on Database line */}
+            
             {phase >= 2 && (
               <>
                 <circle r="4" fill="url(#greenDot)" opacity="0.9" filter="url(#greenGlow)">
@@ -371,7 +366,7 @@ export default function LoadingScreen() {
               </>
             )}
 
-            {/* Connection endpoint pulses */}
+            
             {phase >= 3 && (
               <>
                 <circle cx="215" cy="100" r="4" fill="#2196F3" opacity="0">
@@ -386,7 +381,7 @@ export default function LoadingScreen() {
             )}
           </svg>
 
-          {/* API Icon (Left) */}
+          
           <div
             style={{
               position: "absolute",
@@ -417,7 +412,7 @@ export default function LoadingScreen() {
                 transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              {/* API Icon - Code brackets */}
+              
               <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
                 <path
                   d="M12 8L6 17L12 26"
@@ -460,7 +455,7 @@ export default function LoadingScreen() {
             </span>
           </div>
 
-          {/* Website Icon (Center) — polished browser + globe */}
+          
           <div
             style={{
               position: "absolute",
@@ -494,9 +489,9 @@ export default function LoadingScreen() {
                 border: phase >= 3 ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(0,0,0,0.04)",
               }}
             >
-              {/* Website icon: Browser window with globe inside */}
+              
               <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-                {/* Browser frame */}
+                
                 <rect
                   x="6" y="8" width="36" height="32" rx="4"
                   stroke={phase >= 3 ? "#fff" : "#3F51B5"}
@@ -504,14 +499,14 @@ export default function LoadingScreen() {
                   fill="none"
                   style={{ transition: "stroke 0.8s ease" }}
                 />
-                {/* Title bar line */}
+                
                 <path
                   d="M6 16H42"
                   stroke={phase >= 3 ? "rgba(255,255,255,0.4)" : "rgba(63,81,181,0.3)"}
                   strokeWidth="1.5"
                   style={{ transition: "stroke 0.8s ease" }}
                 />
-                {/* Title bar dots */}
+                
                 <circle cx="11" cy="12" r="1.5"
                   fill={phase >= 3 ? "rgba(255,255,255,0.5)" : "rgba(63,81,181,0.35)"}
                   style={{ transition: "fill 0.8s ease" }}
@@ -524,7 +519,7 @@ export default function LoadingScreen() {
                   fill={phase >= 3 ? "rgba(255,255,255,0.5)" : "rgba(63,81,181,0.35)"}
                   style={{ transition: "fill 0.8s ease" }}
                 />
-                {/* Globe inside browser */}
+                
                 <circle
                   cx="24" cy="29" r="9"
                   stroke={phase >= 3 ? "#fff" : "#3F51B5"}
@@ -573,7 +568,7 @@ export default function LoadingScreen() {
             </span>
           </div>
 
-          {/* Database Icon (Right) */}
+          
           <div
             style={{
               position: "absolute",
@@ -604,7 +599,7 @@ export default function LoadingScreen() {
                 transition: "all 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
               }}
             >
-              {/* Database icon - cylinder */}
+              
               <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
                 <ellipse
                   cx="17"
@@ -646,7 +641,7 @@ export default function LoadingScreen() {
           </div>
         </div>
 
-        {/* Status labels under the connection diagram */}
+        
         <div
           style={{
             display: "flex",
@@ -729,7 +724,7 @@ export default function LoadingScreen() {
           </div>
         </div>
 
-        {/* Progress bar */}
+        
         <div
           style={{
             width: "min(360px, 80vw)",
@@ -773,7 +768,7 @@ export default function LoadingScreen() {
         </div>
       </div>
 
-      {/* Inline CSS animations */}
+      
       <style>{`
         @keyframes iconAppear {
           from {

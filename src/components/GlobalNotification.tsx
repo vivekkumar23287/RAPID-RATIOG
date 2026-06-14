@@ -18,7 +18,7 @@ export default function GlobalNotification() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Lazy load the notification sound
+    
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
     const socket: Socket = io("http://localhost:8080");
@@ -28,7 +28,7 @@ export default function GlobalNotification() {
     });
 
     socket.on("new_signals", (newSignals: any[]) => {
-      // Find Nifty 50 signals
+      
       const niftySignals = newSignals.filter(s => s.stock_symbol === "NIFTY50");
 
       niftySignals.forEach((sig) => {
@@ -36,7 +36,7 @@ export default function GlobalNotification() {
         const lastNotifiedKey = `nifty_last_notified`;
         const lastNotified = localStorage.getItem(lastNotifiedKey);
 
-        // Deduplicate using localStorage
+        
         if (lastNotified !== signalKey) {
           localStorage.setItem(lastNotifiedKey, signalKey);
 
@@ -52,15 +52,15 @@ export default function GlobalNotification() {
             time: sig.candle_time.split(" - ")[1] || sig.candle_time,
           };
 
-          // Play sound
+          
           if (audioRef.current) {
             audioRef.current.play().catch((e) => console.warn("Audio play blocked by browser:", e));
           }
 
-          // Add to notifications array
+          
           setNotifications((prev) => [...prev, newNotification]);
 
-          // Remove after 5 seconds
+          
           setTimeout(() => {
             setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id));
           }, 5000);
@@ -119,7 +119,7 @@ export default function GlobalNotification() {
               overflow: "hidden",
             }}
           >
-            {/* Left Accent Glow Stripe */}
+            
             <div
               style={{
                 position: "absolute",
@@ -131,7 +131,7 @@ export default function GlobalNotification() {
               }}
             />
 
-            {/* Glowing Icon Container */}
+            
             <div
               style={{
                 width: "40px",
@@ -159,7 +159,7 @@ export default function GlobalNotification() {
               />
             </div>
 
-            {/* Content */}
+            
             <div style={{ flex: 1 }}>
               <div
                 style={{
@@ -199,7 +199,7 @@ export default function GlobalNotification() {
               </div>
             </div>
 
-            {/* Close Button */}
+            
             <button
               onClick={() => removeNotification(n.id)}
               style={{
@@ -219,7 +219,7 @@ export default function GlobalNotification() {
               <X size={16} weight="bold" />
             </button>
 
-            {/* Global Keyframe Styles */}
+            
             <style dangerouslySetInnerHTML={{ __html: `
               @keyframes slideInRight {
                 from {

@@ -123,7 +123,7 @@ function StockBadge({
     const inner = innerRef.current;
     if (!wrapper || !inner) return;
 
-    // Start rotated — back face showing
+    
     inner.style.transform = "rotateY(-180deg)";
     inner.style.opacity = "0";
 
@@ -185,7 +185,7 @@ function StockBadge({
           e.currentTarget.style.background = "rgba(255,255,255,0.06)";
         }}
       >
-        {/* Ticker + change badge */}
+        
         <div
           style={{
             display: "flex",
@@ -230,7 +230,7 @@ function StockBadge({
           </span>
         </div>
 
-        {/* Name */}
+        
         <p
           style={{
             fontFamily: FONT,
@@ -246,7 +246,7 @@ function StockBadge({
           {stock.name}
         </p>
 
-        {/* Desc */}
+        
         <p
           style={{
             fontFamily: FONT,
@@ -258,7 +258,7 @@ function StockBadge({
           {stock.desc}
         </p>
 
-        {/* Price */}
+        
         <div
           style={{
             fontFamily: FONT,
@@ -272,7 +272,7 @@ function StockBadge({
           {stock.price}
         </div>
 
-        {/* Sparkline */}
+        
         <div style={{ marginTop: "12px" }}>
           <svg
             viewBox="0 0 100 80"
@@ -377,7 +377,6 @@ export default function StocksBadgeSection() {
       }}
     >
 
-
       <div
         style={{
           maxWidth: "1280px",
@@ -386,7 +385,7 @@ export default function StocksBadgeSection() {
           zIndex: 1,
         }}
       >
-        {/* Header */}
+        
         <div ref={headerRef} style={{ marginBottom: "3.5rem" }}>
           <span
             className="stocks-eyebrow"
@@ -435,7 +434,7 @@ export default function StocksBadgeSection() {
           </p>
         </div>
 
-        {/* Grid */}
+        
         <div
           style={{
             display: "grid",

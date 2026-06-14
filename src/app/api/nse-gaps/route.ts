@@ -3,7 +3,6 @@ import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-// Predefined list of active high-volume NSE Nifty stocks to monitor
 const SCANNER_SYMBOLS = [
   { symbol: "RELIANCE", name: "Reliance Industries" },
   { symbol: "TCS", name: "TCS" },
@@ -23,7 +22,6 @@ const SCANNER_SYMBOLS = [
   { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank" }
 ];
 
-
 const fetchStockData = async (symbol: string) => {
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS?range=3d&interval=15m`;
   const res = await fetch(url, {
@@ -31,7 +29,7 @@ const fetchStockData = async (symbol: string) => {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       "Accept": "application/json"
     },
-    next: { revalidate: 10 } // Cache charts for 10 seconds to protect API
+    next: { revalidate: 10 } 
   });
   if (!res.ok) return null;
   return res.json();
@@ -39,13 +37,13 @@ const fetchStockData = async (symbol: string) => {
 
 export async function GET() {
   try {
-    // 1. Enforce Time Restriction: Calculation should start only after 9:31 AM IST
+    
     const now = new Date();
     const nowISTString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const nowIST = new Date(nowISTString);
     const dateStr = `${nowIST.getFullYear()}-${(nowIST.getMonth() + 1).toString().padStart(2, '0')}-${nowIST.getDate().toString().padStart(2, '0')}`;
     
-    // Ensure table exists
+    
     await sql`
       CREATE TABLE IF NOT EXISTS scanner_cache (
         id SERIAL PRIMARY KEY,
@@ -57,17 +55,17 @@ export async function GET() {
       )
     `;
 
-    // Try to get from DB first
+    
     const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'nse-gaps'`;
     if (cached.length > 0) {
        return NextResponse.json(cached[0].results);
     }
     
-    // Market opens at 9:15 AM. First 15-min candle fully completes at 9:30 AM. Allow 1 min for Yahoo delay.
+    
     const isMarketOpenAndCandleClosed = nowIST.getHours() > 9 || (nowIST.getHours() === 9 && nowIST.getMinutes() >= 31);
     
     if (!isMarketOpenAndCandleClosed) {
-      // Return yesterday's data instead of failing/empty, so clients always see latest processed data
+      
       const latest = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'nse-gaps' ORDER BY date_str DESC LIMIT 1`;
       if (latest.length > 0) {
          return NextResponse.json(latest[0].results);
@@ -92,7 +90,7 @@ export async function GET() {
           const quote = chartResult.indicators?.quote?.[0];
           if (!quote || timestamps.length === 0) return null;
 
-          // Group candles by Indian calendar date string
+          
           const candleGroups: { 
             [date: string]: { high: number; low: number; open: number; close: number; timestamp: number }[] 
           } = {};
@@ -115,7 +113,7 @@ export async function GET() {
             }
           });
 
-          // Sort dates descending so newest date is dates[0]
+          
           const sortedDates = Object.keys(candleGroups).sort((a, b) => {
             const [dayA, monthA, yearA] = a.split("/").map(Number);
             const [dayB, monthB, yearB] = b.split("/").map(Number);
@@ -134,13 +132,13 @@ export async function GET() {
 
           if (todayCandles.length === 0 || yesterdayCandles.length === 0) return null;
 
-          // 1. Calculate Yesterday's Session High and Low
+          
           const yesterdayHigh = Math.max(...yesterdayCandles.map(c => c.high));
           const yesterdayLow = Math.min(...yesterdayCandles.map(c => c.low));
 
           if (!isFinite(yesterdayHigh) || !isFinite(yesterdayLow)) return null;
 
-          // 2. Identify the 9:15 AM candle (First 15-min candle)
+          
           const firstCandle = todayCandles.find(c => {
             const date = new Date(c.timestamp * 1000);
             const istDateString = date.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
@@ -153,13 +151,13 @@ export async function GET() {
           const currentPrice = meta.regularMarketPrice ?? firstCandle.close;
           const changePercent = meta.regularMarketChangePercent ?? 0;
 
-          // 3. Apply the Strict True Gap Rules:
-          // TRUE GAP UP: First 15-min candle's LOW is strictly higher than yesterday's FULL DAY HIGH.
-          // It should NOT touch or go below yesterday's high.
+          
+          
+          
           const isGapUp = firstCandle.low > yesterdayHigh;
 
-          // TRUE GAP DOWN: First 15-min candle's HIGH is strictly lower than yesterday's FULL DAY LOW.
-          // It should NOT touch or go above yesterday's low.
+          
+          
           const isGapDown = firstCandle.high < yesterdayLow;
 
           let gapPercent = 0;
@@ -201,7 +199,7 @@ export async function GET() {
       timestamp: new Date().toISOString()
     };
     
-    // Save to DB so subsequent calls today don't recalculate
+    
     await sql`
       INSERT INTO scanner_cache (date_str, scanner_type, results)
       VALUES (${dateStr}, 'nse-gaps', ${JSON.stringify(responsePayload)})

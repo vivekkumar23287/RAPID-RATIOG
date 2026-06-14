@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
-// Map our symbols to Yahoo Finance NSE symbols
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
-  // Premium stocks
+  
   NIFTY50: "^NSEI",
   POLYCAB: "POLYCAB.NS",
   IFORGE: "BHARATFORG.NS",
   IEX: "IEX.NS",
   DEEPAKNTR: "DEEPAKNTR.NS",
   INDIAVIX: "^INDIAVIX",
-  // Nifty 50 stocks
+  
   RELIANCE: "RELIANCE.NS",
   TCS: "TCS.NS",
   HDFCBANK: "HDFCBANK.NS",
@@ -63,7 +62,7 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
   TATACONSUM: "TATACONSUM.NS",
   TMCV: "TMCV.NS",
   ETERNAL: "ETERNAL.NS",
-  // Crypto
+  
   "BTC-USD": "BTC-USD",
   "ETH-USD": "ETH-USD",
   "USDT-USD": "USDT-USD",
@@ -72,7 +71,7 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
 function getYahooSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
   if (YAHOO_SYMBOL_MAP[upper]) return YAHOO_SYMBOL_MAP[upper];
-  // Crypto symbols already have -USD suffix
+  
   if (upper.endsWith("-USD")) return upper;
   return `${upper}.NS`;
 }
@@ -89,7 +88,7 @@ export async function GET(req: NextRequest) {
   const isCrypto = symbol.toUpperCase().includes("-USD");
   const CACHE_DURATION_SECONDS = 7;
 
-  // 0. If historical date is provided, fetch from database directly
+  
   if (dateParam) {
     try {
       const [histChart] = await sql`
@@ -126,7 +125,7 @@ export async function GET(req: NextRequest) {
   let isCacheFresh = false;
 
   try {
-    // 1. Try to check fresh metadata in DB (ONLY for non-crypto)
+    
     if (!isCrypto) {
       const [cached] = await sql`
         SELECT price, change, change_percent, last_updated 
@@ -145,7 +144,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 2. Fetch chart data from Yahoo
+    
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooSymbol}?range=${range}&interval=${interval}&includePrePost=false`;
 
     const fetchOptions: RequestInit = {
@@ -233,7 +232,7 @@ export async function GET(req: NextRequest) {
     let currentPrice = meta?.regularMarketPrice || 0;
     let previousClose = meta?.chartPreviousClose || meta?.previousClose || 0;
     
-    // 3. If cache is fresh and we're polling fast, use DB values for better consistency
+    
     if (isCacheFresh && isIntraday && cachedData) {
       currentPrice = Number(cachedData.price);
       // We still update candles below
@@ -265,7 +264,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 4. Update Neon DB with the latest metadata (ONLY for non-crypto)
+    
     if (!isCacheFresh && !isCrypto) {
       sql`
         INSERT INTO live_prices (symbol, price, change, change_percent, last_updated)

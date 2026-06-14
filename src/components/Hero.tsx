@@ -22,7 +22,7 @@ export default function Hero() {
   const blobRef = useRef<HTMLDivElement>(null);
   const cursorGlowRef = useRef<HTMLDivElement>(null);
 
-  // Animated word cycling with GSAP
+  
   useEffect(() => {
     const el = wordRef.current;
     if (!el) return;
@@ -57,12 +57,12 @@ export default function Hero() {
     return () => clearInterval(interval);
   }, []);
 
-  // GSAP hero entrance — cinematic stagger
+  
   useEffect(() => {
     const load = async () => {
       const { gsap } = await import("gsap");
 
-      // Initial state
+      
       gsap.set([".hero-line-1", ".hero-line-2", ".hero-sub", ".hero-btn-primary", ".hero-btn-secondary", ".hero-stat"], {
         opacity: 0,
       });
@@ -87,7 +87,7 @@ export default function Hero() {
     load();
   }, []);
 
-  // Parallax blob on mouse move
+  
   useEffect(() => {
     const handleMouse = (e: MouseEvent) => {
       const blob = blobRef.current;
@@ -104,7 +104,7 @@ export default function Hero() {
     return () => window.removeEventListener("mousemove", handleMouse);
   }, []);
 
-  // Ticker scroll
+  
   useEffect(() => {
     const el = tickerRef.current;
     if (!el) return;
@@ -133,7 +133,7 @@ export default function Hero() {
         justifyContent: "center",
       }}
     >
-      {/* Cursor glow */}
+      
       <div
         ref={cursorGlowRef}
         style={{
@@ -148,7 +148,7 @@ export default function Hero() {
         }}
       />
 
-      {/* Background grid */}
+      
       <div
         style={{
           position: "absolute",
@@ -162,7 +162,7 @@ export default function Hero() {
         }}
       />
 
-      {/* Animated blob */}
+      
       <div
         ref={blobRef}
         style={{
@@ -194,7 +194,7 @@ export default function Hero() {
         }}
       />
 
-      {/* Main content */}
+      
       <div
         style={{
           maxWidth: "1280px",
@@ -211,9 +211,9 @@ export default function Hero() {
         }}
         className="hero-grid"
       >
-        {/* Left col */}
+        
         <div>
-          {/* Headline */}
+          
           <h1 style={{
             fontFamily: "Satoshi, sans-serif",
             fontWeight: 800,
@@ -234,7 +234,7 @@ export default function Hero() {
             </div>
           </h1>
 
-          {/* Sub */}
+          
           <p className="hero-sub" style={{
             fontFamily: "Satoshi, sans-serif",
             fontSize: "clamp(15px, 1.8vw, 19px)",
@@ -248,7 +248,7 @@ export default function Hero() {
             and integrated Excel sheets — in one powerful platform.
           </p>
 
-          {/* CTA Buttons */}
+          
           <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "3.5rem" }}>
             <SignUpButton mode="modal">
               <button
@@ -321,7 +321,7 @@ export default function Hero() {
             </a>
           </div>
 
-          {/* Stats */}
+          
           <div style={{ display: "flex", gap: "2.5rem", flexWrap: "wrap" }}>
             {[
               { label: "Assets tracked", value: "10+" },
@@ -353,7 +353,7 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Right col — floating mock chart */}
+        
         <div className="hero-chart-mock" style={{
           position: "relative",
           display: "flex",
@@ -364,7 +364,7 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* Live Ticker */}
+      
       <div style={{
         marginTop: "4rem",
         borderTop: "1px solid rgba(226,232,240,0.8)",
@@ -375,7 +375,7 @@ export default function Hero() {
         position: "relative",
         zIndex: 1,
       }}>
-        {/* Fade edges */}
+        
         <div style={{
           position: "absolute", left: 0, top: 0, bottom: 0, width: "80px",
           background: "linear-gradient(to right, rgba(245,247,255,1), transparent)",
@@ -491,7 +491,7 @@ function MockChartCard() {
           transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
           zIndex: 0,
         }}>
-        {/* Card header */}
+        
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
           <div>
             <div style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "16px", color: "#0F2044" }}>
@@ -516,7 +516,7 @@ function MockChartCard() {
           </div>
         </div>
 
-        {/* SVG Chart */}
+        
         <div style={{ marginBottom: "1.25rem" }}>
           <svg viewBox="0 0 420 100" style={{ width: "100%", height: "90px", overflow: "visible" }}>
             <defs>
@@ -542,7 +542,7 @@ function MockChartCard() {
           </svg>
         </div>
 
-        {/* Mini stats row */}
+        
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
           {[
             { label: "Open", value: "$62,300" },
@@ -566,7 +566,7 @@ function MockChartCard() {
         </div>
       </div>
 
-      {/* Main card */}
+      
       <div style={{
         background: "rgba(255,255,255,0.85)",
         backdropFilter: "blur(20px)",
@@ -579,7 +579,7 @@ function MockChartCard() {
         transition: "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
         zIndex: 1,
       }}>
-        {/* Card header */}
+        
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
           <div>
             <div style={{ fontFamily: "Satoshi, sans-serif", fontWeight: 800, fontSize: "16px", color: "#0F2044" }}>
@@ -604,7 +604,7 @@ function MockChartCard() {
           </div>
         </div>
 
-        {/* SVG Chart */}
+        
         <div style={{ marginBottom: "1.25rem" }}>
           <svg viewBox="0 0 420 100" style={{ width: "100%", height: "90px", overflow: "visible" }}>
             <defs>
@@ -613,12 +613,12 @@ function MockChartCard() {
                 <stop offset="100%" stopColor="#E01F2E" stopOpacity="0" />
               </linearGradient>
             </defs>
-            {/* Area fill */}
+            
             <path
               d="M0,80 L40,70 L80,60 L120,50 L160,55 L200,35 L240,40 L280,25 L320,30 L360,15 L400,10 L420,8 L420,100 L0,100 Z"
               fill="url(#chartGrad)"
             />
-            {/* Line */}
+            
             <path
               d="M0,80 L40,70 L80,60 L120,50 L160,55 L200,35 L240,40 L280,25 L320,30 L360,15 L400,10 L420,8"
               fill="none"
@@ -630,13 +630,13 @@ function MockChartCard() {
               strokeDashoffset="420"
               style={{ animation: "chartLine 1.8s ease-out 0.8s forwards" }}
             />
-            {/* Dot */}
+            
             <circle cx="420" cy="8" r="4" fill="#E01F2E" style={{ animation: "fadeInUp 0.3s ease 2.4s both" }} />
             <circle cx="420" cy="8" r="8" fill="rgba(224,31,46,0.2)" style={{ animation: "fadeInUp 0.3s ease 2.4s both" }} />
           </svg>
         </div>
 
-        {/* Mini stats row */}
+        
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
           {[
             { label: "Open", value: "₹5,760" },
@@ -660,7 +660,7 @@ function MockChartCard() {
         </div>
       </div>
 
-      {/* Floating badge — top right (NSE) */}
+      
       <div style={{
         position: "absolute",
         top: "-18px",
@@ -685,7 +685,7 @@ function MockChartCard() {
         </span>
       </div>
 
-      {/* Floating badge — top right (Crypto peeking) */}
+      
       <div style={{
         position: "absolute",
         top: "-45px",
@@ -709,7 +709,7 @@ function MockChartCard() {
         </span>
       </div>
 
-      {/* Floating mini card — bottom left */}
+      
       <div style={{
         position: "absolute",
         bottom: "-25px",

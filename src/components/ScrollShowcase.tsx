@@ -11,7 +11,6 @@ const FEATURES: { title: string; desc: string; gradient: string; icon: ReactNode
   { title: "Interactive Charts & Tools", desc: "Candlestick charts, RSI indicators, and drawing tools that rival professional trading terminals.", gradient: "linear-gradient(135deg, #E01F2E, #B8161F)", icon: <ChartLineUp size={24} color="white" weight="bold" /> },
 ];
 
-/* ─── Canvas-based background removal — same as HeroNew ─── */
 function TransparentCandle({ src }: { src: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -67,7 +66,6 @@ function TransparentCandle({ src }: { src: string }) {
   );
 }
 
-/* ─── Scroll-driven candle + neon-line canvas ─── */
 function ScrollCandleCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const c1Ref = useRef<HTMLDivElement>(null);
@@ -84,7 +82,7 @@ function ScrollCandleCanvas() {
     let w = window.innerWidth;
     let h = canvas.parentElement?.clientHeight || window.innerHeight;
 
-    // ── Waypoints: Small & Subtle 2-Curve Pattern (Left → Right) ──
+    
     const buildWaypoints = () => [
       { x: -30,         y: h * 0.50 },   // entry: left (centered vertically)
       { x: w * 0.33,    y: h * 0.62 },   // Curve 1 (Trough): gentle dip at 62% height
@@ -92,7 +90,7 @@ function ScrollCandleCanvas() {
       { x: w + 30,      y: h * 0.50 },   // exit: right (centered vertically)
     ];
 
-    // Catmull-Rom spline (same as HeroNew)
+    
     const getSplinePoint = (t: number, wps: { x: number; y: number }[]) => {
       const n = wps.length - 1;
       const scaledT = Math.max(0, Math.min(1, t)) * n;
@@ -109,7 +107,7 @@ function ScrollCandleCanvas() {
       };
     };
 
-    // Draw the full static neon line across the entire section
+    
     const drawStaticLine = () => {
       ctx.clearRect(0, 0, w, h);
       const wps = buildWaypoints();
@@ -124,7 +122,7 @@ function ScrollCandleCanvas() {
         ctx.lineTo(pt.x, pt.y);
       }
 
-      // Outer neon glow — same cyan as HeroNew
+      
       ctx.shadowBlur = 18;
       ctx.shadowColor = "rgba(124, 255, 239, 0.78)";
       ctx.strokeStyle = "rgba(124, 255, 239, 0.88)";
@@ -133,14 +131,14 @@ function ScrollCandleCanvas() {
       ctx.lineJoin = "round";
       ctx.stroke();
 
-      // Inner white core
+      
       ctx.shadowBlur = 0;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
       ctx.stroke();
       ctx.restore();
 
-      // Terminal dot at the left end
+      
       const end = getSplinePoint(1, wps);
       ctx.save();
       ctx.fillStyle = "#ffffff";
@@ -160,10 +158,10 @@ function ScrollCandleCanvas() {
     };
     resize();
 
-    // ── Position candles via DOM (same pattern as HeroNew) ──
+    
     const CANDLE_W = 260;
     const CANDLE_H = 340;
-    // Spacing between the 3 candles along the spline (in t-units)
+    
     const SPACING = 0.07;
 
     const positionCandles = (t: number) => {
@@ -185,11 +183,11 @@ function ScrollCandleCanvas() {
       };
 
       apply(c1Ref.current, pt1, 0.90);
-      apply(c2Ref.current, pt2, 1.30);   // middle candle is bigger (same as HeroNew)
+      apply(c2Ref.current, pt2, 1.30);   
       apply(c3Ref.current, pt3, 0.90);
     };
 
-    // Start with all candles at the right edge (t=0), invisible
+    
     const hideCandles = () => {
       const wps = buildWaypoints();
       const startPt = getSplinePoint(0, wps);
@@ -205,7 +203,7 @@ function ScrollCandleCanvas() {
     let isDestroyed = false;
     let st: any = null;
 
-    // ── GSAP scroll-scrub ──
+    
     const initScrollTrigger = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
@@ -219,23 +217,23 @@ function ScrollCandleCanvas() {
         scrub: 2.4,
         onUpdate: (self) => {
           if (isDestroyed) return;
-          // Map scroll progress (0→1) to t-value along the spline (0→1)
-          // Candles travel from right (t=0) to left (t=1) as user scrolls
+          
+          
           const rawT = self.progress;
           positionCandles(rawT);
-          // Make candles visible as soon as section enters view
+          
           [c1Ref.current, c2Ref.current, c3Ref.current].forEach(el => {
             if (el) el.style.opacity = rawT > 0.02 ? "1" : "0";
           });
         },
         onLeave: () => {
           if (isDestroyed) return;
-          // Lock at left end when scrolled past
+          
           positionCandles(1);
         },
         onEnterBack: () => {
           if (isDestroyed) return;
-          // When scrolling back up into section, restore visibility
+          
           positionCandles(0.98);
         },
       });
@@ -257,7 +255,7 @@ function ScrollCandleCanvas() {
 
   return (
     <>
-      {/* Full-section neon line canvas */}
+      
       <canvas
         ref={canvasRef}
         style={{
@@ -266,7 +264,7 @@ function ScrollCandleCanvas() {
         }}
       />
 
-      {/* Candle 1 — Green */}
+      
       <div
         ref={c1Ref}
         style={{
@@ -280,7 +278,7 @@ function ScrollCandleCanvas() {
         <TransparentCandle src="/candle-green.png" />
       </div>
 
-      {/* Candle 2 — Gemini 2 (bigger) */}
+      
       <div
         ref={c2Ref}
         style={{
@@ -294,7 +292,7 @@ function ScrollCandleCanvas() {
         <TransparentCandle src="/gemini-image-2.png" />
       </div>
 
-      {/* Candle 3 — Gemini 3 */}
+      
       <div
         ref={c3Ref}
         style={{
@@ -311,7 +309,6 @@ function ScrollCandleCanvas() {
   );
 }
 
-/* ─── Main section ─── */
 export default function ScrollShowcase() {
   useEffect(() => {
     const load = async () => {
@@ -319,7 +316,7 @@ export default function ScrollShowcase() {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
 
-      // Heading blur-in
+      
       gsap.fromTo(".ss-ey", { opacity: 0, y: 20, letterSpacing: "8px", filter: "blur(8px)" },
         { opacity: 1, y: 0, letterSpacing: "3px", filter: "blur(0px)", duration: 1, ease: "power3.out",
           scrollTrigger: { trigger: ".ss-sec", start: "top 80%" } });
@@ -327,12 +324,12 @@ export default function ScrollShowcase() {
         { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 1.2, ease: "power4.out",
           scrollTrigger: { trigger: ".ss-sec", start: "top 78%" } });
 
-      // Cards staggered blur-in with 3D
+      
       gsap.fromTo(".ss-card", { opacity: 0, y: 80, rotationX: -10, filter: "blur(6px)" },
         { opacity: 1, y: 0, rotationX: 0, filter: "blur(0px)", duration: 1, stagger: 0.15, ease: "power3.out",
           scrollTrigger: { trigger: ".ss-cards", start: "top 85%" } });
 
-      // Floating elements parallax
+      
       gsap.utils.toArray<HTMLElement>(".ss-fl").forEach((el, i) => {
         gsap.to(el, { y: -30 - i * 15, ease: "none",
           scrollTrigger: { trigger: ".ss-sec", start: "top bottom", end: "bottom top", scrub: 1.2 + i * 0.3 } });
@@ -343,10 +340,10 @@ export default function ScrollShowcase() {
 
   return (
     <section className="ss-sec" style={{ padding: "16rem 2rem 8rem", background: "transparent", position: "relative", overflow: "hidden" }}>
-      {/* Scroll-driven neon line + candles */}
+      
       <ScrollCandleCanvas />
 
-      {/* Floating shapes */}
+      
       <div className="ss-fl" style={{ position: "absolute", top: 60, right: 80, width: 160, height: 160, borderRadius: "50%", border: "1px solid rgba(255,255,255,0.1)", background: "radial-gradient(circle, rgba(255,255,255,0.03), transparent)" }} />
       <div className="ss-fl" style={{ position: "absolute", bottom: 100, left: 50, width: 100, height: 100, borderRadius: 20, transform: "rotate(45deg)", border: "1px solid rgba(255,255,255,0.08)", background: "radial-gradient(circle, rgba(255,255,255,0.02), transparent)" }} />
 

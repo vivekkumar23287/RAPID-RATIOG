@@ -6,8 +6,6 @@ import { useParams } from "next/navigation";
 import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import { ChartLineUp } from "@phosphor-icons/react";
 
-
-// Display name mapping
 const DISPLAY_NAMES: Record<string, string> = {
   NIFTY50: "Nifty 50",
   RELIANCE: "Reliance Industries",
@@ -59,7 +57,7 @@ export default function StockChartPage() {
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // Drawing Tools & Layout State
+  
   type ChartText = { id: string; time: number; price: number; text: string; offsetX?: number; offsetY?: number };
   type ChartLine = { id: string; price: number; color?: string; width?: number };
   type ChartLayout = { id: string; name: string; lines: ChartLine[]; texts?: ChartText[] };
@@ -76,7 +74,7 @@ export default function StockChartPage() {
   const textDivsRef = useRef<Record<string, HTMLDivElement>>({});
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // Indicator Series Refs
+  
   const ema1SeriesRef = useRef<any>(null);
   const ema2SeriesRef = useRef<any>(null);
   const bbUpperSeriesRef = useRef<any>(null);
@@ -85,7 +83,7 @@ export default function StockChartPage() {
   const rsiChartRef = useRef<any>(null);
   const rsiSeriesRef = useRef<any>(null);
 
-  // Indicator Settings
+  
   const [indicatorSettings, setIndicatorSettings] = useState({
     rsi: {
       enabled: false,
@@ -107,18 +105,18 @@ export default function StockChartPage() {
   const [activeSettingsGroup, setActiveSettingsGroup] = useState<string | null>(null);
   const [rsiTab, setRsiTab] = useState<'inputs' | 'style'>('inputs');
 
-  // Drag state for Callouts
+  
   const draggingRef = useRef<{ id: string, startX: number, startY: number, initialOffsetX: number, initialOffsetY: number, offsetX: number, offsetY: number } | null>(null);
 
   useEffect(() => {
-    // Load saved timeframe from localStorage on component mount
+    
     const savedTf = localStorage.getItem("preferredTimeframe");
     if (savedTf) {
       try { setTimeframe(JSON.parse(savedTf)); } catch (e) { }
     }
   }, [rawSymbol]);
 
-  // --- PERSISTENCE LOGIC (LOCAL + DB) ---
+  
   const saveLayoutToDb = async (layout: ChartLayout) => {
     try {
       setIsSyncing(true);
@@ -143,7 +141,7 @@ export default function StockChartPage() {
     const loadLayouts = async () => {
       setLoading(true);
 
-      // 1. Load from localStorage immediately (Fastest)
+      
       const localData = localStorage.getItem(`layouts_${rawSymbol.toUpperCase()}`);
       if (localData) {
         try {
@@ -153,10 +151,10 @@ export default function StockChartPage() {
         } catch (e) { console.error("Local storage parse error", e); }
       }
 
-      // 2. Fetch from DB with 5s timeout
+      
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000); 
 
         const response = await fetch(`/api/layouts?symbol=${rawSymbol.toUpperCase()}`, {
           signal: controller.signal
@@ -172,7 +170,7 @@ export default function StockChartPage() {
           }
         }
 
-        // MIGRATION: Convert old number[] lines to ChartLine[] objects
+        
         const migrated = mergedLayouts.map((l: any) => ({
           ...l,
           lines: (l.lines || []).map((line: any) => 
@@ -183,7 +181,7 @@ export default function StockChartPage() {
 
         if (migrated.length > 0) {
           setLayouts(migrated);
-          // Set active layout to the first one if current active is not in the list
+          
           if (!migrated.find((l: any) => l.id === activeLayoutId)) {
             setActiveLayoutId(migrated[0].id);
           }
@@ -198,7 +196,7 @@ export default function StockChartPage() {
     loadLayouts();
   }, [rawSymbol]);
 
-  // Persist to local storage whenever layouts change
+  
   useEffect(() => {
     if (layouts.length > 0) {
       localStorage.setItem(`layouts_${rawSymbol.toUpperCase()}`, JSON.stringify({
@@ -208,17 +206,17 @@ export default function StockChartPage() {
     }
   }, [layouts, activeLayoutId, rawSymbol]);
 
-  // Redraw lines when chart is ready OR layout switches OR settings change
+  
   useEffect(() => {
     if (!chartReady || !candleSeriesRef.current) return;
 
-    // Clear current lines
+    
     Object.values(linesRef.current).forEach(item => {
       try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
     });
     linesRef.current = {};
 
-    // Draw active layout lines
+    
     const activeLayout = layouts.find(l => l.id === activeLayoutId);
     if (activeLayout) {
       activeLayout.lines.forEach(line => {
@@ -241,7 +239,7 @@ export default function StockChartPage() {
     }
   }, [activeLayoutId, chartReady, layouts, selectedLineId]);
 
-  // Sync Note Texts Overlay positions
+  
   useEffect(() => {
     let animationFrameId: number;
     const updatePositions = () => {
@@ -256,7 +254,7 @@ export default function StockChartPage() {
             let currentOffsetX = t.offsetX ?? 0;
             let currentOffsetY = t.offsetY ?? -60;
 
-            // Override with live drag coordinates if this item is currently being dragged
+            
             if (draggingRef.current?.id === t.id) {
               currentOffsetX = draggingRef.current.offsetX;
               currentOffsetY = draggingRef.current.offsetY;
@@ -270,12 +268,12 @@ export default function StockChartPage() {
                 const bx = ax + currentOffsetX;
                 const by = ay + currentOffsetY;
 
-                // Move HTML Box
+                
                 div.style.left = `${bx}px`;
                 div.style.top = `${by}px`;
                 div.style.display = 'block';
 
-                // Move SVG Line and Circle
+                
                 if (line && circle) {
                   line.setAttribute("x1", ax.toString());
                   line.setAttribute("y1", ay.toString());
@@ -302,7 +300,7 @@ export default function StockChartPage() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [layouts, activeLayoutId, chartReady]);
 
-  // Global Drag Listeners for Callouts
+  
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (draggingRef.current) {
@@ -337,7 +335,7 @@ export default function StockChartPage() {
     };
   }, [activeLayoutId]);
 
-  // Indicator Math
+  
   const calculateEMA = (data: any[], period: number) => {
     if (data.length < period) return [];
     const k = 2 / (period + 1);
@@ -398,7 +396,7 @@ export default function StockChartPage() {
     localStorage.setItem("preferredTimeframe", JSON.stringify(tf));
   };
 
-  // 1. Chart Initialization
+  
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -460,7 +458,7 @@ export default function StockChartPage() {
     candleSeriesRef.current = candleSeries;
     setChartReady(true);
 
-    // Handle resize
+    
     const handleResize = () => {
       if (container) {
         chart.applyOptions({
@@ -487,13 +485,13 @@ export default function StockChartPage() {
     };
   }, [timeframe.interval, indicatorSettings.rsi.enabled]);
 
-  // 1.5 Handle Indicator Series Updates
+  
   useEffect(() => {
     if (!chartReady || !chartRef.current || !stockData || !stockData.candles) return;
 
     const data = stockData.candles;
 
-    // EMA 1
+    
     if (indicatorSettings.ema1.enabled) {
       if (!ema1SeriesRef.current) {
         ema1SeriesRef.current = chartRef.current.addSeries(LineSeries, {
@@ -510,7 +508,7 @@ export default function StockChartPage() {
       ema1SeriesRef.current = null;
     }
 
-    // EMA 2
+    
     if (indicatorSettings.ema2.enabled) {
       if (!ema2SeriesRef.current) {
         ema2SeriesRef.current = chartRef.current.addSeries(LineSeries, {
@@ -527,7 +525,7 @@ export default function StockChartPage() {
       ema2SeriesRef.current = null;
     }
 
-    // Bollinger Bands
+    
     if (indicatorSettings.bb.enabled) {
       const bbData = calculateBB(data, indicatorSettings.bb.period, indicatorSettings.bb.stdDev);
 
@@ -549,11 +547,11 @@ export default function StockChartPage() {
       bbLowerSeriesRef.current = null;
     }
 
-    // RSI Handling
+    
     if (indicatorSettings.rsi.enabled) {
       const rsiData = calculateRSI(data, indicatorSettings.rsi.period);
 
-      // Calculate Smoothed MA of RSI
+      
       const smoothedMAData: any[] = [];
       const smoothLen = indicatorSettings.rsi.smoothingLength;
       for (let i = smoothLen; i < rsiData.length; i++) {
@@ -566,7 +564,7 @@ export default function StockChartPage() {
       }
 
       if (!rsiChartRef.current && rsiContainerRef.current) {
-        // Create RSI Chart
+        
         const rsiChart = createChart(rsiContainerRef.current, {
           width: rsiContainerRef.current.clientWidth,
           height: rsiContainerRef.current.clientHeight,
@@ -600,18 +598,16 @@ export default function StockChartPage() {
         setRsiChartReady(true);
       }
 
-
       if (rsiSeriesRef.current) {
         rsiSeriesRef.current.setData(rsiData);
         rsiSeriesRef.current.applyOptions({ color: indicatorSettings.rsi.color });
 
-        // Update MA
+        
         const maSeries = (rsiChartRef.current as any).maSeries;
         if (maSeries) {
           maSeries.setData(smoothedMAData);
           maSeries.applyOptions({ color: indicatorSettings.rsi.maColor });
         }
-
 
       }
     } else if (rsiChartRef.current) {
@@ -622,7 +618,7 @@ export default function StockChartPage() {
     }
   }, [chartReady, stockData, indicatorSettings]);
 
-  // 1.6 Sync Main Chart and RSI Chart Time Scales
+  
   useEffect(() => {
     if (!chartRef.current || !rsiChartRef.current) return;
 
@@ -650,7 +646,7 @@ export default function StockChartPage() {
       isSyncing = false;
     };
 
-    // Crosshair Sync
+    
     const syncCrosshairRsi = (param: any) => {
       if (!rsiChartRef.current || !param.point) {
         rsiChartRef.current?.clearCrosshairPosition();
@@ -679,9 +675,9 @@ export default function StockChartPage() {
       try { chartRef.current?.unsubscribeCrosshairMove(syncCrosshairRsi); } catch (e) {}
       try { rsiChartRef.current?.unsubscribeCrosshairMove(syncCrosshairMain); } catch (e) {}
     };
-  }, [chartReady, rsiChartReady]); // Only re-sync when charts are ready or RSI is created
+  }, [chartReady, rsiChartReady]); 
 
-  // 2. Data Fetching & Live Polling (10s)
+  
   useEffect(() => {
     let isMounted = true;
     let isFirstLoad = true;
@@ -691,7 +687,7 @@ export default function StockChartPage() {
 
     const fetchData = () => {
       const dateParam = selectedDate ? `&date=${selectedDate}` : "";
-      // Use cache: 'no-store' to ensure we always get the live data from the API
+      
       fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch data");
@@ -707,18 +703,18 @@ export default function StockChartPage() {
             const candles = data.candles as { time: UTCTimestamp; open: number; high: number; low: number; close: number }[];
             const lastCandle = candles[candles.length - 1];
 
-            // If we are still in the same minute, accumulate the high and low
+            
             if (liveCandleRef.current && liveCandleRef.current.time === lastCandle.time) {
               lastCandle.high = Math.max(liveCandleRef.current.high, lastCandle.high);
               lastCandle.low = Math.min(liveCandleRef.current.low, lastCandle.low);
             }
 
-            // Save the state for the next poll
+            
             liveCandleRef.current = { ...lastCandle };
 
             candleSeriesRef.current.setData(candles);
             if (isFirstLoad) {
-              // Ensure exactly 55 candles are visible on first load
+              
               const totalCandles = candles.length;
               chartRef.current?.timeScale().setVisibleLogicalRange({
                 from: Math.max(0, totalCandles - 55),
@@ -736,14 +732,14 @@ export default function StockChartPage() {
         });
     };
 
-    // Initial fetch
+    
     fetchData();
 
     let intervalId: NodeJS.Timeout;
     let ws: WebSocket;
 
     if (!selectedDate && isCrypto) {
-      // Real-time WebSocket for Crypto via Binance
+      
       const binanceIntervalMap: Record<string, string> = {
         "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
         "60m": "1h", "1d": "1d", "1mo": "1M"
@@ -761,13 +757,13 @@ export default function StockChartPage() {
         if (message.e === "kline") {
           const k = message.k;
           const currentPrice = parseFloat(k.c);
-          const isClosed = k.x; // true if the candle has completed
+          const isClosed = k.x; 
 
           if (candleSeriesRef.current) {
             let updateTime = Math.floor(k.t / 1000);
 
-            // Fix lightweight-charts "Cannot update oldest data" error
-            // Binance timestamp might be slightly older than Yahoo's latest candle
+            
+            
             if (liveCandleRef.current && updateTime < liveCandleRef.current.time) {
               updateTime = liveCandleRef.current.time;
             }
@@ -787,7 +783,7 @@ export default function StockChartPage() {
 
           setStockData(prev => {
             if (!prev) return prev;
-            if (prev.currentPrice === currentPrice && !isClosed) return prev; // Avoid unnecessary re-renders
+            if (prev.currentPrice === currentPrice && !isClosed) return prev; 
 
             const change = currentPrice - prev.previousClose;
             const changePercent = prev.previousClose ? (change / prev.previousClose) * 100 : 0;
@@ -800,17 +796,17 @@ export default function StockChartPage() {
             };
           });
 
-          // CANDLE COMPLETION VERIFIER SYSTEM:
-          // As soon as the real-time websocket completes/closes a candle (isClosed === true),
-          // we trigger an immediate background API sync to fetch the official completed historical candle 
-          // direct from Yahoo Finance. This guarantees 100% exact alignment with authoritative charts!
+          
+          
+          
+          
           if (isClosed) {
             fetchData();
           }
         }
       };
     } else if (!selectedDate) {
-      // 5-second polling for live updates on NSE stocks (already direct sync with Yahoo Finance)
+      
       intervalId = setInterval(fetchData, 5000);
     }
 
@@ -823,7 +819,7 @@ export default function StockChartPage() {
 
   const [lineToolbarPos, setLineToolbarPos] = useState<{ x: number, y: number, price: number } | null>(null);
 
-  // 2. Drawing Tools Handler
+  
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !chartContainerRef.current) return;
 
@@ -833,12 +829,12 @@ export default function StockChartPage() {
       const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
       let time = param.time;
       if (!time) {
-        // If clicked on empty space, try to find time from x coordinate
+        
         time = chartRef.current.timeScale().coordinateToTime(param.point.x);
       }
       if (price === null) return;
 
-      // Check if we clicked on an existing line
+      
       const activeLayout = layouts.find(l => l.id === activeLayoutId);
       if (activeLayout) {
         const clickedLine = activeLayout.lines.find(line => {
@@ -923,7 +919,7 @@ export default function StockChartPage() {
         return;
       }
 
-      // Check if near any line for pointer cursor
+      
       const activeLayout = layouts.find(l => l.id === activeLayoutId);
       if (activeLayout) {
         const isNearLine = activeLayout.lines.some(line => {
@@ -991,7 +987,7 @@ export default function StockChartPage() {
 
   return (
     <main style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative" }}>
-      {/* Unified Top Controls Bar */}
+      
       <div
         style={{
           maxWidth: "100%",
@@ -1009,7 +1005,7 @@ export default function StockChartPage() {
           background: "#FFFFFF"
         }}
       >
-        {/* Left Section: Stock Title Details */}
+        
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <h1
             style={{
@@ -1035,10 +1031,10 @@ export default function StockChartPage() {
           )}
         </div>
 
-        {/* Center Section: Controls (Date, Interval, Indicators, Layouts) */}
+        
         <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start", marginLeft: "12px" }}>
           
-          {/* Date Picker */}
+          
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', fontFamily: 'Satoshi, sans-serif' }}>Date:</span>
             <input
@@ -1086,7 +1082,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          {/* Timeframe Selectors */}
+          
           <div style={{ display: "flex", gap: "4px" }}>
             {timeframes.map((tf) => {
               const isActive = timeframe.interval === tf.interval;
@@ -1127,7 +1123,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          {/* Indicator Settings Toggle Menu */}
+          
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowIndicatorMenu(!showIndicatorMenu)}
@@ -1194,7 +1190,7 @@ export default function StockChartPage() {
                 </div>
 
                 <div style={{ maxHeight: "380px", overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  {/* EMA Section */}
+                  
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1247,7 +1243,7 @@ export default function StockChartPage() {
                     )}
                   </div>
 
-                  {/* Bollinger Bands Section */}
+                  
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1284,7 +1280,7 @@ export default function StockChartPage() {
                     )}
                   </div>
 
-                  {/* RSI Section */}
+                  
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1356,7 +1352,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          {/* Layout Manager */}
+          
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <select
               value={activeLayoutId}
@@ -1434,7 +1430,7 @@ export default function StockChartPage() {
           </div>
         </div>
 
-        {/* Right Section: Back to Prices Action */}
+        
         <div>
           <a
             href="/prices"
@@ -1467,7 +1463,7 @@ export default function StockChartPage() {
         </div>
       </div>
 
-      {/* Workspace */}
+      
       <div
         style={{
           maxWidth: "100%",
@@ -1480,7 +1476,7 @@ export default function StockChartPage() {
           minHeight: 0
         }}
       >
-        {/* Left Toolbar */}
+        
         <div style={{ 
           display: "flex", 
           flexDirection: "column", 
@@ -1610,7 +1606,7 @@ export default function StockChartPage() {
           </button>
         </div>
 
-        {/* Chart Area */}
+        
         <div
           style={{
             flex: 1,
@@ -1699,7 +1695,7 @@ export default function StockChartPage() {
             </div>
           )}
 
-          {/* Floating OHLC Legend (TradingView Style) */}
+          
           {(() => {
             const activeCandle = hoveredCandle || (stockData?.candles && stockData.candles.length > 0 ? stockData.candles[stockData.candles.length - 1] : null);
             if (!activeCandle) return null;
@@ -1763,7 +1759,7 @@ export default function StockChartPage() {
             );
           })()}
 
-          {/* Floating Line Toolbar */}
+          
           {lineToolbarPos && selectedLineId && (
             <div style={{
               position: "absolute",
@@ -1782,7 +1778,7 @@ export default function StockChartPage() {
               pointerEvents: "auto",
               animation: "fadeIn 0.2s ease-out"
             }}>
-              {/* Delete Icon */}
+              
               <button
                 onClick={(e) => { e.stopPropagation(); deleteSelectedLine(); }}
                 title="Delete Line"
@@ -1806,7 +1802,7 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              {/* Color Picker */}
+              
               <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
                 <input
                   type="color"
@@ -1816,7 +1812,7 @@ export default function StockChartPage() {
                 />
               </div>
 
-              {/* Thickness */}
+              
               <select
                 value={layouts.find(l => l.id === activeLayoutId)?.lines.find(line => line.id === selectedLineId)?.width || 2}
                 onChange={(e) => updateSelectedLine({ width: parseInt(e.target.value) })}
@@ -1839,7 +1835,7 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              {/* Price Edit */}
+              
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "11px", color: "#64748B" }}>Price</span>
                 <input
@@ -1866,7 +1862,7 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              {/* Close Toolbar */}
+              
               <button
                 onClick={() => { setSelectedLineId(null); setLineToolbarPos(null); }}
                 style={{ 
@@ -1899,9 +1895,9 @@ export default function StockChartPage() {
             />
           )}
 
-          {/* Note Texts Overlay */}
+          
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 5 }}>
-            {/* Callout Lines */}
+            
             <svg ref={svgRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
               {layouts.find(l => l.id === activeLayoutId)?.texts?.map(t => (
                 <g key={t.id}>
@@ -1911,7 +1907,7 @@ export default function StockChartPage() {
               ))}
             </svg>
 
-            {/* Text Boxes */}
+            
             {layouts.find(l => l.id === activeLayoutId)?.texts?.map(t => (
               <div
                 key={t.id}

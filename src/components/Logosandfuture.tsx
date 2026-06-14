@@ -207,7 +207,7 @@ export function FutureSection() {
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
       gsap.registerPlugin(ScrollTrigger);
 
-      // Heading
+      
       gsap.fromTo(".future-eyebrow",
         { opacity: 0, x: -24, filter: "blur(6px)" },
         { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.9, ease: "power3.out",
@@ -224,7 +224,7 @@ export function FutureSection() {
           scrollTrigger: { trigger: ".future-section", start: "top 80%" } }
       );
 
-      // Cards with blur
+      
       gsap.fromTo(".future-card",
         { opacity: 0, y: 50, scale: 0.95, filter: "blur(6px)" },
         {
@@ -234,14 +234,14 @@ export function FutureSection() {
         }
       );
 
-      // CTA button
+      
       gsap.fromTo(".future-cta",
         { opacity: 0, y: 20, scale: 0.95, filter: "blur(4px)" },
         { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: 0.7, ease: "back.out(1.5)",
           scrollTrigger: { trigger: ".future-cta", start: "top 92%" } }
       );
 
-      // Parallax background glow
+      
       gsap.to(".future-glow",
         { y: -80, ease: "none",
           scrollTrigger: { trigger: ".future-section", scrub: 2 } }
@@ -261,7 +261,7 @@ export function FutureSection() {
       }}
     >
 
-      {/* Parallax glow */}
+      
       <div className="future-glow" style={{
         position: "absolute", top: "-100px", right: "-100px",
         width: "700px", height: "700px",
@@ -275,7 +275,7 @@ export function FutureSection() {
       }} />
 
       <div style={{ maxWidth: "1280px", margin: "0 auto", position: "relative", zIndex: 1 }}>
-        {/* Eyebrow */}
+        
         <div className="future-eyebrow" style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1.5rem" }}>
           <Sparkle size={16} color="#E6A100" weight="fill" />
           <span style={{
@@ -286,7 +286,7 @@ export function FutureSection() {
           </span>
         </div>
 
-        {/* Heading */}
+        
         <h2 className="future-h2" style={{
           fontFamily: "Satoshi, sans-serif", fontWeight: 800,
           fontSize: "clamp(28px, 4vw, 56px)",
@@ -305,7 +305,7 @@ export function FutureSection() {
           We're just getting started. Here's what's on the horizon — shaped entirely by user feedback.
         </p>
 
-        {/* Cards */}
+        
         <div
           className="future-cards"
           style={{
@@ -368,7 +368,7 @@ export function FutureSection() {
           ))}
         </div>
 
-        {/* CTA */}
+        
         <div style={{ display: "flex", justifyContent: "center" }}>
           <a
             href="/prices"
