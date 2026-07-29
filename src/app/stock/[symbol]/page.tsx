@@ -40,7 +40,8 @@ type StockData = {
 
 export default function StockChartPage() {
   const params = useParams();
-  const rawSymbol = (params.symbol as string) || "RELIANCE";
+  const rawSymbolInput = (params.symbol as string) || "RELIANCE";
+  const rawSymbol = rawSymbolInput.replace(/[^a-zA-Z0-9&\-]/g, "");
   const displayName = DISPLAY_NAMES[rawSymbol.toUpperCase()] || rawSymbol.toUpperCase();
   const isCrypto = CRYPTO_SYMBOLS.includes(rawSymbol.toUpperCase()) || rawSymbol.toUpperCase().endsWith("-USD");
   const currencySymbol = isCrypto ? "$" : "₹";
@@ -56,8 +57,15 @@ export default function StockChartPage() {
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
   const [selectedDate, setSelectedDate] = useState<string>("");
+  const [retryCount, setRetryCount] = useState(0);
 
-  
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    setRetryCount((prev) => prev + 1);
+  };
+
+
   type ChartText = { id: string; time: number; price: number; text: string; offsetX?: number; offsetY?: number };
   type ChartLine = { id: string; price: number; color?: string; width?: number };
   type ChartLayout = { id: string; name: string; lines: ChartLine[]; texts?: ChartText[] };
@@ -65,16 +73,23 @@ export default function StockChartPage() {
   const [layouts, setLayouts] = useState<ChartLayout[]>([{ id: "default", name: "Default Layout", lines: [], texts: [] }]);
   const [activeLayoutId, setActiveLayoutId] = useState<string>("default");
   const [drawingMode, setDrawingMode] = useState<'line' | 'text' | null>(null);
+  const [pendingTextPoint, setPendingTextPoint] = useState<{ time: number; price: number } | null>(null);
+  const [noteInputText, setNoteInputText] = useState("");
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [showNewLayoutModal, setShowNewLayoutModal] = useState(false);
+  const [newLayoutNameInput, setNewLayoutNameInput] = useState("");
+  const [showDeleteLayoutConfirmModal, setShowDeleteLayoutConfirmModal] = useState(false);
   const [selectedLineId, setSelectedLineId] = useState<string | null>(null);
   const [rsiChartReady, setRsiChartReady] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const isSyncingRef = useRef(false);
+  const [isSyncingDb, setIsSyncingDb] = useState(false);
   const [chartReady, setChartReady] = useState(false);
   const [hoveredCandle, setHoveredCandle] = useState<any>(null);
   const linesRef = useRef<Record<string, any>>({});
   const textDivsRef = useRef<Record<string, HTMLDivElement>>({});
   const svgRef = useRef<SVGSVGElement>(null);
 
-  
+
   const ema1SeriesRef = useRef<any>(null);
   const ema2SeriesRef = useRef<any>(null);
   const bbUpperSeriesRef = useRef<any>(null);
@@ -83,7 +98,7 @@ export default function StockChartPage() {
   const rsiChartRef = useRef<any>(null);
   const rsiSeriesRef = useRef<any>(null);
 
-  
+
   const [indicatorSettings, setIndicatorSettings] = useState({
     rsi: {
       enabled: false,
@@ -105,21 +120,31 @@ export default function StockChartPage() {
   const [activeSettingsGroup, setActiveSettingsGroup] = useState<string | null>(null);
   const [rsiTab, setRsiTab] = useState<'inputs' | 'style'>('inputs');
 
-  
+
   const draggingRef = useRef<{ id: string, startX: number, startY: number, initialOffsetX: number, initialOffsetY: number, offsetX: number, offsetY: number } | null>(null);
 
   useEffect(() => {
-    
+
     const savedTf = localStorage.getItem("preferredTimeframe");
     if (savedTf) {
       try { setTimeframe(JSON.parse(savedTf)); } catch (e) { }
     }
+    const savedIndicators = localStorage.getItem("indicator_settings");
+    if (savedIndicators) {
+      try { setIndicatorSettings(JSON.parse(savedIndicators)); } catch (e) { }
+    }
   }, [rawSymbol]);
 
-  
+  useEffect(() => {
+    try {
+      localStorage.setItem("indicator_settings", JSON.stringify(indicatorSettings));
+    } catch (e) { }
+  }, [indicatorSettings]);
+
+
   const saveLayoutToDb = async (layout: ChartLayout) => {
     try {
-      setIsSyncing(true);
+      setIsSyncingDb(true);
       await fetch('/api/layouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,10 +155,10 @@ export default function StockChartPage() {
           data: layout
         })
       });
-      setIsSyncing(false);
+      setIsSyncingDb(false);
     } catch (error) {
       console.error('Failed to sync layout to DB:', error);
-      setIsSyncing(false);
+      setIsSyncingDb(false);
     }
   };
 
@@ -141,7 +166,7 @@ export default function StockChartPage() {
     const loadLayouts = async () => {
       setLoading(true);
 
-      
+
       const localData = localStorage.getItem(`layouts_${rawSymbol.toUpperCase()}`);
       if (localData) {
         try {
@@ -151,12 +176,12 @@ export default function StockChartPage() {
         } catch (e) { console.error("Local storage parse error", e); }
       }
 
-      
+
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); 
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-        const response = await fetch(`/api/layouts?symbol=${rawSymbol.toUpperCase()}`, {
+        const response = await fetch(`/api/layouts?symbol=${encodeURIComponent(rawSymbol.toUpperCase())}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -170,10 +195,10 @@ export default function StockChartPage() {
           }
         }
 
-        
+
         const migrated = mergedLayouts.map((l: any) => ({
           ...l,
-          lines: (l.lines || []).map((line: any) => 
+          lines: (l.lines || []).map((line: any) =>
             typeof line === 'number' ? { id: `migrated-${line}-${Math.random()}`, price: line, color: '#0F2044', width: 2 } : line
           ),
           texts: l.texts || []
@@ -181,7 +206,7 @@ export default function StockChartPage() {
 
         if (migrated.length > 0) {
           setLayouts(migrated);
-          
+
           if (!migrated.find((l: any) => l.id === activeLayoutId)) {
             setActiveLayoutId(migrated[0].id);
           }
@@ -196,7 +221,7 @@ export default function StockChartPage() {
     loadLayouts();
   }, [rawSymbol]);
 
-  
+
   useEffect(() => {
     if (layouts.length > 0) {
       localStorage.setItem(`layouts_${rawSymbol.toUpperCase()}`, JSON.stringify({
@@ -206,17 +231,17 @@ export default function StockChartPage() {
     }
   }, [layouts, activeLayoutId, rawSymbol]);
 
-  
+
   useEffect(() => {
     if (!chartReady || !candleSeriesRef.current) return;
 
-    
+
     Object.values(linesRef.current).forEach(item => {
       try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
     });
     linesRef.current = {};
 
-    
+
     const activeLayout = layouts.find(l => l.id === activeLayoutId);
     if (activeLayout) {
       activeLayout.lines.forEach(line => {
@@ -239,68 +264,68 @@ export default function StockChartPage() {
     }
   }, [activeLayoutId, chartReady, layouts, selectedLineId]);
 
-  
+
   useEffect(() => {
     let animationFrameId: number;
     const updatePositions = () => {
-      if (chartReady && chartRef.current && candleSeriesRef.current) {
-        const activeLayout = layouts.find(l => l.id === activeLayoutId);
-        if (activeLayout?.texts) {
-          activeLayout.texts.forEach(t => {
-            const div = textDivsRef.current[t.id];
-            const line = document.getElementById(`svg-line-${t.id}`);
-            const circle = document.getElementById(`svg-circle-${t.id}`);
+      try {
+        if (chartReady && chartRef.current && candleSeriesRef.current) {
+          const activeLayout = layouts.find(l => l.id === activeLayoutId);
+          if (activeLayout?.texts) {
+            activeLayout.texts.forEach(t => {
+              const div = textDivsRef.current[t.id];
+              const line = document.getElementById(`svg-line-${t.id}`);
+              const circle = document.getElementById(`svg-circle-${t.id}`);
 
-            let currentOffsetX = t.offsetX ?? 0;
-            let currentOffsetY = t.offsetY ?? -60;
+              let currentOffsetX = t.offsetX ?? 0;
+              let currentOffsetY = t.offsetY ?? -60;
 
-            
-            if (draggingRef.current?.id === t.id) {
-              currentOffsetX = draggingRef.current.offsetX;
-              currentOffsetY = draggingRef.current.offsetY;
-            }
-
-            if (div) {
-              const ax = chartRef.current.timeScale().timeToCoordinate(t.time as any);
-              const ay = candleSeriesRef.current.priceToCoordinate(t.price);
-
-              if (ax !== null && ay !== null) {
-                const bx = ax + currentOffsetX;
-                const by = ay + currentOffsetY;
-
-                
-                div.style.left = `${bx}px`;
-                div.style.top = `${by}px`;
-                div.style.display = 'block';
-
-                
-                if (line && circle) {
-                  line.setAttribute("x1", ax.toString());
-                  line.setAttribute("y1", ay.toString());
-                  line.setAttribute("x2", bx.toString());
-                  line.setAttribute("y2", by.toString());
-                  line.style.display = 'block';
-
-                  circle.setAttribute("cx", ax.toString());
-                  circle.setAttribute("cy", ay.toString());
-                  circle.style.display = 'block';
-                }
-              } else {
-                div.style.display = 'none';
-                if (line) line.style.display = 'none';
-                if (circle) circle.style.display = 'none';
+              if (draggingRef.current?.id === t.id) {
+                currentOffsetX = draggingRef.current.offsetX;
+                currentOffsetY = draggingRef.current.offsetY;
               }
-            }
-          });
+
+              if (div) {
+                const timeScale = chartRef.current?.timeScale();
+                const ax = timeScale ? timeScale.timeToCoordinate(t.time as any) : null;
+                const ay = candleSeriesRef.current?.priceToCoordinate(t.price);
+
+                if (ax !== null && ay !== null && ax !== undefined && ay !== undefined) {
+                  const bx = ax + currentOffsetX;
+                  const by = ay + currentOffsetY;
+
+                  div.style.left = `${bx}px`;
+                  div.style.top = `${by}px`;
+                  div.style.display = 'block';
+
+                  if (line && circle) {
+                    line.setAttribute("x1", ax.toString());
+                    line.setAttribute("y1", ay.toString());
+                    line.setAttribute("x2", bx.toString());
+                    line.setAttribute("y2", by.toString());
+                    line.setAttribute("style", "display: block;");
+
+                    circle.setAttribute("cx", ax.toString());
+                    circle.setAttribute("cy", ay.toString());
+                    circle.setAttribute("style", "display: block;");
+                  }
+                } else {
+                  div.style.display = 'none';
+                  if (line) line.setAttribute("style", "display: none;");
+                  if (circle) circle.setAttribute("style", "display: none;");
+                }
+              }
+            });
+          }
         }
-      }
+      } catch (err) { }
       animationFrameId = requestAnimationFrame(updatePositions);
     };
     updatePositions();
     return () => cancelAnimationFrame(animationFrameId);
   }, [layouts, activeLayoutId, chartReady]);
 
-  
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (draggingRef.current) {
@@ -335,7 +360,7 @@ export default function StockChartPage() {
     };
   }, [activeLayoutId]);
 
-  
+
   const calculateEMA = (data: any[], period: number) => {
     if (data.length < period) return [];
     const k = 2 / (period + 1);
@@ -396,7 +421,7 @@ export default function StockChartPage() {
     localStorage.setItem("preferredTimeframe", JSON.stringify(tf));
   };
 
-  
+
   useEffect(() => {
     if (!chartContainerRef.current) return;
 
@@ -420,15 +445,17 @@ export default function StockChartPage() {
         timeFormatter: (t: number) => {
           const d = new Date(t * 1000);
           if (["1m", "5m", "15m", "30m", "60m"].includes(timeframe.interval)) {
-            return d.toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true });
+            const dateStr = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+            const timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+            return `${dateStr}, ${timeStr}`;
           }
           return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
         },
       },
       crosshair: {
         mode: 0,
-        vertLine: { labelBackgroundColor: '#E01F2E' },
-        horzLine: { labelBackgroundColor: '#E01F2E' },
+        vertLine: { labelBackgroundColor: '#000000' },
+        horzLine: { labelBackgroundColor: '#000000' },
       },
       rightPriceScale: {
         borderColor: "#E2E8F0",
@@ -438,10 +465,21 @@ export default function StockChartPage() {
       timeScale: {
         borderColor: "#E2E8F0",
         timeVisible: ["1m", "5m", "15m", "30m", "60m"].includes(timeframe.interval),
+        secondsVisible: false,
         rightOffset: 15,
         barSpacing: 10,
         minBarSpacing: 1,
         shiftVisibleRangeOnNewBar: true,
+        tickMarkFormatter: (time: number, tickMarkType: number) => {
+          const d = new Date(time * 1000);
+          if (["1m", "5m", "15m", "30m", "60m"].includes(timeframe.interval)) {
+            if (tickMarkType <= 2) {
+              return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+            }
+            return d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: false });
+          }
+          return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+        },
       },
     });
 
@@ -458,9 +496,9 @@ export default function StockChartPage() {
     candleSeriesRef.current = candleSeries;
     setChartReady(true);
 
-    
+
     const handleResize = () => {
-      if (container) {
+      if (container && container.clientWidth > 0 && container.clientHeight > 0) {
         chart.applyOptions({
           width: container.clientWidth,
           height: container.clientHeight,
@@ -468,10 +506,15 @@ export default function StockChartPage() {
       }
     };
 
+    const resizeObserver = new ResizeObserver(handleResize);
+    resizeObserver.observe(container);
+
     window.addEventListener("resize", handleResize);
+    requestAnimationFrame(handleResize);
 
     return () => {
       window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
@@ -485,13 +528,13 @@ export default function StockChartPage() {
     };
   }, [timeframe.interval, indicatorSettings.rsi.enabled]);
 
-  
+
   useEffect(() => {
     if (!chartReady || !chartRef.current || !stockData || !stockData.candles) return;
 
     const data = stockData.candles;
 
-    
+
     if (indicatorSettings.ema1.enabled) {
       if (!ema1SeriesRef.current) {
         ema1SeriesRef.current = chartRef.current.addSeries(LineSeries, {
@@ -508,7 +551,7 @@ export default function StockChartPage() {
       ema1SeriesRef.current = null;
     }
 
-    
+
     if (indicatorSettings.ema2.enabled) {
       if (!ema2SeriesRef.current) {
         ema2SeriesRef.current = chartRef.current.addSeries(LineSeries, {
@@ -525,7 +568,7 @@ export default function StockChartPage() {
       ema2SeriesRef.current = null;
     }
 
-    
+
     if (indicatorSettings.bb.enabled) {
       const bbData = calculateBB(data, indicatorSettings.bb.period, indicatorSettings.bb.stdDev);
 
@@ -547,11 +590,11 @@ export default function StockChartPage() {
       bbLowerSeriesRef.current = null;
     }
 
-    
+
     if (indicatorSettings.rsi.enabled) {
       const rsiData = calculateRSI(data, indicatorSettings.rsi.period);
 
-      
+
       const smoothedMAData: any[] = [];
       const smoothLen = indicatorSettings.rsi.smoothingLength;
       for (let i = smoothLen; i < rsiData.length; i++) {
@@ -563,53 +606,102 @@ export default function StockChartPage() {
         });
       }
 
-      if (!rsiChartRef.current && rsiContainerRef.current) {
-        
-        const rsiChart = createChart(rsiContainerRef.current, {
-          width: rsiContainerRef.current.clientWidth,
-          height: rsiContainerRef.current.clientHeight,
-          layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#475569", fontFamily: "Satoshi, sans-serif" },
-          grid: { vertLines: { visible: false }, horzLines: { color: "#F1F5F9" } },
-          timeScale: { 
-            visible: false,
-            rightOffset: 15,
-            barSpacing: 10,
-            minBarSpacing: 1,
-            shiftVisibleRangeOnNewBar: true,
-          },
-          rightPriceScale: { borderColor: "#E2E8F0", scaleMargins: { top: 0.1, bottom: 0.1 }, autoScale: true },
-        });
+      const initRsi = () => {
+        if (!rsiContainerRef.current) return;
+        const width = rsiContainerRef.current.clientWidth || 800;
+        const height = rsiContainerRef.current.clientHeight || 150;
 
-        const rsiSeries = rsiChart.addSeries(LineSeries, {
-          color: indicatorSettings.rsi.color,
-          lineWidth: 2,
-          priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
-        });
+        if (!rsiChartRef.current) {
+          const rsiChart = createChart(rsiContainerRef.current, {
+            width,
+            height,
+            layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#475569", fontFamily: "Satoshi, sans-serif" },
+            grid: { vertLines: { visible: false }, horzLines: { color: "#F1F5F9" } },
+            timeScale: {
+              visible: false,
+              rightOffset: 15,
+              barSpacing: 10,
+              minBarSpacing: 1,
+              shiftVisibleRangeOnNewBar: true,
+            },
+            crosshair: {
+              mode: 0,
+              vertLine: { labelBackgroundColor: '#000000' },
+              horzLine: { labelBackgroundColor: '#000000' },
+            },
+            rightPriceScale: { borderColor: "#E2E8F0", scaleMargins: { top: 0.1, bottom: 0.1 }, autoScale: true },
+          });
 
-        const rsiMASeries = rsiChart.addSeries(LineSeries, {
-          color: indicatorSettings.rsi.maColor,
-          lineWidth: 2,
-          priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
-        });
+          const rsiSeries = rsiChart.addSeries(LineSeries, {
+            color: indicatorSettings.rsi.color,
+            lineWidth: 2,
+            priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+          });
 
-        rsiChartRef.current = rsiChart;
-        rsiSeriesRef.current = rsiSeries;
-        (rsiChartRef.current as any).maSeries = rsiMASeries;
-        setRsiChartReady(true);
-      }
+          const rsiMASeries = rsiChart.addSeries(LineSeries, {
+            color: indicatorSettings.rsi.maColor,
+            lineWidth: 2,
+            priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+          });
 
-      if (rsiSeriesRef.current) {
-        rsiSeriesRef.current.setData(rsiData);
-        rsiSeriesRef.current.applyOptions({ color: indicatorSettings.rsi.color });
+          // Create Upper Limit (70) and Lower Limit (30) reference lines
+          const upperLine = rsiSeries.createPriceLine({
+            price: indicatorSettings.rsi.upperLimit,
+            color: indicatorSettings.rsi.limitColor,
+            lineWidth: 1,
+            lineStyle: 2, // Dashed
+            axisLabelVisible: true,
+            title: `OB ${indicatorSettings.rsi.upperLimit}`,
+          });
 
-        
-        const maSeries = (rsiChartRef.current as any).maSeries;
-        if (maSeries) {
-          maSeries.setData(smoothedMAData);
-          maSeries.applyOptions({ color: indicatorSettings.rsi.maColor });
+          const lowerLine = rsiSeries.createPriceLine({
+            price: indicatorSettings.rsi.lowerLimit,
+            color: indicatorSettings.rsi.limitColor,
+            lineWidth: 1,
+            lineStyle: 2, // Dashed
+            axisLabelVisible: true,
+            title: `OS ${indicatorSettings.rsi.lowerLimit}`,
+          });
+
+          rsiChartRef.current = rsiChart;
+          rsiSeriesRef.current = rsiSeries;
+          (rsiChartRef.current as any).maSeries = rsiMASeries;
+          (rsiChartRef.current as any).upperLine = upperLine;
+          (rsiChartRef.current as any).lowerLine = lowerLine;
+          setRsiChartReady(true);
         }
 
-      }
+        if (rsiSeriesRef.current) {
+          rsiSeriesRef.current.setData(rsiData);
+          rsiSeriesRef.current.applyOptions({ color: indicatorSettings.rsi.color });
+
+          const maSeries = (rsiChartRef.current as any).maSeries;
+          if (maSeries) {
+            maSeries.setData(smoothedMAData);
+            maSeries.applyOptions({ color: indicatorSettings.rsi.maColor });
+          }
+
+          // Update limit line prices and colors dynamically
+          const upperLine = (rsiChartRef.current as any).upperLine;
+          const lowerLine = (rsiChartRef.current as any).lowerLine;
+          if (upperLine) {
+            upperLine.applyOptions({
+              price: indicatorSettings.rsi.upperLimit,
+              color: indicatorSettings.rsi.limitColor,
+              title: `OB ${indicatorSettings.rsi.upperLimit}`,
+            });
+          }
+          if (lowerLine) {
+            lowerLine.applyOptions({
+              price: indicatorSettings.rsi.lowerLimit,
+              color: indicatorSettings.rsi.limitColor,
+              title: `OS ${indicatorSettings.rsi.lowerLimit}`,
+            });
+          }
+        }
+      };
+
+      initRsi();
     } else if (rsiChartRef.current) {
       rsiChartRef.current.remove();
       rsiChartRef.current = null;
@@ -618,66 +710,85 @@ export default function StockChartPage() {
     }
   }, [chartReady, stockData, indicatorSettings]);
 
-  
+
+  // ── Bidirectional sync: scroll/zoom + crosshair ──
   useEffect(() => {
-    if (!chartRef.current || !rsiChartRef.current) return;
+    if (!chartRef.current || !rsiChartRef.current || !candleSeriesRef.current || !rsiSeriesRef.current) return;
 
-    const mainTimeScale = chartRef.current.timeScale();
-    const rsiTimeScale = rsiChartRef.current.timeScale();
-    let isSyncing = false;
+    // Capture references that are valid RIGHT NOW.
+    const mainChart  = chartRef.current;
+    const rsiChart   = rsiChartRef.current;
+    const mainSeries = candleSeriesRef.current;
+    const rsiSeries  = rsiSeriesRef.current;
 
-    const syncRsi = () => {
-      if (isSyncing || !chartRef.current || !rsiChartRef.current) return;
-      isSyncing = true;
+    // ── 1. Scroll / Zoom sync ──────────────────────────
+    const syncRsiRange = () => {
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
       try {
-        const logicalRange = mainTimeScale.getLogicalRange();
-        if (logicalRange) rsiChartRef.current.timeScale().setLogicalRange(logicalRange);
-      } catch (e) {}
-      isSyncing = false;
+        const range = mainChart.timeScale().getVisibleLogicalRange();
+        if (range) rsiChart.timeScale().setVisibleLogicalRange(range);
+      } catch (_) { }
+      isSyncingRef.current = false;
     };
 
-    const syncMain = () => {
-      if (isSyncing || !chartRef.current || !rsiChartRef.current) return;
-      isSyncing = true;
+    const syncMainRange = () => {
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
       try {
-        const logicalRange = rsiTimeScale.getLogicalRange();
-        if (logicalRange) chartRef.current.timeScale().setLogicalRange(logicalRange);
-      } catch (e) {}
-      isSyncing = false;
+        const range = rsiChart.timeScale().getVisibleLogicalRange();
+        if (range) mainChart.timeScale().setVisibleLogicalRange(range);
+      } catch (_) { }
+      isSyncingRef.current = false;
     };
 
-    
-    const syncCrosshairRsi = (param: any) => {
-      if (!rsiChartRef.current || !param.point) {
-        rsiChartRef.current?.clearCrosshairPosition();
-        return;
-      }
-      rsiChartRef.current.setCrosshairPosition(param.price, param.time, rsiSeriesRef.current);
+    mainChart.timeScale().subscribeVisibleLogicalRangeChange(syncRsiRange);
+    rsiChart.timeScale().subscribeVisibleLogicalRangeChange(syncMainRange);
+
+    // ── 2. Crosshair sync ──────────────────────────────
+    const syncCrosshairToRsi = (param: any) => {
+      try {
+        if (!param || !param.point || !param.time) {
+          rsiChart.clearCrosshairPosition();
+          return;
+        }
+        // Price value of 50 keeps the horizontal crosshair at midpoint (RSI range 0-100)
+        rsiChart.setCrosshairPosition(50, param.time, rsiSeries);
+      } catch (_) { }
     };
 
-    const syncCrosshairMain = (param: any) => {
-      if (!chartRef.current || !param.point) {
-        chartRef.current?.clearCrosshairPosition();
-        return;
-      }
-      chartRef.current.setCrosshairPosition(param.price, param.time, candleSeriesRef.current);
+    const syncCrosshairToMain = (param: any) => {
+      try {
+        if (!param || !param.point || !param.time) {
+          mainChart.clearCrosshairPosition();
+          return;
+        }
+        // Use coordinateToPrice at chart center to get a valid price on the main series
+        const chartHeight = mainChart.chartElement()?.clientHeight || 400;
+        const price = mainSeries.coordinateToPrice(chartHeight / 2);
+        mainChart.setCrosshairPosition(price ?? 0, param.time, mainSeries);
+      } catch (_) { }
     };
 
-    mainTimeScale.subscribeVisibleLogicalRangeChange(syncRsi);
-    rsiTimeScale.subscribeVisibleLogicalRangeChange(syncMain);
-    
-    chartRef.current.subscribeCrosshairMove(syncCrosshairRsi);
-    rsiChartRef.current.subscribeCrosshairMove(syncCrosshairMain);
+    mainChart.subscribeCrosshairMove(syncCrosshairToRsi);
+    rsiChart.subscribeCrosshairMove(syncCrosshairToMain);
 
+    // ── 3. Initial range sync: match RSI to main chart ──
+    try {
+      const currentRange = mainChart.timeScale().getVisibleLogicalRange();
+      if (currentRange) rsiChart.timeScale().setVisibleLogicalRange(currentRange);
+    } catch (_) { }
+
+    // ── Cleanup ─────────────────────────────────────────
     return () => {
-      try { mainTimeScale.unsubscribeVisibleLogicalRangeChange(syncRsi); } catch (e) {}
-      try { rsiTimeScale.unsubscribeVisibleLogicalRangeChange(syncMain); } catch (e) {}
-      try { chartRef.current?.unsubscribeCrosshairMove(syncCrosshairRsi); } catch (e) {}
-      try { rsiChartRef.current?.unsubscribeCrosshairMove(syncCrosshairMain); } catch (e) {}
+      try { mainChart.timeScale().unsubscribeVisibleLogicalRangeChange(syncRsiRange); } catch (_) { }
+      try { rsiChart.timeScale().unsubscribeVisibleLogicalRangeChange(syncMainRange); } catch (_) { }
+      try { mainChart.unsubscribeCrosshairMove(syncCrosshairToRsi); } catch (_) { }
+      try { rsiChart.unsubscribeCrosshairMove(syncCrosshairToMain); } catch (_) { }
     };
-  }, [chartReady, rsiChartReady]); 
+  }, [chartReady, rsiChartReady, stockData]);
 
-  
+
   useEffect(() => {
     let isMounted = true;
     let isFirstLoad = true;
@@ -686,8 +797,9 @@ export default function StockChartPage() {
     setError(null);
 
     const fetchData = () => {
+      if (!isFirstLoad && document.hidden) return;
       const dateParam = selectedDate ? `&date=${selectedDate}` : "";
-      
+
       fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch data");
@@ -703,18 +815,18 @@ export default function StockChartPage() {
             const candles = data.candles as { time: UTCTimestamp; open: number; high: number; low: number; close: number }[];
             const lastCandle = candles[candles.length - 1];
 
-            
+
             if (liveCandleRef.current && liveCandleRef.current.time === lastCandle.time) {
               lastCandle.high = Math.max(liveCandleRef.current.high, lastCandle.high);
               lastCandle.low = Math.min(liveCandleRef.current.low, lastCandle.low);
             }
 
-            
+
             liveCandleRef.current = { ...lastCandle };
 
             candleSeriesRef.current.setData(candles);
             if (isFirstLoad) {
-              
+
               const totalCandles = candles.length;
               chartRef.current?.timeScale().setVisibleLogicalRange({
                 from: Math.max(0, totalCandles - 55),
@@ -732,14 +844,14 @@ export default function StockChartPage() {
         });
     };
 
-    
+
     fetchData();
 
     let intervalId: NodeJS.Timeout;
     let ws: WebSocket;
 
     if (!selectedDate && isCrypto) {
-      
+
       const binanceIntervalMap: Record<string, string> = {
         "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
         "60m": "1h", "1d": "1d", "1mo": "1M"
@@ -757,13 +869,13 @@ export default function StockChartPage() {
         if (message.e === "kline") {
           const k = message.k;
           const currentPrice = parseFloat(k.c);
-          const isClosed = k.x; 
+          const isClosed = k.x;
 
           if (candleSeriesRef.current) {
             let updateTime = Math.floor(k.t / 1000);
 
-            
-            
+
+
             if (liveCandleRef.current && updateTime < liveCandleRef.current.time) {
               updateTime = liveCandleRef.current.time;
             }
@@ -783,7 +895,7 @@ export default function StockChartPage() {
 
           setStockData(prev => {
             if (!prev) return prev;
-            if (prev.currentPrice === currentPrice && !isClosed) return prev; 
+            if (prev.currentPrice === currentPrice && !isClosed) return prev;
 
             const change = currentPrice - prev.previousClose;
             const changePercent = prev.previousClose ? (change / prev.previousClose) * 100 : 0;
@@ -796,17 +908,17 @@ export default function StockChartPage() {
             };
           });
 
-          
-          
-          
-          
+
+
+
+
           if (isClosed) {
             fetchData();
           }
         }
       };
     } else if (!selectedDate) {
-      
+
       intervalId = setInterval(fetchData, 5000);
     }
 
@@ -815,11 +927,11 @@ export default function StockChartPage() {
       if (intervalId) clearInterval(intervalId);
       if (ws) ws.close();
     };
-  }, [rawSymbol, timeframe.interval, timeframe.range, selectedDate]);
+  }, [rawSymbol, timeframe.interval, timeframe.range, selectedDate, retryCount]);
 
   const [lineToolbarPos, setLineToolbarPos] = useState<{ x: number, y: number, price: number } | null>(null);
 
-  
+
   useEffect(() => {
     if (!chartRef.current || !candleSeriesRef.current || !chartContainerRef.current) return;
 
@@ -829,12 +941,12 @@ export default function StockChartPage() {
       const price = candleSeriesRef.current.coordinateToPrice(param.point.y);
       let time = param.time;
       if (!time) {
-        
+
         time = chartRef.current.timeScale().coordinateToTime(param.point.x);
       }
       if (price === null) return;
 
-      
+
       const activeLayout = layouts.find(l => l.id === activeLayoutId);
       if (activeLayout) {
         const clickedLine = activeLayout.lines.find(line => {
@@ -871,32 +983,15 @@ export default function StockChartPage() {
         });
         setDrawingMode(null);
       } else if (drawingMode === 'text') {
-        const note = prompt("Enter your note:");
-        if (note && note.trim() !== "") {
-          const newText: ChartText = {
-            id: Date.now().toString(),
-            time: time as number,
-            price: price,
-            text: note.trim(),
-            offsetX: 0,
-            offsetY: -60
-          };
-          setLayouts(prev => {
-            const updated = prev.map(l =>
-              l.id === activeLayoutId ? { ...l, texts: [...(l.texts || []), newText] } : l
-            );
-            const current = updated.find(l => l.id === activeLayoutId);
-            if (current) saveLayoutToDb(current);
-            return updated;
-          });
-        }
+        setPendingTextPoint({ time: time as number, price: price });
+        setNoteInputText("");
         setDrawingMode(null);
       }
     };
 
     const crosshairMoveHandler = (param: any) => {
       if (!chartContainerRef.current) return;
-      
+
       if (!param.point) {
         setHoveredCandle(null);
         chartContainerRef.current.style.cursor = 'default';
@@ -907,7 +1002,7 @@ export default function StockChartPage() {
       if (param.time && candleSeriesRef.current) {
         try {
           candle = param.seriesData.get(candleSeriesRef.current);
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!candle && param.time && stockData?.candles) {
         candle = stockData.candles.find((c: any) => c.time === param.time);
@@ -919,16 +1014,20 @@ export default function StockChartPage() {
         return;
       }
 
-      
-      const activeLayout = layouts.find(l => l.id === activeLayoutId);
-      if (activeLayout) {
-        const isNearLine = activeLayout.lines.some(line => {
-          const lPrice = typeof line === 'number' ? line : line.price;
-          const lineY = candleSeriesRef.current.priceToCoordinate(lPrice);
-          return lineY !== null && Math.abs(param.point.y - lineY) < 10;
-        });
 
-        chartContainerRef.current.style.cursor = isNearLine ? 'pointer' : 'default';
+      const activeLayout = layouts.find(l => l.id === activeLayoutId);
+      if (activeLayout && candleSeriesRef.current) {
+        try {
+          const isNearLine = activeLayout.lines.some(line => {
+            const lPrice = typeof line === 'number' ? line : line.price;
+            const lineY = candleSeriesRef.current?.priceToCoordinate(lPrice);
+            return lineY !== null && lineY !== undefined && Math.abs(param.point.y - lineY) < 10;
+          });
+
+          if (chartContainerRef.current) {
+            chartContainerRef.current.style.cursor = isNearLine ? 'pointer' : 'default';
+          }
+        } catch (e) { }
       }
     };
 
@@ -987,7 +1086,7 @@ export default function StockChartPage() {
 
   return (
     <main style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative" }}>
-      
+
       <div
         style={{
           maxWidth: "100%",
@@ -1005,8 +1104,8 @@ export default function StockChartPage() {
           background: "#FFFFFF"
         }}
       >
-        
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        {/* Company Name & Symbol */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", top: "-30px", left: "-8px" }}>
           <h1
             style={{
               fontFamily: "Satoshi, sans-serif",
@@ -1026,15 +1125,15 @@ export default function StockChartPage() {
               {rawSymbol.toUpperCase()}
             </span>
           </h1>
-          {isSyncing && (
+          {isSyncingDb && (
             <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite", whiteSpace: "nowrap" }}>Syncing...</span>
           )}
         </div>
 
-        
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start", marginLeft: "12px" }}>
-          
-          
+
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start", marginLeft: "0px", position: "relative", top: "-6px", left: "-14px" }}>
+
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', fontFamily: 'Satoshi, sans-serif' }}>Date:</span>
             <input
@@ -1082,7 +1181,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          
+
           <div style={{ display: "flex", gap: "4px" }}>
             {timeframes.map((tf) => {
               const isActive = timeframe.interval === tf.interval;
@@ -1123,7 +1222,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          
+
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setShowIndicatorMenu(!showIndicatorMenu)}
@@ -1165,24 +1264,24 @@ export default function StockChartPage() {
                 flexDirection: "column",
                 overflow: "hidden"
               }}>
-                <div style={{ 
-                  display: "flex", 
-                  justifyContent: "space-between", 
-                  alignItems: "center", 
-                  padding: "12px 16px", 
-                  borderBottom: "1px solid #E2E8F0", 
-                  background: "#F8FAFC" 
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "12px 16px",
+                  borderBottom: "1px solid #E2E8F0",
+                  background: "#F8FAFC"
                 }}>
                   <span style={{ fontWeight: 800, fontSize: "12px", color: "#0F2044", textTransform: "uppercase", letterSpacing: "0.5px", fontFamily: "Satoshi, sans-serif" }}>Indicator Options</span>
-                  <button 
-                    onClick={() => setShowIndicatorMenu(false)} 
-                    style={{ 
-                      background: "none", 
-                      border: "none", 
-                      cursor: "pointer", 
-                      color: "rgba(15, 32, 68, 0.4)", 
+                  <button
+                    onClick={() => setShowIndicatorMenu(false)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "rgba(15, 32, 68, 0.4)",
                       fontSize: "14px",
-                      transition: "color 0.2s" 
+                      transition: "color 0.2s"
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.color = "#0F2044"}
                     onMouseLeave={(e) => e.currentTarget.style.color = "rgba(15, 32, 68, 0.4)"}
@@ -1190,7 +1289,7 @@ export default function StockChartPage() {
                 </div>
 
                 <div style={{ maxHeight: "380px", overflowY: "auto", padding: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                  
+
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1243,7 +1342,7 @@ export default function StockChartPage() {
                     )}
                   </div>
 
-                  
+
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1280,7 +1379,7 @@ export default function StockChartPage() {
                     )}
                   </div>
 
-                  
+
                   <div style={{ border: "1px solid #E2E8F0", borderRadius: "10px", background: "#F8FAFC", overflow: "hidden" }}>
                     <div
                       style={{
@@ -1352,7 +1451,7 @@ export default function StockChartPage() {
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-          
+
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <select
               value={activeLayoutId}
@@ -1376,12 +1475,8 @@ export default function StockChartPage() {
             </select>
             <button
               onClick={() => {
-                const name = prompt("Enter a name for the new chart layout:");
-                if (name && name.trim() !== "") {
-                  const newId = Date.now().toString();
-                  setLayouts(prev => [...prev, { id: newId, name: name.trim(), lines: [], texts: [] }]);
-                  setActiveLayoutId(newId);
-                }
+                setNewLayoutNameInput("");
+                setShowNewLayoutModal(true);
               }}
               style={{
                 background: "#0F2044",
@@ -1402,13 +1497,7 @@ export default function StockChartPage() {
             </button>
             {layouts.length > 1 && (
               <button
-                onClick={() => {
-                  if (confirm("Are you sure you want to delete this layout?")) {
-                    const newLayouts = layouts.filter(l => l.id !== activeLayoutId);
-                    setLayouts(newLayouts);
-                    setActiveLayoutId(newLayouts[0].id);
-                  }
-                }}
+                onClick={() => setShowDeleteLayoutConfirmModal(true)}
                 title="Delete Layout"
                 style={{
                   background: "rgba(239,68,68,0.1)",
@@ -1427,11 +1516,84 @@ export default function StockChartPage() {
                 ✕ Delete
               </button>
             )}
+
+            <div style={{ width: "1px", height: "20px", background: "#E2E8F0", margin: "0 4px" }} />
+
+            {/* Drawing Tools */}
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <button
+                onClick={() => setDrawingMode(drawingMode === 'line' ? null : 'line')}
+                title="Horizontal Line"
+                style={{
+                  fontFamily: "Satoshi, sans-serif",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  background: drawingMode === 'line' ? "#E01F2E" : "#F1F5F9",
+                  color: drawingMode === 'line' ? "#FFFFFF" : "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                <span style={{ fontSize: "14px", fontWeight: "bold" }}>—</span> Line
+              </button>
+
+              <button
+                onClick={() => setDrawingMode(drawingMode === 'text' ? null : 'text')}
+                title="Note Text"
+                style={{
+                  fontFamily: "Satoshi, sans-serif",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  background: drawingMode === 'text' ? "#E01F2E" : "#F1F5F9",
+                  color: drawingMode === 'text' ? "#FFFFFF" : "#475569",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+              >
+                <span style={{ fontSize: "13px", fontWeight: 800 }}>T</span> Text
+              </button>
+
+              <button
+                onClick={() => setShowClearConfirmModal(true)}
+                title="Clear Drawings"
+                style={{
+                  fontFamily: "Satoshi, sans-serif",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "6px 12px",
+                  borderRadius: "8px",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                  background: "rgba(239, 68, 68, 0.1)",
+                  color: "#EF4444",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px"
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)"}
+              >
+                <span>🗑</span> Clear
+              </button>
+            </div>
           </div>
         </div>
 
-        
-        <div>
+
+        <div style={{ position: "relative", top: "-24px" }}>
           <a
             href="/prices"
             style={{
@@ -1463,7 +1625,7 @@ export default function StockChartPage() {
         </div>
       </div>
 
-      
+
       <div
         style={{
           maxWidth: "100%",
@@ -1476,137 +1638,8 @@ export default function StockChartPage() {
           minHeight: 0
         }}
       >
-        
-        <div style={{ 
-          display: "flex", 
-          flexDirection: "column", 
-          gap: "10px", 
-          width: "56px", 
-          padding: "12px 6px",
-          background: "#FFFFFF",
-          borderRadius: "16px",
-          border: "1px solid #E2E8F0",
-          boxShadow: "0 4px 20px rgba(15,32,68,0.05)",
-          alignItems: "center"
-        }}>
-          <button
-            onClick={() => setDrawingMode(drawingMode === 'line' ? null : 'line')}
-            title="Horizontal Line"
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              border: "none",
-              background: drawingMode === 'line' ? "#E01F2E" : "transparent",
-              color: drawingMode === 'line' ? "white" : "#64748B",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-              fontSize: "18px",
-              fontWeight: "bold"
-            }}
-            onMouseEnter={(e) => {
-              if (drawingMode !== 'line') {
-                e.currentTarget.style.background = "#F1F5F9";
-                e.currentTarget.style.color = "#0F2044";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (drawingMode !== 'line') {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#64748B";
-              }
-            }}
-          >
-            —
-          </button>
 
-          <button
-            onClick={() => setDrawingMode(drawingMode === 'text' ? null : 'text')}
-            title="Note Text"
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              border: "none",
-              background: drawingMode === 'text' ? "#E01F2E" : "transparent",
-              color: drawingMode === 'text' ? "white" : "#64748B",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
-              fontSize: "18px",
-              fontWeight: 800,
-              fontFamily: "serif"
-            }}
-            onMouseEnter={(e) => {
-              if (drawingMode !== 'text') {
-                e.currentTarget.style.background = "#F1F5F9";
-                e.currentTarget.style.color = "#0F2044";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (drawingMode !== 'text') {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#64748B";
-              }
-            }}
-          >
-            T
-          </button>
 
-          <button
-            onClick={() => {
-              if (confirm("Clear all drawings and annotations?")) {
-                if (candleSeriesRef.current) {
-                  Object.values(linesRef.current).forEach(item => {
-                    try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
-                  });
-                  linesRef.current = {};
-                }
-                setLayouts(prev => {
-                  const updated = prev.map(l =>
-                    l.id === activeLayoutId ? { ...l, lines: [], texts: [] } : l
-                  );
-                  const current = updated.find(l => l.id === activeLayoutId);
-                  if (current) saveLayoutToDb(current);
-                  return updated;
-                });
-              }
-            }}
-            title="Clear Drawings"
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "10px",
-              border: "none",
-              background: "transparent",
-              color: "#94A3B8",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.2s",
-              fontSize: "16px",
-              marginTop: "auto"
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.1)";
-              e.currentTarget.style.color = "#EF4444";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#94A3B8";
-            }}
-          >
-            🗑
-          </button>
-        </div>
-
-        
         <div
           style={{
             flex: 1,
@@ -1674,7 +1707,7 @@ export default function StockChartPage() {
                   {error}
                 </p>
                 <button
-                  onClick={() => handleTimeframeChange({ ...timeframe })}
+                  onClick={handleRetry}
                   style={{
                     marginTop: "16px",
                     fontFamily: "Satoshi, sans-serif",
@@ -1695,7 +1728,7 @@ export default function StockChartPage() {
             </div>
           )}
 
-          
+
           {(() => {
             const activeCandle = hoveredCandle || (stockData?.candles && stockData.candles.length > 0 ? stockData.candles[stockData.candles.length - 1] : null);
             if (!activeCandle) return null;
@@ -1706,10 +1739,10 @@ export default function StockChartPage() {
             const closeVal = activeCandle.close;
             const changeVal = closeVal - openVal;
             const changePercentVal = openVal ? (changeVal / openVal) * 100 : 0;
-            
+
             const isUp = closeVal >= openVal;
             const valColor = isUp ? "#26a69a" : "#ef5350";
-            
+
             const formatNum = (num: number) => {
               return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             };
@@ -1759,7 +1792,7 @@ export default function StockChartPage() {
             );
           })()}
 
-          
+
           {lineToolbarPos && selectedLineId && (
             <div style={{
               position: "absolute",
@@ -1778,18 +1811,18 @@ export default function StockChartPage() {
               pointerEvents: "auto",
               animation: "fadeIn 0.2s ease-out"
             }}>
-              
+
               <button
                 onClick={(e) => { e.stopPropagation(); deleteSelectedLine(); }}
                 title="Delete Line"
-                style={{ 
-                  background: "rgba(239,68,68,0.15)", 
-                  border: "none", 
-                  borderRadius: "6px", 
-                  width: "28px", 
-                  height: "28px", 
-                  cursor: "pointer", 
-                  color: "#EF4444", 
+                style={{
+                  background: "rgba(239,68,68,0.15)",
+                  border: "none",
+                  borderRadius: "6px",
+                  width: "28px",
+                  height: "28px",
+                  cursor: "pointer",
+                  color: "#EF4444",
                   fontSize: "14px",
                   display: "flex",
                   alignItems: "center",
@@ -1802,7 +1835,7 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              
+
               <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
                 <input
                   type="color"
@@ -1812,16 +1845,16 @@ export default function StockChartPage() {
                 />
               </div>
 
-              
+
               <select
                 value={layouts.find(l => l.id === activeLayoutId)?.lines.find(line => line.id === selectedLineId)?.width || 2}
                 onChange={(e) => updateSelectedLine({ width: parseInt(e.target.value) })}
-                style={{ 
-                  background: "#F8FAFC", 
-                  border: "1px solid #E2E8F0", 
-                  borderRadius: "6px", 
-                  color: "#0F2044", 
-                  fontSize: "12px", 
+                style={{
+                  background: "#F8FAFC",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "6px",
+                  color: "#0F2044",
+                  fontSize: "12px",
                   padding: "4px 8px",
                   cursor: "pointer",
                   outline: "none"
@@ -1835,7 +1868,7 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              
+
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                 <span style={{ fontSize: "11px", color: "#64748B" }}>Price</span>
                 <input
@@ -1847,13 +1880,13 @@ export default function StockChartPage() {
                     setLineToolbarPos({ ...lineToolbarPos, price: newPrice });
                     updateSelectedLine({ price: newPrice });
                   }}
-                  style={{ 
-                    width: "84px", 
-                    background: "#F8FAFC", 
-                    border: "1px solid #E2E8F0", 
-                    borderRadius: "6px", 
-                    color: "#0F2044", 
-                    fontSize: "12px", 
+                  style={{
+                    width: "84px",
+                    background: "#F8FAFC",
+                    border: "1px solid #E2E8F0",
+                    borderRadius: "6px",
+                    color: "#0F2044",
+                    fontSize: "12px",
                     padding: "4px 8px",
                     outline: "none"
                   }}
@@ -1862,14 +1895,14 @@ export default function StockChartPage() {
 
               <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
-              
+
               <button
                 onClick={() => { setSelectedLineId(null); setLineToolbarPos(null); }}
-                style={{ 
-                  background: "none", 
-                  border: "none", 
-                  cursor: "pointer", 
-                  color: "rgba(15, 32, 68, 0.4)", 
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "rgba(15, 32, 68, 0.4)",
                   fontSize: "16px",
                   padding: "4px",
                   display: "flex",
@@ -1885,19 +1918,19 @@ export default function StockChartPage() {
 
           <div
             ref={chartContainerRef}
-            style={{ width: "100%", flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
+            style={{ width: "100%", height: "100%", minHeight: 0, flex: indicatorSettings.rsi.enabled ? 8 : 1 }}
           />
 
           {indicatorSettings.rsi.enabled && (
             <div
               ref={rsiContainerRef}
-              style={{ width: "100%", flex: 2, borderTop: "1px solid #E2E8F0" }}
+              style={{ width: "100%", height: "100%", minHeight: 0, flex: 2, borderTop: "1px solid #E2E8F0" }}
             />
           )}
 
-          
+
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", overflow: "hidden", zIndex: 5 }}>
-            
+
             <svg ref={svgRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", overflow: "visible" }}>
               {layouts.find(l => l.id === activeLayoutId)?.texts?.map(t => (
                 <g key={t.id}>
@@ -1907,7 +1940,7 @@ export default function StockChartPage() {
               ))}
             </svg>
 
-            
+
             {layouts.find(l => l.id === activeLayoutId)?.texts?.map(t => (
               <div
                 key={t.id}
@@ -1954,7 +1987,441 @@ export default function StockChartPage() {
         </div>
       </div>
 
-      <style>{`
+      {/* Custom Add Note Modal */}
+      {pendingTextPoint && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 32, 68, 0.4)",
+            backdropFilter: "blur(8px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+          onClick={() => setPendingTextPoint(null)}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "420px",
+              boxShadow: "0 24px 80px rgba(15, 32, 68, 0.2)",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0F2044", fontFamily: "Satoshi, sans-serif" }}>
+                📝 Add Chart Note
+              </h3>
+              <button
+                type="button"
+                onClick={() => setPendingTextPoint(null)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#94A3B8", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (noteInputText.trim()) {
+                  const newText: ChartText = {
+                    id: Date.now().toString(),
+                    time: pendingTextPoint.time,
+                    price: pendingTextPoint.price,
+                    text: noteInputText.trim(),
+                    offsetX: 0,
+                    offsetY: -60
+                  };
+                  setLayouts(prev => {
+                    const updated = prev.map(l =>
+                      l.id === activeLayoutId ? { ...l, texts: [...(l.texts || []), newText] } : l
+                    );
+                    const current = updated.find(l => l.id === activeLayoutId);
+                    if (current) saveLayoutToDb(current);
+                    return updated;
+                  });
+                }
+                setPendingTextPoint(null);
+              }}
+              style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#64748B", marginBottom: "8px", fontFamily: "Satoshi, sans-serif" }}>
+                  Note Text
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Type your note or analysis here..."
+                  value={noteInputText}
+                  onChange={(e) => setNoteInputText(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #E2E8F0",
+                    fontSize: "14px",
+                    fontFamily: "Satoshi, sans-serif",
+                    outline: "none",
+                    color: "#0F2044",
+                    background: "#F8FAFC"
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setPendingTextPoint(null)}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #E2E8F0",
+                    background: "#FFFFFF",
+                    color: "#64748B",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#0F2044",
+                    color: "#FFFFFF",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(15, 32, 68, 0.15)"
+                  }}
+                >
+                  Add Note
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Clear Drawings Confirmation Modal */}
+      {showClearConfirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 32, 68, 0.4)",
+            backdropFilter: "blur(8px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+          onClick={() => setShowClearConfirmModal(false)}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "400px",
+              boxShadow: "0 24px 80px rgba(15, 32, 68, 0.2)",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#EF4444", fontFamily: "Satoshi, sans-serif" }}>
+                🗑 Clear All Drawings
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowClearConfirmModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#94A3B8", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ margin: 0, fontSize: "14px", color: "#475569", lineHeight: "1.5", fontFamily: "Satoshi, sans-serif" }}>
+                Are you sure you want to clear all horizontal lines and text annotations from this chart layout? This action cannot be undone.
+              </p>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowClearConfirmModal(false)}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #E2E8F0",
+                    background: "#FFFFFF",
+                    color: "#64748B",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (candleSeriesRef.current) {
+                      Object.values(linesRef.current).forEach(item => {
+                        try { candleSeriesRef.current.removePriceLine(item); } catch (e) { }
+                      });
+                      linesRef.current = {};
+                    }
+                    setLayouts(prev => {
+                      const updated = prev.map(l =>
+                        l.id === activeLayoutId ? { ...l, lines: [], texts: [] } : l
+                      );
+                      const current = updated.find(l => l.id === activeLayoutId);
+                      if (current) saveLayoutToDb(current);
+                      return updated;
+                    });
+                    setShowClearConfirmModal(false);
+                  }}
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#EF4444",
+                    color: "#FFFFFF",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)"
+                  }}
+                >
+                  Clear All
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom New Layout Modal */}
+      {showNewLayoutModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 32, 68, 0.4)",
+            backdropFilter: "blur(8px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+          onClick={() => setShowNewLayoutModal(false)}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "400px",
+              boxShadow: "0 24px 80px rgba(15, 32, 68, 0.2)",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0F2044", fontFamily: "Satoshi, sans-serif" }}>
+                📊 Create New Layout
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowNewLayoutModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#94A3B8", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (newLayoutNameInput.trim()) {
+                  const newId = Date.now().toString();
+                  setLayouts(prev => [...prev, { id: newId, name: newLayoutNameInput.trim(), lines: [], texts: [] }]);
+                  setActiveLayoutId(newId);
+                }
+                setShowNewLayoutModal(false);
+              }}
+              style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}
+            >
+              <div>
+                <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#64748B", marginBottom: "8px", fontFamily: "Satoshi, sans-serif" }}>
+                  Layout Name
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="e.g. Scalping Setup, Swing Analysis..."
+                  value={newLayoutNameInput}
+                  onChange={(e) => setNewLayoutNameInput(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    borderRadius: "10px",
+                    border: "1.5px solid #E2E8F0",
+                    fontSize: "14px",
+                    fontFamily: "Satoshi, sans-serif",
+                    outline: "none",
+                    color: "#0F2044",
+                    background: "#F8FAFC"
+                  }}
+                />
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowNewLayoutModal(false)}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #E2E8F0",
+                    background: "#FFFFFF",
+                    color: "#64748B",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#0F2044",
+                    color: "#FFFFFF",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(15, 32, 68, 0.15)"
+                  }}
+                >
+                  Save Layout
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Layout Confirmation Modal */}
+      {showDeleteLayoutConfirmModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 32, 68, 0.4)",
+            backdropFilter: "blur(8px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "20px"
+          }}
+          onClick={() => setShowDeleteLayoutConfirmModal(false)}
+        >
+          <div
+            style={{
+              background: "#FFFFFF",
+              borderRadius: "16px",
+              width: "100%",
+              maxWidth: "400px",
+              boxShadow: "0 24px 80px rgba(15, 32, 68, 0.2)",
+              border: "1px solid #E2E8F0",
+              overflow: "hidden",
+              animation: "fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#EF4444", fontFamily: "Satoshi, sans-serif" }}>
+                ✕ Delete Chart Layout
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowDeleteLayoutConfirmModal(false)}
+                style={{ background: "none", border: "none", fontSize: "18px", color: "#94A3B8", cursor: "pointer" }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ margin: 0, fontSize: "14px", color: "#475569", lineHeight: "1.5", fontFamily: "Satoshi, sans-serif" }}>
+                Are you sure you want to delete this layout? This will remove all saved lines and annotations for this layout.
+              </p>
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteLayoutConfirmModal(false)}
+                  style={{
+                    padding: "9px 18px",
+                    borderRadius: "8px",
+                    border: "1px solid #E2E8F0",
+                    background: "#FFFFFF",
+                    color: "#64748B",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newLayouts = layouts.filter(l => l.id !== activeLayoutId);
+                    setLayouts(newLayouts);
+                    setActiveLayoutId(newLayouts[0].id);
+                    setShowDeleteLayoutConfirmModal(false);
+                  }}
+                  style={{
+                    padding: "9px 20px",
+                    borderRadius: "8px",
+                    border: "none",
+                    background: "#EF4444",
+                    color: "#FFFFFF",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    cursor: "pointer",
+                    boxShadow: "0 4px 12px rgba(239, 68, 68, 0.25)"
+                  }}
+                >
+                  Delete Layout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
@@ -1966,7 +2433,7 @@ export default function StockChartPage() {
           cursor: grabbing !important;
           transform: translate(-50%, -50%) scale(1.05) !important;
         }
-      `}</style>
+      ` }} />
     </main>
   );
 }

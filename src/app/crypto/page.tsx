@@ -27,6 +27,7 @@ export default function CryptoPage() {
     const allSymbols = cryptoAssets.map(s => s.symbol);
 
     const fetchPrices = async () => {
+      if (document.hidden) return;
       try {
         const encodedSymbols = encodeURIComponent(allSymbols.join(","));
         const response = await fetch(`/api/batch-prices?symbols=${encodedSymbols}`);

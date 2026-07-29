@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { sql } from "@/lib/db";
+
+const VALID_INTERVALS = ["1m", "5m", "15m", "30m", "60m", "1d", "1mo"];
+const VALID_RANGES = ["1d", "2d", "5d", "10d", "15d", "30d", "1y", "max"];
+const SYMBOL_REGEX = /^[A-Z0-9&\-]{1,20}$/;
 
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
   
@@ -77,11 +82,30 @@ function getYahooSymbol(symbol: string): string {
 }
 
 export async function GET(req: NextRequest) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "RELIANCE";
   const range = searchParams.get("range") || "1y";
   const interval = searchParams.get("interval") || "1d";
   const dateParam = searchParams.get("date");
+
+  // Validate inputs against allowlists
+  if (!SYMBOL_REGEX.test(symbol.toUpperCase())) {
+    return NextResponse.json({ error: "Invalid symbol format" }, { status: 400 });
+  }
+  if (!VALID_INTERVALS.includes(interval)) {
+    return NextResponse.json({ error: "Invalid interval" }, { status: 400 });
+  }
+  if (!VALID_RANGES.includes(range)) {
+    return NextResponse.json({ error: "Invalid range" }, { status: 400 });
+  }
+  if (dateParam && !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+    return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
+  }
 
   const yahooSymbol = getYahooSymbol(symbol);
   const isIntraday = ["1m", "5m", "15m", "30m", "60m"].includes(interval);
@@ -288,8 +312,9 @@ export async function GET(req: NextRequest) {
       candles,
     });
   } catch (err: any) {
+    console.error("Stock data fetch error:", err);
     return NextResponse.json(
-      { error: err.message || "Failed to fetch stock data" },
+      { error: "Failed to fetch stock data" },
       { status: 500 }
     );
   }

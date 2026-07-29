@@ -48,6 +48,18 @@ export async function initDatabase() {
       );
       CREATE INDEX IF NOT EXISTS idx_signals_date ON signals_history(candle_date);
     `;
+
+    // Scanner cache table (previously created inline in API handlers)
+    await sql`
+      CREATE TABLE IF NOT EXISTS scanner_cache (
+        id SERIAL PRIMARY KEY,
+        date_str VARCHAR(20) NOT NULL,
+        scanner_type VARCHAR(50) NOT NULL,
+        results JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(date_str, scanner_type)
+      );
+    `;
     
     console.log('Database initialized successfully!');
   } catch (error) {

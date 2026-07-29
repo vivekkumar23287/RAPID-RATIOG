@@ -1,14 +1,19 @@
+"use client";
+
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import HeroNew from "@/components/HeroNew";
 import ScrollShowcase from "@/components/ScrollShowcase";
 import MarqueeSection from "@/components/MarqueeSection";
-import ServicesSection from "@/components/ServicesSection";
-import InteractiveDemo from "@/components/InteractiveDemo";
-import StocksBadgeSection from "@/components/Stocksbadgesection";
-import { LogosSection, FutureSection } from "@/components/Logosandfuture";
-import ScrollCTA from "@/components/ScrollCTA";
-import Footer from "@/components/Footer";
-import EquiductBackground from "@/components/EquiductBackground";
+
+const EquiductBackground = dynamic(() => import("@/components/EquiductBackground"), { ssr: false });
+const ServicesSection = dynamic(() => import("@/components/ServicesSection"));
+const InteractiveDemo = dynamic(() => import("@/components/InteractiveDemo"), { ssr: false });
+const StocksBadgeSection = dynamic(() => import("@/components/Stocksbadgesection"));
+const LogosSection = dynamic(() => import("@/components/Logosandfuture").then(mod => mod.LogosSection));
+const FutureSection = dynamic(() => import("@/components/Logosandfuture").then(mod => mod.FutureSection));
+const ScrollCTA = dynamic(() => import("@/components/ScrollCTA"));
+const Footer = dynamic(() => import("@/components/Footer"));
 
 export default function HomePage() {
   return (

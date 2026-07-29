@@ -162,7 +162,9 @@ export default function TricksInNSE() {
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
     
     
-    fetch("http://localhost:8080/api/today")
+    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL || "http://localhost:8080";
+    
+    fetch(`${signalsUrl}/api/today`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data) {
@@ -196,7 +198,7 @@ export default function TricksInNSE() {
       .finally(() => setLoadingSignals(false));
 
     
-    const socket: Socket = io("http://localhost:8080");
+    const socket: Socket = io(signalsUrl);
     
     socket.on("connect", () => {
       console.log("Connected to live signals stream");

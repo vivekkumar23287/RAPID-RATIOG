@@ -21,7 +21,8 @@ export default function GlobalNotification() {
     
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-    const socket: Socket = io("http://localhost:8080");
+    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL || "http://localhost:8080";
+    const socket: Socket = io(signalsUrl);
 
     socket.on("connect", () => {
       console.log("Global Notification connected to signals stream");
@@ -220,7 +221,7 @@ export default function GlobalNotification() {
             </button>
 
             
-            <style dangerouslySetInnerHTML={{ __html: `
+            <style>{`
               @keyframes slideInRight {
                 from {
                   transform: translateX(100%) translateY(-10px);
@@ -245,7 +246,7 @@ export default function GlobalNotification() {
                   opacity: 0;
                 }
               }
-            `}} />
+            `}</style>
           </div>
         );
       })}

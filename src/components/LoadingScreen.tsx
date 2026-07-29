@@ -42,9 +42,9 @@ export default function LoadingScreen() {
     };
 
     
-    safeSetTimeout(() => setPhase(1), 600);
-    safeSetTimeout(() => setPhase(2), 1400);
-    safeSetTimeout(() => setPhase(3), 2400);
+    safeSetTimeout(() => setPhase(1), 200);
+    safeSetTimeout(() => setPhase(2), 500);
+    safeSetTimeout(() => setPhase(3), 800);
 
     const checkComplete = () => {
       if (resourcesLoaded && minTimePassed) {
@@ -52,37 +52,37 @@ export default function LoadingScreen() {
         safeSetTimeout(() => {
           setVisible(false);
           document.body.style.overflow = "";
-        }, 800);
+        }, 400);
       }
     };
 
     safeSetTimeout(() => {
       minTimePassed = true;
       checkComplete();
-    }, 3200);
+    }, 800);
 
     safeSetInterval(() => {
       const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / 3500, 1);
+      const t = Math.min(elapsed / 1000, 1);
       const natural = (1 - Math.pow(1 - t, 3)) * 90;
       current = Math.max(current, natural);
       setProgress(Math.round(current));
-    }, 30);
+    }, 20);
 
     const onLoad = () => {
       resourcesLoaded = true;
       const fill = safeSetInterval(() => {
-        current = Math.min(current + 3, 100);
+        current = Math.min(current + 10, 100);
         setProgress(Math.round(current));
         if (current >= 100) {
           clearInterval(fill);
           checkComplete();
         }
-      }, 20);
+      }, 15);
     };
 
     if (document.readyState === "complete") {
-      safeSetTimeout(onLoad, 500);
+      safeSetTimeout(onLoad, 100);
     } else {
       window.addEventListener("load", onLoad);
     }
@@ -91,7 +91,7 @@ export default function LoadingScreen() {
       resourcesLoaded = true;
       minTimePassed = true;
       const fill = safeSetInterval(() => {
-        current = Math.min(current + 5, 100);
+        current = Math.min(current + 10, 100);
         setProgress(Math.round(current));
         if (current >= 100) {
           clearInterval(fill);
@@ -99,10 +99,10 @@ export default function LoadingScreen() {
           safeSetTimeout(() => {
             setVisible(false);
             document.body.style.overflow = "";
-          }, 800);
+          }, 400);
         }
       }, 15);
-    }, 6000);
+    }, 2500);
 
     return () => {
       isCleanedUp = true;

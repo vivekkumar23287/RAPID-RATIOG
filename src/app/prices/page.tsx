@@ -78,6 +78,7 @@ export default function PricesPage() {
     ];
 
     const fetchPrices = async () => {
+      if (document.hidden) return;
       try {
         const encodedSymbols = encodeURIComponent(allSymbols.join(","));
         const response = await fetch(`/api/batch-prices?symbols=${encodedSymbols}`);

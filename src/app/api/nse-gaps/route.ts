@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -37,23 +38,15 @@ const fetchStockData = async (symbol: string) => {
 
 export async function GET() {
   try {
-    
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const now = new Date();
     const nowISTString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const nowIST = new Date(nowISTString);
     const dateStr = `${nowIST.getFullYear()}-${(nowIST.getMonth() + 1).toString().padStart(2, '0')}-${nowIST.getDate().toString().padStart(2, '0')}`;
-    
-    
-    await sql`
-      CREATE TABLE IF NOT EXISTS scanner_cache (
-        id SERIAL PRIMARY KEY,
-        date_str VARCHAR(20) NOT NULL,
-        scanner_type VARCHAR(50) NOT NULL,
-        results JSONB NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(date_str, scanner_type)
-      )
-    `;
 
     
     const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'nse-gaps'`;
@@ -212,7 +205,8 @@ export async function GET() {
     return NextResponse.json({
       gapUps: [],
       gapDowns: [],
-      timestamp: new Date().toISOString()
-    });
+      timestamp: new Date().toISOString(),
+      error: "Failed to calculate gaps"
+    }, { status: 500 });
   }
 }
