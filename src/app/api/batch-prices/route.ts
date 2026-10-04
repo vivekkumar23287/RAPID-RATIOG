@@ -1,22 +1,20 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-// Allowlist of valid symbols to prevent SSRF abuse
-const VALID_SYMBOLS = new Set([
-  "NIFTY50", "INDIAVIX", "POLYCAB", "IDEA", "IEX", "DEEPAKNTR",
-  "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "HINDUNILVR",
-  "ITC", "SBIN", "BHARTIARTL", "BAJFINANCE", "ADANIENT", "KOTAKBANK",
-  "LT", "AXISBANK", "SUNPHARMA", "TITAN", "BAJAJFINSV", "MARUTI",
-  "ULTRACEMCO", "TATASTEEL", "NTPC", "HCLTECH", "TMCV", "JSWSTEEL",
-  "ASIANPAINT", "M&M", "POWERGRID", "ONGC", "ADANIPORTS", "WIPRO",
-  "COALINDIA", "TECHM", "INDUSINDBK", "NESTLEIND", "ETERNAL",
-  "HINDALCO", "BRITANNIA", "GRASIM", "DRREDDY", "APOLLOHOSP",
-  "EICHERMOT", "SBILIFE", "BPCL", "CIPLA", "BAJAJ-AUTO", "DIVISLAB",
-  "HEROMOTOCO", "UPL", "GLAND", "TATACONSUM", "TATAMOTORS",
+import { NIFTY_50_STOCKS } from "@/lib/stocks";
+
+const ADDITIONAL_SYMBOLS = [
+  "NIFTY50", "INDIAVIX", "POLYCAB", "IDEA", "IEX", "DEEPAKNTR", "IFORGE", "COCHINSHIP",
+  "TATAMOTORS", "TMCV", "TMPV", "DEEPAKNI",
   // Crypto
   "BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD", "DOGE-USD",
   "ADA-USD", "DOT-USD", "LINK-USD", "MATIC-USD", "SHIB-USD",
-  "LTC-USD", "AVAX-USD",
+  "LTC-USD", "AVAX-USD", "USDT-USD"
+];
+
+const VALID_SYMBOLS = new Set([
+  ...NIFTY_50_STOCKS.map(s => s.symbol.toUpperCase()),
+  ...ADDITIONAL_SYMBOLS.map(s => s.toUpperCase())
 ]);
 
 function toYahooSymbol(symbol: string): string {
@@ -24,18 +22,11 @@ function toYahooSymbol(symbol: string): string {
   if (upper.includes("-USD")) return upper;
   if (upper === "NIFTY50") return "^NSEI";
   if (upper === "INDIAVIX") return "^INDIAVIX";
-  if (upper === "M&M") return "M&M.NS";
-  if (upper === "ETERNAL") return "ETERNAL.NS";
-  if (upper === "TMCV") return "TMCV.NS";
+  if (upper === "TATAMOTORS" || upper === "TMCV" || upper === "TMPV") return "TMPV.NS";
   return `${upper}.NS`;
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(request.url);
   const symbolsParam = searchParams.get("symbols");
 

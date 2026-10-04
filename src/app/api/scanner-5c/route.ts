@@ -1,74 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { sql } from "@/lib/db";
+import { NIFTY_50_STOCKS as SCAN_SYMBOLS } from "@/lib/stocks";
 
 export const dynamic = "force-dynamic";
-
-const SCAN_SYMBOLS = [
-  { symbol: "RELIANCE", name: "Reliance Industries" },
-  { symbol: "TCS", name: "Tata Consultancy Services" },
-  { symbol: "HDFCBANK", name: "HDFC Bank" },
-  { symbol: "ICICIBANK", name: "ICICI Bank" },
-  { symbol: "INFY", name: "Infosys" },
-  { symbol: "POLYCAB", name: "Polycab India" },
-  { symbol: "TATAMOTORS", name: "Tata Motors" },
-  { symbol: "SBIN", name: "State Bank of India" },
-  { symbol: "BHARTIARTL", name: "Bharti Airtel" },
-  { symbol: "ITC", name: "ITC Limited" },
-  { symbol: "LT", name: "Larsen & Toubro" },
-  { symbol: "AXISBANK", name: "Axis Bank" },
-  { symbol: "WIPRO", name: "Wipro" },
-  { symbol: "HCLTECH", name: "HCL Technologies" },
-  { symbol: "MARUTI", name: "Maruti Suzuki" },
-  { symbol: "KOTAKBANK", name: "Kotak Mahindra Bank" },
-  { symbol: "HINDUNILVR", name: "Hindustan Unilever" },
-  { symbol: "BAJFINANCE", name: "Bajaj Finance" },
-  { symbol: "ADANIENT", name: "Adani Enterprises" },
-  { symbol: "SUNPHARMA", name: "Sun Pharmaceutical" },
-  { symbol: "TITAN", name: "Titan Company" },
-  { symbol: "BAJAJFINSV", name: "Bajaj Finserv" },
-  { symbol: "ULTRACEMCO", name: "UltraTech Cement" },
-  { symbol: "TATASTEEL", name: "Tata Steel" },
-  { symbol: "NTPC", name: "NTPC" },
-  { symbol: "JSWSTEEL", name: "JSW Steel" },
-  { symbol: "ASIANPAINT", name: "Asian Paints" },
-  { symbol: "M&M", name: "Mahindra & Mahindra" },
-  { symbol: "POWERGRID", name: "Power Grid Corp" },
-  { symbol: "ONGC", name: "ONGC" },
-  { symbol: "ADANIPORTS", name: "Adani Ports & SEZ" },
-  { symbol: "COALINDIA", name: "Coal India" },
-  { symbol: "TECHM", name: "Tech Mahindra" },
-  { symbol: "INDUSINDBK", name: "IndusInd Bank" },
-  { symbol: "NESTLEIND", name: "Nestle India" },
-  { symbol: "LTIM", name: "LTI Mindtree" },
-  { symbol: "HINDALCO", name: "Hindalco Industries" },
-  { symbol: "BRITANNIA", name: "Britannia Industries" },
-  { symbol: "GRASIM", name: "Grasim Industries" },
-  { symbol: "DRREDDY", name: "Dr. Reddy's" },
-  { symbol: "APOLLOHOSP", name: "Apollo Hospitals" },
-  { symbol: "EICHERMOT", name: "Eicher Motors" },
-  { symbol: "SBILIFE", name: "SBI Life Insurance" },
-  { symbol: "BPCL", name: "BPCL" },
-  { symbol: "CIPLA", name: "Cipla" },
-  { symbol: "BAJAJ-AUTO", name: "Bajaj Auto" },
-  { symbol: "DIVISLAB", name: "Divi's Laboratories" },
-  { symbol: "HEROMOTOCO", name: "Hero MotoCorp" },
-  { symbol: "UPL", name: "UPL" },
-  { symbol: "TATACONSUM", name: "Tata Consumer Products" },
-  
-  { symbol: "DLF", name: "DLF Limited" },
-  { symbol: "BHEL", name: "BHEL" },
-  { symbol: "CANBK", name: "Canara Bank" },
-  { symbol: "PNB", name: "Punjab National Bank" },
-  { symbol: "TATAPOWER", name: "Tata Power" },
-  { symbol: "IRCTC", name: "IRCTC" },
-  { symbol: "UNIONBANK", name: "Union Bank of India" },
-  { symbol: "FEDERALBNK", name: "Federal Bank" },
-  { symbol: "SAIL", name: "Steel Authority of India" },
-  { symbol: "GMRINFRA", name: "GMR Airports Infra" },
-  { symbol: "IDFCFIRSTB", name: "IDFC First Bank" },
-  { symbol: "IOC", name: "Indian Oil Corp" }
-];
 
 const fetchYahoo15mChart = async (symbol: string) => {
   
@@ -91,11 +25,6 @@ const fetchYahoo15mChart = async (symbol: string) => {
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const startTime = Date.now();
     
     const now = new Date();

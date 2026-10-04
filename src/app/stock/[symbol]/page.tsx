@@ -7,19 +7,58 @@ import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestam
 import { ChartLineUp } from "@phosphor-icons/react";
 
 const DISPLAY_NAMES: Record<string, string> = {
-  NIFTY50: "Nifty 50",
-  RELIANCE: "Reliance Industries",
-  TCS: "TCS",
-  HDFCBANK: "HDFC Bank",
-  ICICIBANK: "ICICI Bank",
-  INFY: "Infosys",
-  POLYCAB: "Polycab India",
-  IFORGE: "iForge Limited",
-  IEX: "Indian Energy Exchange",
-  DEEPAKNTR: "Deepak Nitrite",
+  NIFTY50: "Nifty 50 Index",
   INDIAVIX: "India VIX",
-  ETERNAL: "Zomato",
-  TMCV: "Tata Motors CV",
+  ADANIENT: "Adani Enterprises Ltd.",
+  ADANIPORTS: "Adani Ports and Special Economic Zone Ltd.",
+  APOLLOHOSP: "Apollo Hospitals Enterprise Ltd.",
+  ASIANPAINT: "Asian Paints Ltd.",
+  AXISBANK: "Axis Bank Ltd.",
+  "BAJAJ-AUTO": "Bajaj Auto Ltd.",
+  BAJFINANCE: "Bajaj Finance Ltd.",
+  BAJAJFINSV: "Bajaj Finserv Ltd.",
+  BEL: "Bharat Electronics Ltd.",
+  BHARTIARTL: "Bharti Airtel Ltd.",
+  CIPLA: "Cipla Ltd.",
+  COALINDIA: "Coal India Ltd.",
+  DRREDDY: "Dr. Reddy's Laboratories Ltd.",
+  EICHERMOT: "Eicher Motors Ltd.",
+  ETERNAL: "Eternal Ltd.",
+  GRASIM: "Grasim Industries Ltd.",
+  HCLTECH: "HCL Technologies Ltd.",
+  HDFCBANK: "HDFC Bank Ltd.",
+  HDFCLIFE: "HDFC Life Insurance Company Ltd.",
+  HINDALCO: "Hindalco Industries Ltd.",
+  HINDUNILVR: "Hindustan Unilever Ltd.",
+  ICICIBANK: "ICICI Bank Ltd.",
+  ITC: "ITC Ltd.",
+  INFY: "Infosys Ltd.",
+  INDIGO: "InterGlobe Aviation Ltd.",
+  JSWSTEEL: "JSW Steel Ltd.",
+  JIOFIN: "Jio Financial Services Ltd.",
+  KOTAKBANK: "Kotak Mahindra Bank Ltd.",
+  LT: "Larsen & Toubro Ltd.",
+  "M&M": "Mahindra & Mahindra Ltd.",
+  MARUTI: "Maruti Suzuki India Ltd.",
+  MAXHEALTH: "Max Healthcare Institute Ltd.",
+  NTPC: "NTPC Ltd.",
+  NESTLEIND: "Nestle India Ltd.",
+  ONGC: "Oil & Natural Gas Corporation Ltd.",
+  POWERGRID: "Power Grid Corporation of India Ltd.",
+  RELIANCE: "Reliance Industries Ltd.",
+  SBILIFE: "SBI Life Insurance Company Ltd.",
+  SHRIRAMFIN: "Shriram Finance Ltd.",
+  SBIN: "State Bank of India",
+  SUNPHARMA: "Sun Pharmaceutical Industries Ltd.",
+  TCS: "Tata Consultancy Services Ltd.",
+  TATACONSUM: "Tata Consumer Products Ltd.",
+  TMPV: "Tata Motors Passenger Vehicles Ltd.",
+  TATASTEEL: "Tata Steel Ltd.",
+  TECHM: "Tech Mahindra Ltd.",
+  TITAN: "Titan Company Ltd.",
+  TRENT: "Trent Ltd.",
+  ULTRACEMCO: "UltraTech Cement Ltd.",
+  WIPRO: "Wipro Ltd.",
   "BTC-USD": "Bitcoin",
   "ETH-USD": "Ethereum",
   "USDT-USD": "Tether USDt",
@@ -74,6 +113,8 @@ export default function StockChartPage() {
   const [activeLayoutId, setActiveLayoutId] = useState<string>("default");
   const [drawingMode, setDrawingMode] = useState<'line' | 'text' | null>(null);
   const [pendingTextPoint, setPendingTextPoint] = useState<{ time: number; price: number } | null>(null);
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [noteInputText, setNoteInputText] = useState("");
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [showNewLayoutModal, setShowNewLayoutModal] = useState(false);
@@ -962,6 +1003,7 @@ export default function StockChartPage() {
         } else {
           setSelectedLineId(null);
           setLineToolbarPos(null);
+          setSelectedTextId(null);
         }
       }
 
@@ -984,6 +1026,7 @@ export default function StockChartPage() {
         setDrawingMode(null);
       } else if (drawingMode === 'text') {
         setPendingTextPoint({ time: time as number, price: price });
+        setEditingTextId(null);
         setNoteInputText("");
         setDrawingMode(null);
       }
@@ -1082,6 +1125,38 @@ export default function StockChartPage() {
     });
     setSelectedLineId(null);
     setLineToolbarPos(null);
+  };
+
+  const openEditNoteModal = (t: ChartText) => {
+    setEditingTextId(t.id);
+    setNoteInputText(t.text);
+    setSelectedTextId(t.id);
+  };
+
+  const deleteTextNote = (textId: string) => {
+    setLayouts(prev => {
+      const updated = prev.map(l =>
+        l.id === activeLayoutId ? {
+          ...l,
+          texts: (l.texts || []).filter(t => t.id !== textId)
+        } : l
+      );
+      const current = updated.find(l => l.id === activeLayoutId);
+      if (current) saveLayoutToDb(current);
+      return updated;
+    });
+    if (selectedTextId === textId) setSelectedTextId(null);
+    if (editingTextId === textId) {
+      setEditingTextId(null);
+      setPendingTextPoint(null);
+      setNoteInputText("");
+    }
+  };
+
+  const closeNoteModal = () => {
+    setPendingTextPoint(null);
+    setEditingTextId(null);
+    setNoteInputText("");
   };
 
   return (
@@ -1948,7 +2023,6 @@ export default function StockChartPage() {
                 ref={el => { if (el) textDivsRef.current[t.id] = el; }}
                 onMouseDown={(e) => {
                   e.stopPropagation();
-                  e.preventDefault();
                   draggingRef.current = {
                     id: t.id,
                     startX: e.clientX,
@@ -1959,36 +2033,127 @@ export default function StockChartPage() {
                     offsetY: t.offsetY ?? -60,
                   };
                 }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  openEditNoteModal(t);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTextId(t.id);
+                }}
                 style={{
                   position: "absolute",
                   background: "rgba(255, 255, 255, 0.95)",
-                  border: "1.5px solid #0F2044",
+                  border: selectedTextId === t.id ? "2px solid #E01F2E" : "1.5px solid #0F2044",
                   color: "#0F2044",
-                  padding: "6px 12px",
+                  padding: "6px 10px 6px 12px",
                   borderRadius: "8px",
                   fontSize: "12px",
                   fontWeight: 600,
                   transform: "translate(-50%, -50%)",
-                  boxShadow: "0 10px 24px rgba(15, 32, 68, 0.12)",
+                  boxShadow: selectedTextId === t.id ? "0 12px 32px rgba(224, 31, 46, 0.2)" : "0 10px 24px rgba(15, 32, 68, 0.12)",
                   display: "none",
                   whiteSpace: "pre-wrap",
                   fontFamily: "Satoshi, sans-serif",
                   pointerEvents: "auto",
                   userSelect: "none",
                   cursor: "grab",
+                  transition: "border-color 0.2s, box-shadow 0.2s",
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 12px 32px rgba(15, 32, 68, 0.18)"}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 32, 68, 0.12)"}
+                onMouseEnter={(e) => {
+                  if (selectedTextId !== t.id) e.currentTarget.style.boxShadow = "0 12px 32px rgba(15, 32, 68, 0.18)";
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedTextId !== t.id) e.currentTarget.style.boxShadow = "0 10px 24px rgba(15, 32, 68, 0.12)";
+                }}
               >
-                {t.text}
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span>{t.text}</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      marginLeft: "4px",
+                      borderLeft: "1px solid #E2E8F0",
+                      paddingLeft: "6px",
+                    }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      title="Edit Note"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditNoteModal(t);
+                      }}
+                      style={{
+                        background: "#F1F5F9",
+                        border: "none",
+                        borderRadius: "4px",
+                        width: "22px",
+                        height: "22px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#475569",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#0F2044";
+                        e.currentTarget.style.color = "#FFFFFF";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "#F1F5F9";
+                        e.currentTarget.style.color = "#475569";
+                      }}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete Note"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteTextNote(t.id);
+                      }}
+                      style={{
+                        background: "rgba(239,68,68,0.1)",
+                        border: "none",
+                        borderRadius: "4px",
+                        width: "22px",
+                        height: "22px",
+                        cursor: "pointer",
+                        fontSize: "11px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#EF4444",
+                        transition: "all 0.15s",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "#EF4444";
+                        e.currentTarget.style.color = "#FFFFFF";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "rgba(239,68,68,0.1)";
+                        e.currentTarget.style.color = "#EF4444";
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Custom Add Note Modal */}
-      {pendingTextPoint && (
+      {/* Custom Add / Edit Note Modal */}
+      {(pendingTextPoint || editingTextId) && (
         <div
           style={{
             position: "fixed",
@@ -2001,7 +2166,7 @@ export default function StockChartPage() {
             justifyContent: "center",
             padding: "20px"
           }}
-          onClick={() => setPendingTextPoint(null)}
+          onClick={closeNoteModal}
         >
           <div
             style={{
@@ -2018,11 +2183,11 @@ export default function StockChartPage() {
           >
             <div style={{ padding: "20px 24px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 800, color: "#0F2044", fontFamily: "Satoshi, sans-serif" }}>
-                📝 Add Chart Note
+                {editingTextId ? "✏️ Edit Chart Note" : "📝 Add Chart Note"}
               </h3>
               <button
                 type="button"
-                onClick={() => setPendingTextPoint(null)}
+                onClick={closeNoteModal}
                 style={{ background: "none", border: "none", fontSize: "18px", color: "#94A3B8", cursor: "pointer" }}
               >
                 ✕
@@ -2032,24 +2197,38 @@ export default function StockChartPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (noteInputText.trim()) {
-                  const newText: ChartText = {
-                    id: Date.now().toString(),
-                    time: pendingTextPoint.time,
-                    price: pendingTextPoint.price,
-                    text: noteInputText.trim(),
-                    offsetX: 0,
-                    offsetY: -60
-                  };
-                  setLayouts(prev => {
-                    const updated = prev.map(l =>
-                      l.id === activeLayoutId ? { ...l, texts: [...(l.texts || []), newText] } : l
-                    );
-                    const current = updated.find(l => l.id === activeLayoutId);
-                    if (current) saveLayoutToDb(current);
-                    return updated;
-                  });
+                  if (editingTextId) {
+                    setLayouts(prev => {
+                      const updated = prev.map(l =>
+                        l.id === activeLayoutId ? {
+                          ...l,
+                          texts: (l.texts || []).map(t => t.id === editingTextId ? { ...t, text: noteInputText.trim() } : t)
+                        } : l
+                      );
+                      const current = updated.find(l => l.id === activeLayoutId);
+                      if (current) saveLayoutToDb(current);
+                      return updated;
+                    });
+                  } else if (pendingTextPoint) {
+                    const newText: ChartText = {
+                      id: Date.now().toString(),
+                      time: pendingTextPoint.time,
+                      price: pendingTextPoint.price,
+                      text: noteInputText.trim(),
+                      offsetX: 0,
+                      offsetY: -60
+                    };
+                    setLayouts(prev => {
+                      const updated = prev.map(l =>
+                        l.id === activeLayoutId ? { ...l, texts: [...(l.texts || []), newText] } : l
+                      );
+                      const current = updated.find(l => l.id === activeLayoutId);
+                      if (current) saveLayoutToDb(current);
+                      return updated;
+                    });
+                  }
                 }
-                setPendingTextPoint(null);
+                closeNoteModal();
               }}
               style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "16px" }}
             >
@@ -2057,9 +2236,9 @@ export default function StockChartPage() {
                 <label style={{ display: "block", fontSize: "12px", fontWeight: 700, color: "#64748B", marginBottom: "8px", fontFamily: "Satoshi, sans-serif" }}>
                   Note Text
                 </label>
-                <input
-                  type="text"
+                <textarea
                   autoFocus
+                  rows={3}
                   placeholder="Type your note or analysis here..."
                   value={noteInputText}
                   onChange={(e) => setNoteInputText(e.target.value)}
@@ -2072,43 +2251,70 @@ export default function StockChartPage() {
                     fontFamily: "Satoshi, sans-serif",
                     outline: "none",
                     color: "#0F2044",
-                    background: "#F8FAFC"
+                    background: "#F8FAFC",
+                    resize: "vertical",
+                    minHeight: "80px",
                   }}
                 />
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "4px" }}>
-                <button
-                  type="button"
-                  onClick={() => setPendingTextPoint(null)}
-                  style={{
-                    padding: "9px 18px",
-                    borderRadius: "8px",
-                    border: "1px solid #E2E8F0",
-                    background: "#FFFFFF",
-                    color: "#64748B",
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    cursor: "pointer"
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: "9px 20px",
-                    borderRadius: "8px",
-                    border: "none",
-                    background: "#0F2044",
-                    color: "#FFFFFF",
-                    fontWeight: 700,
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    boxShadow: "0 4px 12px rgba(15, 32, 68, 0.15)"
-                  }}
-                >
-                  Add Note
-                </button>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                {editingTextId ? (
+                  <button
+                    type="button"
+                    onClick={() => deleteTextNote(editingTextId)}
+                    style={{
+                      padding: "9px 16px",
+                      borderRadius: "8px",
+                      border: "1px solid rgba(239, 68, 68, 0.2)",
+                      background: "rgba(239, 68, 68, 0.08)",
+                      color: "#EF4444",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.18)"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)"}
+                  >
+                    🗑️ Delete Note
+                  </button>
+                ) : (
+                  <div />
+                )}
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    type="button"
+                    onClick={closeNoteModal}
+                    style={{
+                      padding: "9px 18px",
+                      borderRadius: "8px",
+                      border: "1px solid #E2E8F0",
+                      background: "#FFFFFF",
+                      color: "#64748B",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: "9px 20px",
+                      borderRadius: "8px",
+                      border: "none",
+                      background: "#0F2044",
+                      color: "#FFFFFF",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      cursor: "pointer",
+                      boxShadow: "0 4px 12px rgba(15, 32, 68, 0.15)"
+                    }}
+                  >
+                    {editingTextId ? "Save Changes" : "Add Note"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

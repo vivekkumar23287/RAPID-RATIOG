@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ layouts: [] });
     }
 
     const { searchParams } = new URL(request.url);

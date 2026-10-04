@@ -158,12 +158,17 @@ export default function TricksInNSE() {
   }, []);
 
   useEffect(() => {
-    
-    audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    
-    
-    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL || "http://localhost:8080";
-    
+    try {
+      audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+    } catch (_) {}
+
+    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL;
+    if (!signalsUrl) {
+      setLoadingSignals(false);
+      setLastUpdated("N/A");
+      return;
+    }
+
     fetch(`${signalsUrl}/api/today`)
       .then(res => res.json())
       .then(data => {
@@ -172,7 +177,6 @@ export default function TricksInNSE() {
           setSignals(signalsList);
           
           if (signalsList.length > 0) {
-            
             const latest = signalsList.reduce((acc: any, curr: any) => {
               if (!acc) return curr;
               return new Date(curr.created_at) > new Date(acc.created_at) ? curr : acc;
@@ -197,7 +201,6 @@ export default function TricksInNSE() {
       })
       .finally(() => setLoadingSignals(false));
 
-    
     const socket: Socket = io(signalsUrl);
     
     socket.on("connect", () => {
@@ -213,7 +216,6 @@ export default function TricksInNSE() {
       }
 
       setSignals(prev => {
-        
         const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
         const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
         return [...toAdd, ...prev];
@@ -232,7 +234,6 @@ export default function TricksInNSE() {
           setLastUpdated(updateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
         }
       }
-      
       
       if (soundEnabled && audioRef.current) {
         audioRef.current.play().catch(e => console.warn("Audio play failed:", e));
@@ -264,7 +265,7 @@ export default function TricksInNSE() {
     <main style={{ background: "#FFFFFF", minHeight: "100vh", paddingBottom: "100px", position: "relative" }}>
       <Navbar />
       
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "140px 2rem 0px", position: "relative", zIndex: 1 }}>
+      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "90px 2rem 0px", position: "relative", zIndex: 1 }}>
         
         
         <div style={{ marginBottom: "50px" }}>

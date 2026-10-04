@@ -7,70 +7,14 @@ const VALID_RANGES = ["1d", "2d", "5d", "10d", "15d", "30d", "1y", "max"];
 const SYMBOL_REGEX = /^[A-Z0-9&\-]{1,20}$/;
 
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
-  
   NIFTY50: "^NSEI",
-  POLYCAB: "POLYCAB.NS",
-  IFORGE: "BHARATFORG.NS",
-  IEX: "IEX.NS",
-  DEEPAKNTR: "DEEPAKNTR.NS",
   INDIAVIX: "^INDIAVIX",
-  
-  RELIANCE: "RELIANCE.NS",
-  TCS: "TCS.NS",
-  HDFCBANK: "HDFCBANK.NS",
-  ICICIBANK: "ICICIBANK.NS",
-  INFY: "INFY.NS",
-  HINDUNILVR: "HINDUNILVR.NS",
-  ITC: "ITC.NS",
-  SBIN: "SBIN.NS",
-  BHARTIARTL: "BHARTIARTL.NS",
-  BAJFINANCE: "BAJFINANCE.NS",
-  ADANIENT: "ADANIENT.NS",
-  KOTAKBANK: "KOTAKBANK.NS",
-  LT: "LT.NS",
-  AXISBANK: "AXISBANK.NS",
-  SUNPHARMA: "SUNPHARMA.NS",
-  TITAN: "TITAN.NS",
-  BAJAJFINSV: "BAJAJFINSV.NS",
-  MARUTI: "MARUTI.NS",
-  ULTRACEMCO: "ULTRACEMCO.NS",
-  TATASTEEL: "TATASTEEL.NS",
-  NTPC: "NTPC.NS",
-  HCLTECH: "HCLTECH.NS",
-  TATAMOTORS: "TATAMOTORS.NS",
-  JSWSTEEL: "JSWSTEEL.NS",
-  ASIANPAINT: "ASIANPAINT.NS",
-  "M&M": "M%26M.NS",
-  POWERGRID: "POWERGRID.NS",
-  ONGC: "ONGC.NS",
-  ADANIPORTS: "ADANIPORTS.NS",
-  WIPRO: "WIPRO.NS",
-  COALINDIA: "COALINDIA.NS",
-  TECHM: "TECHM.NS",
-  INDUSINDBK: "INDUSINDBK.NS",
-  NESTLEIND: "NESTLEIND.NS",
-  LTIM: "LTIM.NS",
-  HINDALCO: "HINDALCO.NS",
-  BRITANNIA: "BRITANNIA.NS",
-  GRASIM: "GRASIM.NS",
-  DRREDDY: "DRREDDY.NS",
-  APOLLOHOSP: "APOLLOHOSP.NS",
-  EICHERMOT: "EICHERMOT.NS",
-  SBILIFE: "SBILIFE.NS",
-  BPCL: "BPCL.NS",
-  CIPLA: "CIPLA.NS",
-  "BAJAJ-AUTO": "BAJAJ-AUTO.NS",
-  DIVISLAB: "DIVISLAB.NS",
-  HEROMOTOCO: "HEROMOTOCO.NS",
-  UPL: "UPL.NS",
-  GLAND: "GLAND.NS",
-  TATACONSUM: "TATACONSUM.NS",
-  TMCV: "TMCV.NS",
-  ETERNAL: "ETERNAL.NS",
-  
-  "BTC-USD": "BTC-USD",
-  "ETH-USD": "ETH-USD",
-  "USDT-USD": "USDT-USD",
+  IFORGE: "BHARATFORG.NS",
+  DEEPAKNTR: "DEEPAKNTR.NS",
+  DEEPAKNI: "DEEPAKNTR.NS",
+  TATAMOTORS: "TMPV.NS",
+  TMCV: "TMPV.NS",
+  TMPV: "TMPV.NS",
 };
 
 function getYahooSymbol(symbol: string): string {
@@ -82,11 +26,6 @@ function getYahooSymbol(symbol: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "RELIANCE";
   const range = searchParams.get("range") || "1y";

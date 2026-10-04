@@ -50,22 +50,21 @@ body {
   }
 }
 
-::-webkit-scrollbar {
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
   display: none;
   width: 0;
   height: 0;
 }
-::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
   background: transparent;
 }
 
-::selection {
-  background: var(--scarlet);
-  color: white;
-}
 
 .cl-internal-ph-root,
 .cl-dev-mode-help,

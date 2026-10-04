@@ -17,6 +17,8 @@ export default function GlobalNotification() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const timersRef = useRef<Set<NodeJS.Timeout>>(new Set());
+
   useEffect(() => {
     
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
@@ -62,15 +64,19 @@ export default function GlobalNotification() {
           setNotifications((prev) => [...prev, newNotification]);
 
           
-          setTimeout(() => {
+          const timerId = setTimeout(() => {
             setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id));
+            timersRef.current.delete(timerId);
           }, 5000);
+          timersRef.current.add(timerId);
         }
       });
     });
 
     return () => {
       socket.disconnect();
+      timersRef.current.forEach((t) => clearTimeout(t));
+      timersRef.current.clear();
     };
   }, []);
 

@@ -38,11 +38,6 @@ const fetchStockData = async (symbol: string) => {
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const now = new Date();
     const nowISTString = now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" });
     const nowIST = new Date(nowISTString);

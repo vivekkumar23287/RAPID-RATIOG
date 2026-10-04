@@ -8,9 +8,8 @@ import { List, X, ChartLineUp } from "@phosphor-icons/react";
 
 const navLinks = [
   { label: "Home", href: "/" },
-  { label: "NSE", href: "/prices" },
+  { label: "Nifty 50", href: "/prices" },
   { label: "Tricks in NSE", href: "/trick-in-nse" },
-  { label: "Crypto", href: "/crypto" },
   { label: "Sheet Flow", href: "/sheetflow" },
 ];
 
@@ -73,7 +72,7 @@ export default function Navbar() {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        height: scrolled ? "80px" : "106px",
+        height: scrolled ? "52px" : "64px",
         transition: "height 0.3s ease",
       }}>
         
@@ -87,7 +86,7 @@ export default function Navbar() {
             src="/logo1.png"
             alt="RapidRatioG Logo"
             style={{
-              height: scrolled ? "68px" : "86px",
+              height: scrolled ? "36px" : "44px",
               width: "auto",
               display: "block",
               position: "relative",
@@ -112,7 +111,7 @@ export default function Navbar() {
             style={{
               position: "absolute",
               top: "50%",
-              height: "36px",
+              height: "30px",
               borderRadius: "100px",
               background: "rgba(124,255,239,0.08)",
               border: "1px solid rgba(124,255,239,0.15)",

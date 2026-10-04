@@ -319,9 +319,13 @@ export default function StocksBadgeSection() {
   const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const load = async () => {
       const { gsap } = await import("gsap");
       const { ScrollTrigger } = await import("gsap/ScrollTrigger");
+
+      if (!isMounted) return;
+
       gsap.registerPlugin(ScrollTrigger);
 
       gsap.fromTo(
@@ -364,6 +368,10 @@ export default function StocksBadgeSection() {
       );
     };
     load();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
