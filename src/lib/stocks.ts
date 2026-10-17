@@ -55,6 +55,7 @@ export const NIFTY_50_STOCKS: StockSymbol[] = [
   { symbol: "TRENT", name: "Trent Ltd.", sector: "Consumer Durables" },
   { symbol: "ULTRACEMCO", name: "UltraTech Cement Ltd.", sector: "Construction Materials" },
   { symbol: "WIPRO", name: "Wipro Ltd.", sector: "Technology" },
+  { symbol: "BTC", name: "Bitcoin", sector: "Cryptocurrency" },
 ];
 
 export const getStockName = (symbol: string): string => {

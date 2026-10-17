@@ -8,8 +8,8 @@ import { List, X, ChartLineUp } from "@phosphor-icons/react";
 
 const navLinks = [
   { label: "Home", href: "/" },
-  { label: "Nifty 50", href: "/prices" },
-  { label: "Tricks in NSE", href: "/trick-in-nse" },
+  { label: "Company", href: "/prices" },
+  { label: "Tricks", href: "/trick-in-nse" },
   { label: "Sheet Flow", href: "/sheetflow" },
 ];
 

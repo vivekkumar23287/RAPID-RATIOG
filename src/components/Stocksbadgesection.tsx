@@ -64,46 +64,6 @@ const STOCKS = [
     desc: "Ship building",
     sparkline: [75, 66, 58, 50, 42, 35, 28, 20, 13, 5],
   },
-  {
-    name: "Bitcoin",
-    ticker: "BTC",
-    price: "$64,230.00",
-    change: "+2.45%",
-    up: true,
-    color: "#F7931A",
-    desc: "Digital Gold",
-    sparkline: [40, 45, 42, 50, 55, 60, 58, 65, 70, 75],
-  },
-  {
-    name: "Ethereum",
-    ticker: "ETH",
-    price: "$3,450.20",
-    change: "+1.80%",
-    up: true,
-    color: "#627EEA",
-    desc: "Smart Contracts",
-    sparkline: [30, 35, 40, 38, 45, 50, 48, 55, 60, 65],
-  },
-  {
-    name: "Solana",
-    ticker: "SOL",
-    price: "$145.50",
-    change: "+4.12%",
-    up: true,
-    color: "#14F195",
-    desc: "High-performance L1",
-    sparkline: [20, 25, 30, 45, 40, 55, 60, 75, 70, 85],
-  },
-  {
-    name: "Dogecoin",
-    ticker: "DOGE",
-    price: "$0.1540",
-    change: "-1.20%",
-    up: false,
-    color: "#C2A633",
-    desc: "The people's coin",
-    sparkline: [50, 48, 52, 45, 40, 42, 38, 35, 30, 28],
-  },
 ];
 
 const FONT = "Satoshi, sans-serif";
@@ -437,7 +397,7 @@ export default function StocksBadgeSection() {
               lineHeight: 1.75,
             }}
           >
-            We currently track carefully selected NSE-listed stocks and cryptocurrencies — with
+            We currently track carefully selected NSE-listed stocks — with
             more being added based on your demand.
           </p>
         </div>

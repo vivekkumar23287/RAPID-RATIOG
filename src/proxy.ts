@@ -1,18 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
+// Only the home/landing page and Clerk auth pages are public.
+// Everything else requires a signed-in user.
 const isPublicRoute = createRouteMatcher([
-  "/",
-  "/prices(.*)",
-  "/stock(.*)",
-  "/trick-in-nse(.*)",
-  "/sheetflow(.*)",
-  "/api(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
+  "/",             // Landing / home page
+  "/sign-in(.*)", // Clerk sign-in (all sub-paths)
+  "/sign-up(.*)", // Clerk sign-up (all sub-paths)
 ]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
+    // Throws and redirects to sign-in if the user is not authenticated
     await auth.protect();
   }
 });

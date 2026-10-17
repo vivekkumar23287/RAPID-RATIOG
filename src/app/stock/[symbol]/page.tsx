@@ -59,12 +59,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   TRENT: "Trent Ltd.",
   ULTRACEMCO: "UltraTech Cement Ltd.",
   WIPRO: "Wipro Ltd.",
-  "BTC-USD": "Bitcoin",
-  "ETH-USD": "Ethereum",
-  "USDT-USD": "Tether USDt",
 };
-
-const CRYPTO_SYMBOLS = ["BTC-USD", "ETH-USD", "USDT-USD"];
 
 type StockData = {
   symbol: string;
@@ -75,6 +70,7 @@ type StockData = {
   change: number;
   changePercent: number;
   candles: { time: UTCTimestamp; open: number; high: number; low: number; close: number }[];
+  source?: "database" | "yahoo_finance";
 };
 
 export default function StockChartPage() {
@@ -82,8 +78,7 @@ export default function StockChartPage() {
   const rawSymbolInput = (params.symbol as string) || "RELIANCE";
   const rawSymbol = rawSymbolInput.replace(/[^a-zA-Z0-9&\-]/g, "");
   const displayName = DISPLAY_NAMES[rawSymbol.toUpperCase()] || rawSymbol.toUpperCase();
-  const isCrypto = CRYPTO_SYMBOLS.includes(rawSymbol.toUpperCase()) || rawSymbol.toUpperCase().endsWith("-USD");
-  const currencySymbol = isCrypto ? "$" : "₹";
+  const currencySymbol = "₹";
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const rsiContainerRef = useRef<HTMLDivElement>(null);
@@ -95,6 +90,7 @@ export default function StockChartPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
+  const [dbRange, setDbRange] = useState<string>("30d"); // for DB-backed 15m candles
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
 
@@ -841,7 +837,10 @@ export default function StockChartPage() {
       if (!isFirstLoad && document.hidden) return;
       const dateParam = selectedDate ? `&date=${selectedDate}` : "";
 
-      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
+      // For 15m interval, use the DB-backed range (dbRange). For all others, use timeframe.range.
+      const effectiveRange = timeframe.interval === "15m" ? dbRange : timeframe.range;
+
+      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${effectiveRange}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch data");
           return res.json();
@@ -889,86 +888,15 @@ export default function StockChartPage() {
     fetchData();
 
     let intervalId: NodeJS.Timeout;
-    let ws: WebSocket;
-
-    if (!selectedDate && isCrypto) {
-
-      const binanceIntervalMap: Record<string, string> = {
-        "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-        "60m": "1h", "1d": "1d", "1mo": "1M"
-      };
-
-      const binanceInterval = binanceIntervalMap[timeframe.interval] || "1d";
-      const binanceSymbol = rawSymbol.toLowerCase().replace("-usd", "usdt");
-
-      ws = new WebSocket(`wss://stream.binance.com:9443/ws/${binanceSymbol}@kline_${binanceInterval}`);
-
-      ws.onmessage = (event) => {
-        if (!isMounted) return;
-        const message = JSON.parse(event.data);
-
-        if (message.e === "kline") {
-          const k = message.k;
-          const currentPrice = parseFloat(k.c);
-          const isClosed = k.x;
-
-          if (candleSeriesRef.current) {
-            let updateTime = Math.floor(k.t / 1000);
-
-
-
-            if (liveCandleRef.current && updateTime < liveCandleRef.current.time) {
-              updateTime = liveCandleRef.current.time;
-            }
-
-            candleSeriesRef.current.update({
-              time: updateTime as UTCTimestamp,
-              open: parseFloat(k.o),
-              high: Math.max(parseFloat(k.h), liveCandleRef.current?.high || 0),
-              low: liveCandleRef.current?.low ? Math.min(parseFloat(k.l), liveCandleRef.current.low) : parseFloat(k.l),
-              close: currentPrice
-            });
-
-            if (liveCandleRef.current) {
-              liveCandleRef.current.time = updateTime;
-            }
-          }
-
-          setStockData(prev => {
-            if (!prev) return prev;
-            if (prev.currentPrice === currentPrice && !isClosed) return prev;
-
-            const change = currentPrice - prev.previousClose;
-            const changePercent = prev.previousClose ? (change / prev.previousClose) * 100 : 0;
-
-            return {
-              ...prev,
-              currentPrice,
-              change,
-              changePercent
-            };
-          });
-
-
-
-
-
-          if (isClosed) {
-            fetchData();
-          }
-        }
-      };
-    } else if (!selectedDate) {
-
+    if (!selectedDate) {
       intervalId = setInterval(fetchData, 5000);
     }
 
     return () => {
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
-      if (ws) ws.close();
     };
-  }, [rawSymbol, timeframe.interval, timeframe.range, selectedDate, retryCount]);
+  }, [rawSymbol, timeframe.interval, timeframe.range, dbRange, selectedDate, retryCount]);
 
   const [lineToolbarPos, setLineToolbarPos] = useState<{ x: number, y: number, price: number } | null>(null);
 
@@ -1090,12 +1018,21 @@ export default function StockChartPage() {
   const timeframes = [
     { label: "1m", interval: "1m", range: "1d" },
     { label: "5m", interval: "5m", range: "5d" },
-    { label: "15m", interval: "15m", range: "10d" },
+    { label: "15m", interval: "15m", range: "30d" },
     { label: "30m", interval: "30m", range: "15d" },
     { label: "1H", interval: "60m", range: "30d" },
     { label: "1D", interval: "1d", range: "1y" },
     { label: "1M", interval: "1mo", range: "max" },
-  ]; const updateSelectedLine = (updates: Partial<ChartLine>) => {
+  ];
+
+  // For 15m interval, allow user to choose DB history range
+  const dbRangeOptions = [
+    { label: "5D",  value: "5d" },
+    { label: "12D", value: "12d" },
+    { label: "30D", value: "30d" },
+  ];
+
+  const updateSelectedLine = (updates: Partial<ChartLine>) => {
     if (!selectedLineId) return;
     setLayouts(prev => {
       const updated = prev.map(l =>
@@ -1203,6 +1140,22 @@ export default function StockChartPage() {
           {isSyncingDb && (
             <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite", whiteSpace: "nowrap" }}>Syncing...</span>
           )}
+          {timeframe.interval === "15m" && !isSyncingDb && (
+            <span style={{
+              fontSize: "9px",
+              fontWeight: 800,
+              padding: "2px 7px",
+              borderRadius: "4px",
+              background: "rgba(15, 32, 68, 0.08)",
+              color: "#0F2044",
+              fontFamily: "Satoshi, sans-serif",
+              letterSpacing: "0.5px",
+              textTransform: "uppercase",
+              whiteSpace: "nowrap",
+            }}>
+              {(stockData as any)?.source === "database" ? "📊 DB" : "🌐 Live"}
+            </span>
+          )}
         </div>
 
 
@@ -1294,6 +1247,40 @@ export default function StockChartPage() {
               );
             })}
           </div>
+
+          {/* DB history range selector — shown only when 15m interval is active */}
+          {timeframe.interval === "15m" && (
+            <>
+              <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
+              <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
+                <span style={{ fontSize: "10px", fontWeight: 700, color: "#94A3B8", fontFamily: "Satoshi, sans-serif", marginRight: "2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>History:</span>
+                {dbRangeOptions.map((opt) => {
+                  const isDbActive = dbRange === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setDbRange(opt.value)}
+                      style={{
+                        fontFamily: "Satoshi, sans-serif",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        padding: "4px 9px",
+                        borderRadius: "6px",
+                        border: "1.5px solid",
+                        cursor: "pointer",
+                        transition: "all 0.2s",
+                        borderColor: isDbActive ? "#0F2044" : "#E2E8F0",
+                        background: isDbActive ? "#0F2044" : "#F8FAFC",
+                        color: isDbActive ? "#FFFFFF" : "#64748B",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 

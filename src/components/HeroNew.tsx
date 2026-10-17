@@ -201,7 +201,7 @@ export default function HeroNew() {
           </h1>
 
           <p className="hn-sub" style={{ fontFamily: FONT, fontSize: "clamp(15px, 1.8vw, 19px)", fontWeight: 400, color: "rgba(255,255,255,0.65)", lineHeight: 1.75, maxWidth: 500, marginBottom: "2.5rem" }}>
-            All your favourite Indian stocks and global cryptocurrencies — live prices, interactive charts, and integrated Excel sheets — in one powerful platform.
+            All your favourite Indian stocks — live prices, interactive charts, and integrated Excel sheets — in one powerful platform.
           </p>
 
           

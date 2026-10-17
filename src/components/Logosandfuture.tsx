@@ -5,11 +5,11 @@ import { Sparkle, ArrowRight, Rocket, ChartLine, FileCsv } from "@phosphor-icons
 
 const LOGOS = [
   { name: "NSE", full: "National Stock Exchange", color: "#7CFFEF" },
-  { name: "BTC", full: "Bitcoin", color: "#F7931A" },
-  { name: "ETH", full: "Ethereum", color: "#627EEA" },
-  { name: "SOL", full: "Solana", color: "#14F195" },
-  { name: "DOGE", full: "Dogecoin", color: "#C2A633" },
-  { name: "XRP", full: "Ripple", color: "#23292F" },
+  { name: "RELIANCE", full: "Reliance Industries", color: "#3B82F6" },
+  { name: "TCS", full: "Tata Consultancy", color: "#8B5CF6" },
+  { name: "INFY", full: "Infosys Limited", color: "#10B981" },
+  { name: "HDFCBANK", full: "HDFC Bank Ltd", color: "#F59E0B" },
+  { name: "TATAMOTORS", full: "Tata Motors Ltd", color: "#EF4444" },
 ];
 
 function BacklightLogo({ logo, index }: { logo: typeof LOGOS[0]; index: number }) {
@@ -167,7 +167,7 @@ export function LogosSection() {
             marginBottom: "2.5rem",
           }}
         >
-          Aligned with NSE & Global Crypto Markets
+          Aligned with NSE Indian Stock Markets
         </p>
         <div
           className="logos-grid"

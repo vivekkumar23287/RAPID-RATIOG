@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "db:init": "node init-candles-db.js",
+    "candles:import": "node run-historical-import.js",
+    "candles:status": "node check-db.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

@@ -495,7 +495,8 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; 
   const changePercent = liveData?.changePercent || 0;
 
   const isPositive = change >= 0;
-  const currencySymbol = "₹";
+  const isCrypto = stock.sector === "Cryptocurrency";
+  const currencySymbol = isCrypto ? "$" : "₹";
 
   return (
     <Link href={`/stock/${stock.symbol}`} style={{ textDecoration: "none" }}>
@@ -582,7 +583,7 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; 
                 }}
               >
                 {currencySymbol}
-                {currentPrice.toLocaleString("en-IN", {
+                {currentPrice.toLocaleString(isCrypto ? "en-US" : "en-IN", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
                 })}

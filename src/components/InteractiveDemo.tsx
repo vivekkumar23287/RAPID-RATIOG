@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MagnifyingGlass, TrendUp, FileXls } from "@phosphor-icons/react";
 
 const STEPS = [
-  { num: "01", title: "Search Any Stock", desc: "Type any NSE-listed stock or crypto and get instant results with live pricing data.", color: "#7CFFEF" },
+  { num: "01", title: "Search Any Stock", desc: "Type any NSE-listed stock and get instant results with live pricing data.", color: "#7CFFEF" },
   { num: "02", title: "Analyze with Charts", desc: "Interactive candlestick charts with RSI, MACD indicators and professional drawing tools.", color: "#8B5CF6" },
   { num: "03", title: "Export to Excel", desc: "Download your analysis as formatted .xlsx spreadsheets — or edit right in the browser.", color: "#10B981" },
 ];
@@ -173,7 +173,7 @@ export default function InteractiveDemo() {
                   fontWeight: active === 0 ? 600 : 400,
                   transition: "all 0.8s cubic-bezier(0.16, 1, 0.3, 1)",
                 }}>
-                  {active === 0 ? "POLYCAB INDIA" : "Search stocks & crypto..."}
+                  {active === 0 ? "POLYCAB INDIA" : "Search NSE stocks..."}
                 </span>
               </div>
 

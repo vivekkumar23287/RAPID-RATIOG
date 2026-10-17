@@ -277,7 +277,7 @@ export default function TricksInNSE() {
             letterSpacing: "-1px",
             lineHeight: 1.1
           }}>
-            Tricks in NSE
+            Tricks
           </h1>
           <p style={{ 
             color: "#64748B", 

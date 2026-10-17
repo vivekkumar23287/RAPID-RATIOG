@@ -240,11 +240,11 @@ export default function ServicesSection() {
             tag="Live Prices"
             icon={<TrendUp size={22} color="#7CFFEF" weight="bold" />}
             title="Real-Time Stock Prices"
-            description="Watch all your favourite NSE stocks and cryptocurrencies update live — prices, % change, and volume at a glance."
+            description="Watch all your favourite NSE stocks update live — prices, % change, and volume at a glance."
             items={[
               { label: "NIFTY 50", visual: "22,147 ↑ 1.24%" },
               { label: "POLYCAB", visual: "₹5,890 ↑ 2.18%" },
-              { label: "BITCOIN", visual: "$64,230 ↑ 3.12%" },
+              { label: "RELIANCE", visual: "₹1,167 ↑ 1.63%" },
             ]}
           />
           <ThreeDCard

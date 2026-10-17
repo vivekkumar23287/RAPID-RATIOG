@@ -13,11 +13,11 @@ const NAV_LINKS = [
   { group: "Platform", links: [
     { label: "Home", href: "/" },
     { label: "Live Prices", href: "/prices" },
-    { label: "Tricks in NSE", href: "/trick-in-nse" },
+    { label: "Tricks", href: "/trick-in-nse" },
     { label: "Sheet Flow", href: "/sheetflow" },
   ]},
   { group: "Stocks", links: [
-    { label: "Nifty 50", href: "/prices" },
+    { label: "Company", href: "/prices" },
     { label: "Polycab India", href: "/prices" },
     { label: "IEX", href: "/prices" },
     { label: "Deepak Nitrite", href: "/prices" },
