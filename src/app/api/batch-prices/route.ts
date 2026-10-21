@@ -3,14 +3,20 @@ import { auth } from "@clerk/nextjs/server";
 
 import { NIFTY_50_STOCKS } from "@/lib/stocks";
 
-// Crypto symbols must be fetched via the v7 quote API (spark doesn't support them)
-const CRYPTO_SYMBOL_MAP: Record<string, string> = {
-  BTC: "BTC-USD",
+// Symbols that use v8/chart or special APIs (indexes, crypto)
+const SPECIAL_SYMBOL_MAP: Record<string, string> = {
+  BTC:       "BTC-USD",
+  "BTC-USD": "BTC-USD",
+  NIFTY:     "^NSEI",
+  NIFTY50:   "^NSEI",
+  "^NSEI":   "^NSEI",
+  INDIAVIX:  "^INDIAVIX",
+  "^INDIAVIX": "^INDIAVIX",
 };
 
 const ADDITIONAL_SYMBOLS = [
-  "NIFTY50", "INDIAVIX", "POLYCAB", "IDEA", "IEX", "DEEPAKNTR", "IFORGE", "COCHINSHIP",
-  "TATAMOTORS", "TMCV", "TMPV", "DEEPAKNI", "BTC"
+  "NIFTY", "NIFTY50", "INDIAVIX", "POLYCAB", "IDEA", "IEX", "DEEPAKNTR", "IFORGE", "COCHINSHIP",
+  "TATAMOTORS", "TMCV", "TMPV", "DEEPAKNI", "BTC", "BTC-USD"
 ];
 
 const VALID_SYMBOLS = new Set([
@@ -20,46 +26,79 @@ const VALID_SYMBOLS = new Set([
 
 function toYahooSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
-  if (upper === "NIFTY50") return "^NSEI";
-  if (upper === "INDIAVIX") return "^INDIAVIX";
+  if (upper === "NIFTY" || upper === "NIFTY50" || upper === "^NSEI") return "^NSEI";
+  if (upper === "INDIAVIX" || upper === "^INDIAVIX") return "^INDIAVIX";
+  if (upper === "BTC" || upper === "BTC-USD") return "BTC-USD";
   if (upper === "TATAMOTORS" || upper === "TMCV" || upper === "TMPV") return "TMPV.NS";
   return `${upper}.NS`;
 }
 
-/** Fetch crypto prices via Yahoo Finance v7 quote (reliable for BTC-USD etc.) */
-async function fetchCryptoPrices(cryptoSymbols: string[]): Promise<Record<string, any>> {
+/** Fetch prices for special symbols (indexes, crypto) via Yahoo Finance v8 chart + Binance fallback */
+async function fetchSpecialPrices(specialSymbols: string[]): Promise<Record<string, any>> {
   const result: Record<string, any> = {};
-  if (cryptoSymbols.length === 0) return result;
+  if (specialSymbols.length === 0) return result;
 
-  const yahooSymbols = cryptoSymbols.map(s => CRYPTO_SYMBOL_MAP[s.toUpperCase()] || `${s}-USD`);
-  const encoded = yahooSymbols.map(s => encodeURIComponent(s)).join(",");
-  const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encoded}`;
+  await Promise.all(
+    specialSymbols.map(async (rawSymbol) => {
+      const upper = rawSymbol.toUpperCase();
+      const yahooSymbol = SPECIAL_SYMBOL_MAP[upper] || (upper === "BTC" ? "BTC-USD" : `${upper}-USD`);
 
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-    });
-    if (!res.ok) return result;
+      try {
+        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=1d`;
+        const res = await fetch(url, {
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "application/json",
+          },
+          next: { revalidate: 5 },
+        });
 
-    const data = await res.json();
-    const quotes: any[] = data?.quoteResponse?.result || [];
+        if (res.ok) {
+          const data = await res.json();
+          const meta = data?.chart?.result?.[0]?.meta;
+          if (meta && meta.regularMarketPrice != null && meta.regularMarketPrice > 0) {
+            const currentPrice = meta.regularMarketPrice;
+            const prevClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
+            const change = meta.fulldayChange ?? (currentPrice - prevClose);
+            const changePercent = meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? (prevClose ? (change / prevClose) * 100 : 0);
 
-    quotes.forEach((q: any) => {
-      // Map back from Yahoo symbol (e.g. "BTC-USD") to our symbol ("BTC")
-      const ourSymbol = cryptoSymbols.find(
-        s => CRYPTO_SYMBOL_MAP[s.toUpperCase()] === q.symbol
-      );
-      if (ourSymbol && q.regularMarketPrice) {
-        result[ourSymbol] = {
-          currentPrice: parseFloat(q.regularMarketPrice.toFixed(2)),
-          change: parseFloat((q.regularMarketChange || 0).toFixed(2)),
-          changePercent: parseFloat((q.regularMarketChangePercent || 0).toFixed(2)),
-        };
+            result[rawSymbol] = {
+              currentPrice: parseFloat(currentPrice.toFixed(2)),
+              change: parseFloat(change.toFixed(2)),
+              changePercent: parseFloat(changePercent.toFixed(2)),
+            };
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn(`Special symbol chart fetch error for ${rawSymbol}:`, e);
       }
-    });
-  } catch (e) {
-    console.warn("Crypto fetch error:", e);
-  }
+
+      // Binance Fallback specifically for BTC
+      if (upper === "BTC" || upper === "BTC-USD") {
+        try {
+          const binanceRes = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT", {
+            next: { revalidate: 5 },
+          });
+          if (binanceRes.ok) {
+            const bData = await binanceRes.json();
+            const price = parseFloat(bData.lastPrice);
+            const change = parseFloat(bData.priceChange);
+            const changePercent = parseFloat(bData.priceChangePercent);
+            if (!isNaN(price) && price > 0) {
+              result[rawSymbol] = {
+                currentPrice: parseFloat(price.toFixed(2)),
+                change: parseFloat(change.toFixed(2)),
+                changePercent: parseFloat(changePercent.toFixed(2)),
+              };
+            }
+          }
+        } catch (bErr) {
+          console.warn("Binance fallback failed for BTC:", bErr);
+        }
+      }
+    })
+  );
 
   return result;
 }
@@ -80,20 +119,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No valid symbols provided" }, { status: 400 });
   }
 
-  // Split into crypto (needs v7 quote) and regular NSE/index symbols (use spark)
-  const cryptoSymbols = validSymbols.filter(s => CRYPTO_SYMBOL_MAP[s.toUpperCase()]);
-  const nseSymbols = validSymbols.filter(s => !CRYPTO_SYMBOL_MAP[s.toUpperCase()]);
+  // Split: special symbols (indexes, crypto) go through v7/quote; NSE stocks use spark
+  const specialSymbols = validSymbols.filter(s => SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
+  const nseSymbols = validSymbols.filter(s => !SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
 
   const result: Record<string, any> = {};
 
   try {
-    // Fetch crypto and NSE in parallel
-    const [cryptoResult, ...chunkResults] = await Promise.all([
-      fetchCryptoPrices(cryptoSymbols),
+    // Fetch special (indexes+crypto) and NSE in parallel
+    const [specialResult, ...chunkResults] = await Promise.all([
+      fetchSpecialPrices(specialSymbols),
       ...buildNseChunkPromises(nseSymbols),
     ]);
 
-    Object.assign(result, cryptoResult);
+    Object.assign(result, specialResult);
     chunkResults.forEach(cr => Object.assign(result, cr));
 
     return NextResponse.json(result);
@@ -156,34 +195,34 @@ function buildNseChunkPromises(nseSymbols: string[]): Promise<Record<string, any
         }
       }
     } else {
-      // Fallback to v7 quote endpoint
-      const fallbackUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodedSymbols}`;
-      const fbRes = await fetch(fallbackUrl, {
-        headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
-      });
+      // Fallback: fetch individually via v8 chart endpoint
+      await Promise.all(
+        symbolsChunk.map(async (symbol, idx) => {
+          try {
+            const ySymbol = yahooChunk[idx];
+            const fallbackUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?range=1d&interval=1d`;
+            const fbRes = await fetch(fallbackUrl, {
+              headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+            });
+            if (fbRes.ok) {
+              const fbData = await fbRes.json();
+              const meta = fbData?.chart?.result?.[0]?.meta;
+              if (meta && meta.regularMarketPrice != null) {
+                const currentPrice = meta.regularMarketPrice;
+                const prevClose = meta.chartPreviousClose || meta.previousClose || currentPrice;
+                const change = meta.fulldayChange ?? (currentPrice - prevClose);
+                const changePercent = meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? (prevClose ? (change / prevClose) * 100 : 0);
 
-      if (fbRes.ok) {
-        const fbData = await fbRes.json();
-        const quotes = fbData?.quoteResponse?.result || [];
-
-        quotes.forEach((q: any) => {
-          const ourSymbol = symbolsChunk.find(s => {
-            const upper = s.toUpperCase();
-            if (upper === "NIFTY50") return q.symbol === "^NSEI";
-            if (upper === "INDIAVIX") return q.symbol === "^INDIAVIX";
-            if (upper === "M&M") return q.symbol === "M&M.NS" || q.symbol === "M%26M.NS";
-            return q.symbol === `${upper}.NS` || q.symbol === upper;
-          }) || q.symbol;
-
-          if (q.regularMarketPrice) {
-            chunkResult[ourSymbol] = {
-              currentPrice: parseFloat(q.regularMarketPrice.toFixed(2)),
-              change: parseFloat((q.regularMarketChange || 0).toFixed(2)),
-              changePercent: parseFloat((q.regularMarketChangePercent || 0).toFixed(2)),
-            };
-          }
-        });
-      }
+                chunkResult[symbol] = {
+                  currentPrice: parseFloat(currentPrice.toFixed(2)),
+                  change: parseFloat(change.toFixed(2)),
+                  changePercent: parseFloat(changePercent.toFixed(2)),
+                };
+              }
+            }
+          } catch (_) {}
+        })
+      );
     }
 
     return chunkResult;

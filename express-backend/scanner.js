@@ -1,4 +1,7 @@
-
+// scanner.js — 15-Minute Candlestick Pattern Scanner
+// Implements:
+//   1. 3-Candle Bullish Breakout Confirmation Strategy (for ALL NSE stocks & Nifty 50)
+//   2. Open = High and Open = Low Signals (15-min)
 
 require('dotenv').config({ path: '../.env.local' });
 const { Pool } = require('pg');
@@ -8,100 +11,121 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-function scanNifty50Setup(niftyData) {
-  const { quotes } = niftyData;
-  if (!quotes || quotes.length < 4) {
-    console.log('[SCANNER] Nifty 50: Not enough candles for 4-candle setup');
-    return null;
+/**
+ * 3-CANDLE BREAKOUT STRATEGY LOGIC:
+ * 1. Candle 1: Completed Red reference candle (close < open). High and Low form the reference range.
+ * 2. Candle 2: Completed Green candle (close > open) whose High strictly breaks above C1 High (c2.high > c1.high).
+ * 3. Candle 3: Completed Green candle (close > open) whose High strictly breaks above C2 High (c3.high > c2.high).
+ * 4. Candle 4: Signal triggers strictly at the START of the fourth candle, immediately when it begins.
+ */
+function check3CandleBreakout(quotes) {
+  if (!quotes || quotes.length < 3) return null;
+  const nowTs = Math.floor(Date.now() / 1000);
+
+  // quotes are completed 15-minute candles sorted ascending by timestamp
+  for (let i = quotes.length - 3; i >= 0; i--) {
+    const c1 = quotes[i];
+    const c2 = quotes[i + 1];
+    const c3 = quotes[i + 2];
+
+    // Must be on the same trading day
+    if (c1.dateStr !== c2.dateStr || c2.dateStr !== c3.dateStr) continue;
+
+    // 1. Candle 1 must be RED (close < open)
+    if (c1.close >= c1.open) continue;
+
+    // 2. Candle 2 must be GREEN (close > open) and strictly break above C1 High
+    if (c2.close <= c2.open) continue;
+    if (c2.high <= c1.high) continue;
+
+    // 3. Candle 3 must be GREEN (close > open) and strictly break above C2 High
+    if (c3.close <= c3.open) continue;
+    if (c3.high <= c2.high) continue;
+
+    // 4. Candle 4 verification:
+    // Candle 3 ends at c3.timestamp + 15 * 60, which is precisely when Candle 4 begins.
+    const c4StartTs = c3.timestamp + 15 * 60;
+    const c4EndTs = c4StartTs + 15 * 60;
+
+    // The signal must NOT be displayed before the 4th candle starts!
+    const hasC4Started = (quotes.length > i + 3) || (nowTs >= c4StartTs);
+    if (!hasC4Started) continue;
+
+    const c4 = quotes[i + 3];
+    const c4StartTimeStr = getISTTimeString(c4StartTs);
+    const c4EndTimeStr = getISTTimeString(c4EndTs);
+    const candleTime = `${c4StartTimeStr} - ${c4EndTimeStr}`;
+
+    return {
+      c1,
+      c2,
+      c3,
+      c4: c4 || null,
+      c4StartTs,
+      candleTime,
+      candleDate: c3.dateStr,
+      confirmationTime: c4StartTimeStr,
+      refRange: { high: c1.high, low: c1.low },
+      c2High: c2.high,
+      c3High: c3.high,
+      triggerPrice: c4 ? c4.open : c3.close,
+    };
   }
-
-  
-  const c1 = quotes[quotes.length - 4];
-  const c2 = quotes[quotes.length - 3];
-  const c3 = quotes[quotes.length - 2];
-  const c4 = quotes[quotes.length - 1];
-
-  
-  if (c1.dateStr !== c4.dateStr || c2.dateStr !== c4.dateStr || c3.dateStr !== c4.dateStr) {
-    console.log('[SCANNER] Nifty 50: Candles span multiple days — skipping');
-    return null;
-  }
-
-  
-  const isBearish =
-    (c1.close < c1.open) &&
-    (c2.close > c2.open) &&
-    (c2.low < c1.low) &&
-    (c3.close < c3.open) &&
-    (c3.high > c2.high) &&
-    (c4.close < c4.open);
-
-  
-  const isBullish =
-    (c1.close > c1.open) &&
-    (c2.close < c2.open) &&
-    (c2.high > c1.high) &&
-    (c3.close > c3.open) &&
-    (c3.low < c2.low) &&
-    (c4.close > c4.open);
-
-  if (!isBearish && !isBullish) return null;
-
-  const signalType = isBullish ? 'Nifty 50 Bullish Setup' : 'Nifty 50 Bearish Setup';
-  const direction = isBullish ? 'UP' : 'DOWN';
-
-  
-  const candleTimeStart = c4.timeStr;
-  const candleEndTs = c4.timestamp + 15 * 60;
-  const candleTimeEnd = getISTTimeString(candleEndTs);
-  const candleTime = `${candleTimeStart} - ${candleTimeEnd}`;
-
-  return {
-    stock_symbol: 'NIFTY50',
-    stock_name: 'Nifty 50 Index',
-    signal_type: signalType,
-    direction: direction,
-    timeframe: '15m',
-    open_price: c4.open,
-    high_price: c4.high,
-    low_price: c4.low,
-    close_price: c4.close,
-    candle_time: candleTime,
-    candle_date: c4.dateStr,
-  };
+  return null;
 }
 
 async function scanStocks(importedCandles) {
   const newSignals = [];
 
-  
-  if (importedCandles['NIFTY50']) {
+  // =========================================================================
+  // 1. Scan EVERY stock (including NIFTY50) for 3-Candle Bullish Breakout
+  // =========================================================================
+  console.log('[SCANNER] Scanning all stocks for 3-Candle Bullish Breakout setup...');
+  let breakoutCount = 0;
+
+  for (const [symbol, data] of Object.entries(importedCandles)) {
     try {
-      console.log('[SCANNER] Scanning Nifty 50 for 4-candle setup...');
-      const niftySignal = scanNifty50Setup(importedCandles['NIFTY50']);
-      if (niftySignal) {
-        newSignals.push(niftySignal);
-        console.log(`[SCANNER] ✓ Detected: ${niftySignal.signal_type}`);
-      } else {
-        console.log('[SCANNER] ✗ No Nifty 50 setup detected');
+      const { quotes, name } = data;
+      if (!quotes || quotes.length < 3) continue;
+
+      const breakout = check3CandleBreakout(quotes);
+      if (breakout) {
+        newSignals.push({
+          stock_symbol: symbol,
+          stock_name: name || (symbol === 'NIFTY50' ? 'Nifty 50 Index' : symbol),
+          signal_type: '3-CANDLE BUY BREAKOUT',
+          direction: 'UP',
+          timeframe: '15m',
+          open_price: breakout.triggerPrice,
+          high_price: breakout.c3High,
+          low_price: breakout.refRange.low,
+          close_price: breakout.triggerPrice,
+          candle_time: breakout.candleTime,
+          candle_date: breakout.candleDate,
+        });
+        breakoutCount++;
+        console.log(`[SCANNER] ✓ 3-Candle Breakout confirmed for ${symbol} at ${breakout.candleTime}`);
       }
     } catch (err) {
-      console.error('[SCANNER] Error in Nifty 50 scan:', err.message);
+      console.error(`[SCANNER] Error checking 3-candle breakout for ${symbol}:`, err.message);
     }
   }
 
-  
+  console.log(`[SCANNER] Found ${breakoutCount} 3-Candle Breakout setups`);
+
+  // =========================================================================
+  // 2. Scan stocks for 15-Min Open = High / Open = Low Signals (Trick 4)
+  // =========================================================================
   console.log('[SCANNER] Scanning stocks for O=H / O=L signals...');
   let signalCount = 0;
 
   for (const [symbol, data] of Object.entries(importedCandles)) {
-    if (symbol === 'NIFTY50') continue; 
+    if (symbol === 'NIFTY50') continue;
 
     try {
       const { quotes, name } = data;
       if (!quotes || quotes.length === 0) continue;
 
-      
       const lastCandle = quotes[quotes.length - 1];
       if (!lastCandle) continue;
 
@@ -110,7 +134,7 @@ async function scanStocks(importedCandles) {
       let signalType = null;
       let direction = null;
 
-      
+      // RULE 1: If candle HIGH == OPEN → signal = DOWN (Bearish)
       if (high === open) {
         signalType = 'OPEN = HIGH ↓';
         direction = 'DOWN';
@@ -122,7 +146,6 @@ async function scanStocks(importedCandles) {
       }
 
       if (signalType) {
-        
         const candleEndTs = timestamp + 15 * 60;
         const candleTimeEnd = getISTTimeString(candleEndTs);
         const candleTime = `${timeStr} - ${candleTimeEnd}`;
@@ -143,34 +166,38 @@ async function scanStocks(importedCandles) {
         signalCount++;
       }
     } catch (e) {
-      console.error(`[SCANNER] Error scanning ${symbol}:`, e.message);
+      console.error(`[SCANNER] Error scanning O=H/O=L for ${symbol}:`, e.message);
     }
   }
 
   console.log(`[SCANNER] Found ${signalCount} O=H/O=L signals`);
 
-  
+  // =========================================================================
+  // 3. Save unique signals to DB without duplicate inserts
+  // =========================================================================
   const validSavedSignals = [];
   if (newSignals.length > 0) {
     console.log(`[SCANNER] Saving ${newSignals.length} total signals to DB...`);
 
     for (const sig of newSignals) {
       try {
+        // Prevent duplicate signals for the same stock, signal type, and candle
+        const existing = await pool.query(
+          `SELECT id FROM signals_history 
+           WHERE stock_symbol = $1 AND candle_time = $2 AND candle_date = $3 AND signal_type = $4`,
+          [sig.stock_symbol, sig.candle_time, sig.candle_date, sig.signal_type]
+        );
+
+        if (existing.rows && existing.rows.length > 0) {
+          validSavedSignals.push({ ...sig, id: existing.rows[0].id });
+          continue;
+        }
+
         const query = `
           INSERT INTO signals_history (
             stock_symbol, stock_name, signal_type, direction, timeframe,
             open_price, high_price, low_price, close_price, candle_time, candle_date
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-          ON CONFLICT (stock_symbol) DO UPDATE SET
-            signal_type = EXCLUDED.signal_type,
-            direction = EXCLUDED.direction,
-            open_price = EXCLUDED.open_price,
-            high_price = EXCLUDED.high_price,
-            low_price = EXCLUDED.low_price,
-            close_price = EXCLUDED.close_price,
-            candle_time = EXCLUDED.candle_time,
-            candle_date = EXCLUDED.candle_date,
-            created_at = CURRENT_TIMESTAMP
           RETURNING *;
         `;
         const values = [
@@ -187,7 +214,7 @@ async function scanStocks(importedCandles) {
       }
     }
 
-    console.log(`[SCANNER] ✅ Saved ${validSavedSignals.length} signals to DB`);
+    console.log(`[SCANNER] ✅ Processed ${validSavedSignals.length} unique signals in DB`);
   }
 
   return validSavedSignals;

@@ -7,58 +7,61 @@ import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestam
 import { ChartLineUp } from "@phosphor-icons/react";
 
 const DISPLAY_NAMES: Record<string, string> = {
-  NIFTY50: "Nifty 50 Index",
-  INDIAVIX: "India VIX",
-  ADANIENT: "Adani Enterprises Ltd.",
+  // --- Nifty 50 Official Constituents ---
+  ADANIENT:   "Adani Enterprises Ltd.",
   ADANIPORTS: "Adani Ports and Special Economic Zone Ltd.",
   APOLLOHOSP: "Apollo Hospitals Enterprise Ltd.",
   ASIANPAINT: "Asian Paints Ltd.",
-  AXISBANK: "Axis Bank Ltd.",
+  AXISBANK:   "Axis Bank Ltd.",
   "BAJAJ-AUTO": "Bajaj Auto Ltd.",
   BAJFINANCE: "Bajaj Finance Ltd.",
   BAJAJFINSV: "Bajaj Finserv Ltd.",
-  BEL: "Bharat Electronics Ltd.",
+  BEL:        "Bharat Electronics Ltd.",
   BHARTIARTL: "Bharti Airtel Ltd.",
-  CIPLA: "Cipla Ltd.",
-  COALINDIA: "Coal India Ltd.",
-  DRREDDY: "Dr. Reddy's Laboratories Ltd.",
-  EICHERMOT: "Eicher Motors Ltd.",
-  ETERNAL: "Eternal Ltd.",
-  GRASIM: "Grasim Industries Ltd.",
-  HCLTECH: "HCL Technologies Ltd.",
-  HDFCBANK: "HDFC Bank Ltd.",
-  HDFCLIFE: "HDFC Life Insurance Company Ltd.",
-  HINDALCO: "Hindalco Industries Ltd.",
+  BPCL:       "Bharat Petroleum Corporation Ltd.",
+  BRITANNIA:  "Britannia Industries Ltd.",
+  CIPLA:      "Cipla Ltd.",
+  COALINDIA:  "Coal India Ltd.",
+  DRREDDY:    "Dr. Reddy's Laboratories Ltd.",
+  EICHERMOT:  "Eicher Motors Ltd.",
+  GRASIM:     "Grasim Industries Ltd.",
+  HCLTECH:    "HCL Technologies Ltd.",
+  HDFCBANK:   "HDFC Bank Ltd.",
+  HDFCLIFE:   "HDFC Life Insurance Company Ltd.",
+  HEROMOTOCO: "Hero MotoCorp Ltd.",
+  HINDALCO:   "Hindalco Industries Ltd.",
   HINDUNILVR: "Hindustan Unilever Ltd.",
-  ICICIBANK: "ICICI Bank Ltd.",
-  ITC: "ITC Ltd.",
-  INFY: "Infosys Ltd.",
-  INDIGO: "InterGlobe Aviation Ltd.",
-  JSWSTEEL: "JSW Steel Ltd.",
-  JIOFIN: "Jio Financial Services Ltd.",
-  KOTAKBANK: "Kotak Mahindra Bank Ltd.",
-  LT: "Larsen & Toubro Ltd.",
-  "M&M": "Mahindra & Mahindra Ltd.",
-  MARUTI: "Maruti Suzuki India Ltd.",
-  MAXHEALTH: "Max Healthcare Institute Ltd.",
-  NTPC: "NTPC Ltd.",
-  NESTLEIND: "Nestle India Ltd.",
-  ONGC: "Oil & Natural Gas Corporation Ltd.",
-  POWERGRID: "Power Grid Corporation of India Ltd.",
-  RELIANCE: "Reliance Industries Ltd.",
-  SBILIFE: "SBI Life Insurance Company Ltd.",
+  ICICIBANK:  "ICICI Bank Ltd.",
+  INDUSINDBK: "IndusInd Bank Ltd.",
+  INFY:       "Infosys Ltd.",
+  ITC:        "ITC Ltd.",
+  JSWSTEEL:   "JSW Steel Ltd.",
+  KOTAKBANK:  "Kotak Mahindra Bank Ltd.",
+  LT:         "Larsen & Toubro Ltd.",
+  "M&M":      "Mahindra & Mahindra Ltd.",
+  MARUTI:     "Maruti Suzuki India Ltd.",
+  NESTLEIND:  "Nestle India Ltd.",
+  NTPC:       "NTPC Ltd.",
+  ONGC:       "Oil & Natural Gas Corporation Ltd.",
+  POWERGRID:  "Power Grid Corporation of India Ltd.",
+  RELIANCE:   "Reliance Industries Ltd.",
+  SBILIFE:    "SBI Life Insurance Company Ltd.",
+  SBIN:       "State Bank of India",
   SHRIRAMFIN: "Shriram Finance Ltd.",
-  SBIN: "State Bank of India",
-  SUNPHARMA: "Sun Pharmaceutical Industries Ltd.",
-  TCS: "Tata Consultancy Services Ltd.",
+  SUNPHARMA:  "Sun Pharmaceutical Industries Ltd.",
+  TATAMOTORS: "Tata Motors Ltd.",
+  TCS:        "Tata Consultancy Services Ltd.",
   TATACONSUM: "Tata Consumer Products Ltd.",
-  TMPV: "Tata Motors Passenger Vehicles Ltd.",
-  TATASTEEL: "Tata Steel Ltd.",
-  TECHM: "Tech Mahindra Ltd.",
-  TITAN: "Titan Company Ltd.",
-  TRENT: "Trent Ltd.",
+  TATASTEEL:  "Tata Steel Ltd.",
+  TECHM:      "Tech Mahindra Ltd.",
+  TITAN:      "Titan Company Ltd.",
+  TRENT:      "Trent Ltd.",
   ULTRACEMCO: "UltraTech Cement Ltd.",
-  WIPRO: "Wipro Ltd.",
+  WIPRO:      "Wipro Ltd.",
+  // --- Extras ---
+  NIFTY50:    "Nifty 50 Index",
+  INDIAVIX:   "India VIX",
+  BTC:        "Bitcoin",
 };
 
 type StockData = {
@@ -78,18 +81,20 @@ export default function StockChartPage() {
   const rawSymbolInput = (params.symbol as string) || "RELIANCE";
   const rawSymbol = rawSymbolInput.replace(/[^a-zA-Z0-9&\-]/g, "");
   const displayName = DISPLAY_NAMES[rawSymbol.toUpperCase()] || rawSymbol.toUpperCase();
-  const currencySymbol = "₹";
+
+  const [stockData, setStockData] = useState<StockData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
+
+  const isCrypto = rawSymbol.toUpperCase() === "BTC" || rawSymbol.toUpperCase() === "BTC-USD" || stockData?.currency === "USD";
+  const currencySymbol = isCrypto ? "$" : "₹";
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const rsiContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const candleSeriesRef = useRef<any>(null);
   const liveCandleRef = useRef<any>(null);
-
-  const [stockData, setStockData] = useState<StockData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
   const [dbRange, setDbRange] = useState<string>("30d"); // for DB-backed 15m candles
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
@@ -1025,11 +1030,15 @@ export default function StockChartPage() {
     { label: "1M", interval: "1mo", range: "max" },
   ];
 
-  // For 15m interval, allow user to choose DB history range
+  // For 15m interval, allow user to choose DB history range (up to 3 years)
   const dbRangeOptions = [
-    { label: "5D",  value: "5d" },
-    { label: "12D", value: "12d" },
-    { label: "30D", value: "30d" },
+    { label: "1W",  value: "5d"  },
+    { label: "1M",  value: "30d" },
+    { label: "3M",  value: "3m"  },
+    { label: "6M",  value: "6m"  },
+    { label: "1Y",  value: "1y"  },
+    { label: "2Y",  value: "2y"  },
+    { label: "3Y",  value: "3y"  },
   ];
 
   const updateSelectedLine = (updates: Partial<ChartLine>) => {
@@ -1137,6 +1146,43 @@ export default function StockChartPage() {
               {rawSymbol.toUpperCase()}
             </span>
           </h1>
+          {stockData && stockData.currentPrice > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "4px" }}>
+              <span
+                style={{
+                  fontFamily: "Satoshi, sans-serif",
+                  fontWeight: 800,
+                  fontSize: "17px",
+                  color: "#0F2044",
+                  letterSpacing: "-0.5px",
+                }}
+              >
+                {currencySymbol}
+                {stockData.currentPrice.toLocaleString(isCrypto ? "en-US" : "en-IN", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+              <span
+                style={{
+                  fontFamily: "Satoshi, sans-serif",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  padding: "2px 7px",
+                  borderRadius: "6px",
+                  background: stockData.change >= 0 ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                  color: stockData.change >= 0 ? "#16A34A" : "#DC2626",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "2px",
+                }}
+              >
+                {stockData.change >= 0 ? "+" : ""}
+                {stockData.change.toFixed(2)} ({stockData.change >= 0 ? "+" : ""}
+                {stockData.changePercent.toFixed(2)}%)
+              </span>
+            </div>
+          )}
           {isSyncingDb && (
             <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite", whiteSpace: "nowrap" }}>Syncing...</span>
           )}
@@ -1806,7 +1852,7 @@ export default function StockChartPage() {
             const valColor = isUp ? "#26a69a" : "#ef5350";
 
             const formatNum = (num: number) => {
-              return num.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+              return num.toLocaleString(isCrypto ? "en-US" : "en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             };
 
             return (

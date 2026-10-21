@@ -23,58 +23,83 @@ export default function GlobalNotification() {
     
     audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL || "http://localhost:8080";
-    const socket: Socket = io(signalsUrl);
+    const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL;
+    let socket: Socket | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    socket.on("connect", () => {
-      console.log("Global Notification connected to signals stream");
-    });
-
-    socket.on("new_signals", (newSignals: any[]) => {
-      
-      const niftySignals = newSignals.filter(s => s.stock_symbol === "NIFTY50");
-
-      niftySignals.forEach((sig) => {
-        const signalKey = `${sig.candle_date}-${sig.candle_time}-${sig.direction}`;
-        const lastNotifiedKey = `nifty_last_notified`;
+    const processSignals = (newSignals: any[]) => {
+      newSignals.forEach((sig) => {
+        const signalKey = `${sig.stock_symbol}-${sig.candle_date}-${sig.candle_time}-${sig.direction}`;
+        const lastNotifiedKey = `setup_notified_${sig.stock_symbol}`;
         const lastNotified = localStorage.getItem(lastNotifiedKey);
 
-        
         if (lastNotified !== signalKey) {
           localStorage.setItem(lastNotifiedKey, signalKey);
 
           const isBullish = sig.direction === "UP";
+          const isNifty = sig.stock_symbol === "NIFTY50" || sig.stock_symbol === "NIFTY";
           const newNotification: NotificationItem = {
             id: `${Date.now()}-${Math.random()}`,
             type: isBullish ? "BULLISH" : "BEARISH",
-            title: isBullish ? "Nifty 50 Bullish Setup" : "Nifty 50 Bearish Setup",
+            title: isNifty
+              ? isBullish ? "Nifty 50 Bullish Setup" : "Nifty 50 Bearish Setup"
+              : `${sig.stock_name || sig.stock_symbol} ${isBullish ? "Bullish Setup" : "Bearish Setup"}`,
             message: isBullish
-              ? `Bullish Break detected! Nifty 50 completed a positive swing setup.`
-              : `Bearish Break detected! Nifty 50 completed a negative swing setup.`,
+              ? `Bullish Break detected! ${isNifty ? "Nifty 50" : sig.stock_name || sig.stock_symbol} completed a positive 15m setup.`
+              : `Bearish Break detected! ${isNifty ? "Nifty 50" : sig.stock_name || sig.stock_symbol} completed a negative 15m setup.`,
             price: Number(sig.close_price),
-            time: sig.candle_time.split(" - ")[1] || sig.candle_time,
+            time: sig.candle_time?.split(" - ")[1] || sig.candle_time || "",
           };
 
-          
           if (audioRef.current) {
             audioRef.current.play().catch((e) => console.warn("Audio play blocked by browser:", e));
           }
 
-          
           setNotifications((prev) => [...prev, newNotification]);
 
-          
           const timerId = setTimeout(() => {
             setNotifications((prev) => prev.filter((n) => n.id !== newNotification.id));
             timersRef.current.delete(timerId);
-          }, 5000);
+          }, 6000);
           timersRef.current.add(timerId);
         }
       });
-    });
+    };
+
+    if (signalsUrl) {
+      try {
+        socket = io(signalsUrl);
+        socket.on("connect", () => {
+          console.log("Global Notification connected to signals stream");
+        });
+        socket.on("new_signals", (newSignals: any[]) => {
+          processSignals(newSignals);
+        });
+      } catch (e) {
+        console.warn("Global Notification socket failed:", e);
+      }
+    } else {
+      // Built-in polling
+      const pollSignals = async () => {
+        try {
+          const res = await fetch("/api/signals");
+          if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.data && data.data.length > 0) {
+              // Only alert for the latest signal on first check or changes
+              const latest = data.data.slice(0, 3);
+              processSignals(latest);
+            }
+          }
+        } catch (_) {}
+      };
+      pollSignals();
+      pollInterval = setInterval(pollSignals, 15000);
+    }
 
     return () => {
-      socket.disconnect();
+      if (socket) socket.disconnect();
+      if (pollInterval) clearInterval(pollInterval);
       timersRef.current.forEach((t) => clearTimeout(t));
       timersRef.current.clear();
     };

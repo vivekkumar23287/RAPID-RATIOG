@@ -32,30 +32,30 @@ type LiveStockData = {
   gapPercent: number;
 };
 
-const getNiftySetupStatus = (candles: any[]) => {
-  if (candles.length < 4) return { matched: false, type: "", text: "No Setup" };
-  const [c1, c2, c3, c4] = candles;
+const check3CandleBreakoutSetup = (candles: any[]) => {
+  if (candles.length < 3) return { matched: false };
+  const c1 = candles[candles.length - 3];
+  const c2 = candles[candles.length - 2];
+  const c3 = candles[candles.length - 1];
 
-  const isBearish = 
-    (c1.close < c1.open) && 
-    (c2.close > c2.open) && 
-    (c2.low < c1.low) && 
-    (c3.close < c3.open) && 
-    (c3.high > c2.high) && 
-    (c4.close < c4.open);
+  const isC1Red = c1.close < c1.open;
+  const isC2Green = c2.close > c2.open;
+  const isC2Breakout = c2.high > c1.high;
+  const isC3Green = c3.close > c3.open;
+  const isC3Breakout = c3.high > c2.high;
 
-  const isBullish = 
-    (c1.close > c1.open) && 
-    (c2.close < c2.open) && 
-    (c2.high > c1.high) && 
-    (c3.close > c3.open) && 
-    (c3.low < c2.low) && 
-    (c4.close > c4.open);
-
-  if (isBullish) return { matched: true, type: "BULLISH", text: "Bullish Setup Active" };
-  if (isBearish) return { matched: true, type: "BEARISH", text: "Bearish Setup Active" };
-  
-  return { matched: false, type: "", text: "No Active Setup" };
+  if (isC1Red && isC2Green && isC2Breakout && isC3Green && isC3Breakout) {
+    return {
+      matched: true,
+      c1,
+      c2,
+      c3,
+      refRange: { high: c1.high, low: c1.low },
+      breakoutLevels: { c2High: c2.high, c3High: c3.high },
+      triggerPrice: c3.close
+    };
+  }
+  return { matched: false };
 };
 
 export default function TricksInNSE() {
@@ -70,14 +70,16 @@ export default function TricksInNSE() {
   const [motherMatches, setMotherMatches] = useState<any[]>([]);
 
   
-  const [niftyCandles, setNiftyCandles] = useState<any[]>([]);
-  const [loadingNiftySetup, setLoadingNiftySetup] = useState(true);
+  const [breakoutMatches, setBreakoutMatches] = useState<any[]>([]);
+  const [loadingBreakout, setLoadingBreakout] = useState(true);
 
   
   const [signals, setSignals] = useState<SignalData[]>([]);
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UP" | "DOWN">("ALL");
+  const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY">("ALL");
+  const [specialSearch, setSpecialSearch] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(true);
   
@@ -117,44 +119,27 @@ export default function TricksInNSE() {
     }
   };
 
-  const fetchNiftySetupData = async () => {
-    setLoadingNiftySetup(true);
+  const fetchBreakoutSetups = async () => {
+    setLoadingBreakout(true);
     try {
-      const res = await fetch("/api/stock-data?symbol=NIFTY50&interval=15m&range=2d", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.candles) {
-          const candles = data.candles;
-          let lastCompletedIdx = -1;
-          const nowMs = Date.now();
-          for (let i = candles.length - 1; i >= 0; i--) {
-            const cTimeMs = candles[i].time * 1000;
-            if (nowMs - cTimeMs >= 15 * 60 * 1000) {
-              lastCompletedIdx = i;
-              break;
-            }
-          }
-          if (lastCompletedIdx >= 3) {
-            setNiftyCandles([
-              candles[lastCompletedIdx - 3],
-              candles[lastCompletedIdx - 2],
-              candles[lastCompletedIdx - 1],
-              candles[lastCompletedIdx]
-            ]);
-          }
-        }
+      const res = await fetch("/api/scanner-3c", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to scan 3-candle breakout");
+      const data = await res.json();
+      if (data.success) {
+        setBreakoutMatches(data.matches || []);
       }
     } catch (error) {
-      console.warn("Failed to load Nifty 50 candles:", error);
+      console.warn("Failed to load 3-candle breakout setups:", error);
+      setBreakoutMatches([]);
     } finally {
-      setLoadingNiftySetup(false);
+      setLoadingBreakout(false);
     }
   };
 
   useEffect(() => {
     fetchGaps();
     fetchMotherRange();
-    fetchNiftySetupData();
+    fetchBreakoutSetups();
   }, []);
 
   useEffect(() => {
@@ -163,15 +148,11 @@ export default function TricksInNSE() {
     } catch (_) {}
 
     const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL;
-    if (!signalsUrl) {
-      setLoadingSignals(false);
-      setLastUpdated("N/A");
-      return;
-    }
-
-    fetch(`${signalsUrl}/api/today`)
-      .then(res => res.json())
-      .then(data => {
+    const fetchSignals = async () => {
+      try {
+        const fetchUrl = signalsUrl ? `${signalsUrl}/api/today` : `/api/signals`;
+        const res = await fetch(fetchUrl);
+        const data = await res.json();
         if (data.success && data.data) {
           const signalsList = data.data;
           setSignals(signalsList);
@@ -179,87 +160,148 @@ export default function TricksInNSE() {
           if (signalsList.length > 0) {
             const latest = signalsList.reduce((acc: any, curr: any) => {
               if (!acc) return curr;
-              return new Date(curr.created_at) > new Date(acc.created_at) ? curr : acc;
+              const currMs = curr.created_at ? new Date(curr.created_at).getTime() : 0;
+              const accMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
+              return currMs > accMs ? curr : acc;
             }, null);
             
             if (latest && latest.created_at) {
               const updateDate = new Date(latest.created_at);
               setLastUpdated(updateDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-            } else {
-              setLastUpdated("N/A");
+            } else if (latest && latest.candle_time) {
+              setLastUpdated(latest.candle_time);
             }
-          } else {
-            setLastUpdated("N/A");
           }
-        } else {
-          setLastUpdated("N/A");
         }
-      })
-      .catch(err => {
-        console.warn("Error fetching initial data:", err);
-        setLastUpdated("N/A");
-      })
-      .finally(() => setLoadingSignals(false));
-
-    const socket: Socket = io(signalsUrl);
-    
-    socket.on("connect", () => {
-      console.log("Connected to live signals stream");
-    });
-
-    socket.on("new_signals", (newSignals: SignalData[]) => {
-      console.log("Received new signals:", newSignals);
-      
-      const hasNifty = newSignals.some(s => s.stock_symbol === "NIFTY50");
-      if (hasNifty) {
-        fetchNiftySetupData();
+      } catch (err) {
+        console.warn("Error fetching signals:", err);
+      } finally {
+        setLoadingSignals(false);
       }
+    };
 
-      setSignals(prev => {
-        const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
-        const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
-        return [...toAdd, ...prev];
-      });
+    fetchSignals();
 
-      if (newSignals.length > 0) {
-        const latest = newSignals.reduce((acc: any, curr: any) => {
-          if (!acc) return curr;
-          const currMs = curr.created_at ? new Date(curr.created_at).getTime() : Date.now();
-          const accMs = acc.created_at ? new Date(acc.created_at).getTime() : Date.now();
-          return currMs > accMs ? curr : acc;
-        }, null);
+    let socket: Socket | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-        if (latest) {
-          const updateTime = latest.created_at ? new Date(latest.created_at) : new Date();
-          setLastUpdated(updateTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-        }
+    if (signalsUrl) {
+      try {
+        socket = io(signalsUrl);
+        socket.on("connect", () => {
+          console.log("Connected to live signals stream");
+        });
+
+        socket.on("new_signals", (newSignals: SignalData[]) => {
+          fetchBreakoutSetups();
+
+          setSignals(prev => {
+            const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
+            const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
+            return [...toAdd, ...prev];
+          });
+
+          if (soundEnabled && audioRef.current) {
+            audioRef.current.play().catch(e => console.warn("Audio play failed:", e));
+          }
+        });
+      } catch (e) {
+        console.warn("Socket init failed, falling back to polling:", e);
+        pollInterval = setInterval(fetchSignals, 10000);
       }
-      
-      if (soundEnabled && audioRef.current) {
-        audioRef.current.play().catch(e => console.warn("Audio play failed:", e));
-      }
-    });
+    } else {
+      pollInterval = setInterval(fetchSignals, 10000);
+    }
 
     return () => {
-      socket.disconnect();
+      if (socket) socket.disconnect();
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [soundEnabled]);
+
+  // Combine live /api/scanner-3c matches with any live stream 3-candle breakout signals
+  const specialSetups = useMemo(() => {
+    const list: any[] = [];
+    const seen = new Set<string>();
+
+    breakoutMatches.forEach(item => {
+      const key = `${item.symbol}-${item.candle_date}-${item.candle_time}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push({
+          id: item.symbol === "NIFTY50" ? 999999 : undefined,
+          stock_symbol: item.symbol,
+          stock_name: item.name,
+          signal_type: item.signal_type || "3-CANDLE BUY BREAKOUT",
+          direction: "UP",
+          timeframe: "15m",
+          open_price: item.open_price,
+          high_price: item.high_price,
+          low_price: item.low_price,
+          close_price: item.close_price,
+          candle_time: item.candle_time,
+          candle_date: item.candle_date,
+          confirmationTime: item.confirmationTime,
+          referenceRange: item.referenceRange,
+          breakoutLevels: item.breakoutLevels,
+          candles: item.candles,
+        });
+      }
+    });
+
+    signals.forEach(s => {
+      if (s.signal_type === "3-CANDLE BUY BREAKOUT") {
+        const key = `${s.stock_symbol}-${s.candle_date}-${s.candle_time}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          list.push(s);
+        }
+      }
+    });
+
+    return list.sort((a, b) => {
+      const aIsNifty = a.stock_symbol === "NIFTY50" || a.stock_symbol === "NIFTY";
+      const bIsNifty = b.stock_symbol === "NIFTY50" || b.stock_symbol === "NIFTY";
+      if (aIsNifty && !bIsNifty) return -1;
+      if (!aIsNifty && bIsNifty) return 1;
+      return (b.id || 0) - (a.id || 0);
+    });
+  }, [breakoutMatches, signals]);
+
+  const filteredSpecialSetups = useMemo(() => {
+    return specialSetups.filter(item => {
+      const matchesSearch =
+        item.stock_symbol.toLowerCase().includes(specialSearch.toLowerCase()) ||
+        item.stock_name.toLowerCase().includes(specialSearch.toLowerCase());
+      if (!matchesSearch) return false;
+      if (specialFilter === "NIFTY") return item.stock_symbol === "NIFTY50" || item.stock_symbol === "NIFTY";
+      return true;
+    });
+  }, [specialSetups, specialSearch, specialFilter]);
 
   const handleStockClick = (symbol: string) => {
     router.push(`/stock/${symbol}`);
   };
 
+  const ohlSignals = useMemo(() => {
+    return signals.filter(sig => 
+      sig.signal_type.includes("OPEN =") || 
+      sig.signal_type.includes("O=H") || 
+      sig.signal_type.includes("O=L")
+    );
+  }, [signals]);
+
   const filteredSignals = useMemo(() => {
-    return signals.filter(sig => {
+    return ohlSignals.filter(sig => {
       const matchesSearch = sig.stock_symbol.toLowerCase().includes(search.toLowerCase()) || 
                             sig.stock_name.toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filter === "ALL" || sig.direction === filter;
       return matchesSearch && matchesFilter;
     });
-  }, [signals, search, filter]);
+  }, [ohlSignals, search, filter]);
 
-  const bullishCount = signals.filter(s => s.direction === "UP").length;
-  const bearishCount = signals.filter(s => s.direction === "DOWN").length;
+  const bullishCount = ohlSignals.filter(s => s.direction === "UP").length;
+  const bearishCount = ohlSignals.filter(s => s.direction === "DOWN").length;
 
   return (
     <main style={{ background: "#FFFFFF", minHeight: "100vh", paddingBottom: "100px", position: "relative" }}>
@@ -286,7 +328,7 @@ export default function TricksInNSE() {
             margin: "0",
             lineHeight: 1.6
           }}>
-            Track overnight opening gaps, 5-Candle Mother Range breakouts, and Live 15-Min Open=High & Open=Low Signals.
+            Track overnight opening gaps, 5-Candle Mother Range breakouts, 3-Candle Bullish Breakout confirmations, and Live 15-Min Open=High & Open=Low Signals.
           </p>
         </div>
 
@@ -463,126 +505,276 @@ export default function TricksInNSE() {
         </div>
 
         
-        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>3. Nifty 50 15-Min Special Setup</h2>
-          <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
-            <span style={{ width: "6px", height: "6px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
-            ACTIVE TRACKER
+        {/* 15-MIN SPECIAL SETUP — NIFTY 50 & ALL COMPANIES */}
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
+                3. 15-Minute 3-Candle Breakout Setup (All Companies & Nifty 50)
+              </h2>
+              <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
+                <span style={{ width: "6px", height: "6px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
+                BUY BREAKOUT CONFIRMATION
+              </div>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "3px 8px", borderRadius: "6px" }}>
+                {filteredSpecialSetups.length} Found
+              </span>
+            </div>
+
+            {/* Filter Buttons */}
+            <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+              {([
+                { key: "ALL", label: `All (${specialSetups.length})` },
+                { key: "NIFTY", label: "Nifty 50" },
+              ] as const).map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setSpecialFilter(tab.key)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "7px",
+                    border: "none",
+                    background: specialFilter === tab.key ? "#FFFFFF" : "transparent",
+                    color: specialFilter === tab.key ? "#0F2044" : "#64748B",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    boxShadow: specialFilter === tab.key ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
+
+          <p style={{ color: "#64748B", fontSize: "13px", margin: "0 0 16px 0", maxWidth: "800px", lineHeight: "1.5" }}>
+            Identifies completed 3-candle breakout confirmation: <strong>Candle 1</strong> (Red reference range) &rarr; <strong>Candle 2</strong> (Green breakout above C1 High) &rarr; <strong>Candle 3</strong> (Green breakout above C2 High). Signal triggers at the <strong>start of Candle 4</strong>.
+          </p>
+
+          {/* Search Bar for Special Setups */}
+          {specialSetups.length > 2 && (
+            <div style={{ position: "relative", maxWidth: "360px", marginBottom: "16px" }}>
+              <MagnifyingGlass size={16} color="#94A3B8" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search setup by company or symbol..."
+                value={specialSearch}
+                onChange={(e) => setSpecialSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "#FFFFFF",
+                  border: "1px solid #E2E8F0",
+                  padding: "9px 14px 9px 38px",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#0F2044",
+                  outline: "none"
+                }}
+              />
+            </div>
+          )}
         </div>
 
-        {(() => {
-          const niftySignal = signals.find(s => s.stock_symbol === "NIFTY50");
-          
-          if (!niftySignal) {
-            return (
-              <div style={{
-                background: "#FFFFFF",
-                border: "1px solid #E2E8F0",
-                borderRadius: "24px",
-                padding: "36px 32px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
-                marginBottom: "60px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center",
-                position: "relative",
-                overflow: "hidden"
-              }}>
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "4px", background: "#CBD5E1" }} />
-                <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748B", marginBottom: "16px" }}>
-                  <Info size={22} weight="bold" />
-                </div>
-                <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>No Nifty 50 Setup Detected Today</div>
-                <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "420px", lineHeight: "1.5" }}>
-                  The strict multi-candle sweep pattern has not been triggered on Nifty 50 today yet. We are scanning tick-by-tick.
-                </div>
-              </div>
-            );
-          }
-
-          const isBull = niftySignal.direction === "UP";
-          const themeColor = isBull ? "#10B981" : "#EF4444";
-          const glowColor = isBull ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)";
-
-          return (
-            <div
-              onClick={() => {
-                localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
-                router.push("/stock/NIFTY50");
-              }}
-              style={{
-                background: "#FFFFFF",
-                border: `1.5px solid ${themeColor}`,
-                borderRadius: "24px",
-                padding: "32px",
-                boxShadow: `0 10px 30px ${glowColor}, 0 2px 12px rgba(0,0,0,0.04)`,
-                marginBottom: "60px",
-                position: "relative",
-                overflow: "hidden",
-                cursor: "pointer",
-                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-              }}
-              className="nifty-setup-card"
-            >
-              
-              <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "6px", background: themeColor }} />
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-                  <div style={{
-                    width: "56px",
-                    height: "56px",
-                    borderRadius: "14px",
-                    background: isBull ? "rgba(16,185,129,0.15)" : "rgba(239,68,68,0.15)",
-                    color: themeColor,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0
-                  }}>
-                    <BellRinging size={28} weight="bold" />
-                  </div>
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                      <span style={{ fontSize: "20px", fontWeight: 900, color: "#0F2044" }}>Nifty 50 {isBull ? "Bullish Setup" : "Bearish Setup"}</span>
-                      <span style={{
-                        background: isBull ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)",
-                        color: themeColor,
-                        padding: "4px 10px",
-                        borderRadius: "8px",
-                        fontSize: "11px",
-                        fontWeight: 900,
-                        letterSpacing: "0.5px"
-                      }}>
-                        ACTIVE TIME
-                      </span>
-                    </div>
-                    <p style={{ color: "#475569", fontSize: "14px", fontWeight: 600, margin: 0 }}>
-                      Setup Formed on: <span style={{ color: "#0F2044", fontWeight: 800 }}>{niftySignal.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 800 }}>{niftySignal.candle_time}</span>
-                    </p>
-                  </div>
-                </div>
-
-                
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 800, color: themeColor }}>
-                    Click to Open 15-Min Candle Chart ➔
-                  </span>
-                </div>
-              </div>
-
-              <style>{`
-                .nifty-setup-card:hover {
-                  transform: translateY(-3px);
-                  box-shadow: 0 16px 36px ${glowColor}, 0 4px 16px rgba(0,0,0,0.06);
-                }
-              `}</style>
+        {filteredSpecialSetups.length === 0 ? (
+          <div style={{
+            background: "#FFFFFF",
+            border: "1px solid #E2E8F0",
+            borderRadius: "24px",
+            padding: "36px 32px",
+            boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+            marginBottom: "60px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            textAlign: "center",
+            position: "relative",
+            overflow: "hidden"
+          }}>
+            <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "4px", background: "#CBD5E1" }} />
+            <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", color: "#64748B", marginBottom: "16px" }}>
+              <Info size={22} weight="bold" />
             </div>
-          );
-        })()}
+            <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>
+              {specialFilter === "NIFTY" ? "No Nifty 50 3-Candle Breakout Active" : "No 3-Candle Breakout Setups Active"}
+            </div>
+            <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
+              {specialFilter === "NIFTY"
+                ? "Nifty 50 has not confirmed a 3-candle breakout sequence today yet. Live tick scanner is running."
+                : "No stocks currently match the 3-candle breakout sequence (C1 Red &rarr; C2 Green Breakout &rarr; C3 Green Breakout). Scanner evaluates continuously at the start of each 15-minute candle."}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: filteredSpecialSetups.length === 1 ? "1fr" : "repeat(auto-fill, minmax(380px, 1fr))",
+            gap: "20px",
+            marginBottom: "60px"
+          }}>
+            {filteredSpecialSetups.map((setup) => {
+              const isNifty = setup.stock_symbol === "NIFTY50" || setup.stock_symbol === "NIFTY";
+              const themeColor = "#10B981";
+              const glowColor = "rgba(16,185,129,0.12)";
+
+              const refRange = setup.referenceRange || { high: setup.ref_high, low: setup.ref_low };
+              const breakoutLevels = setup.breakoutLevels || { c2High: setup.c2_high, c3High: setup.c3_high };
+
+              return (
+                <div
+                  key={setup.id || `${setup.stock_symbol}-${setup.candle_time}`}
+                  onClick={() => {
+                    localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
+                    router.push(`/stock/${setup.stock_symbol}`);
+                  }}
+                  style={{
+                    background: "#FFFFFF",
+                    border: `1.5px solid ${themeColor}`,
+                    borderRadius: "20px",
+                    padding: "24px",
+                    boxShadow: `0 8px 24px ${glowColor}, 0 2px 10px rgba(0,0,0,0.04)`,
+                    position: "relative",
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    minHeight: "220px",
+                  }}
+                  className="special-setup-card"
+                >
+                  <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "5px", background: themeColor }} />
+
+                  <div>
+                    {/* Header Row */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "14px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{
+                          width: "44px",
+                          height: "44px",
+                          borderRadius: "12px",
+                          background: "rgba(16,185,129,0.12)",
+                          color: themeColor,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0
+                        }}>
+                          <BellRinging size={22} weight="bold" />
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                            <span style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044" }}>
+                              {setup.stock_name || setup.stock_symbol}
+                            </span>
+                            <span style={{
+                              background: "#F1F5F9",
+                              color: "#475569",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              fontSize: "10px",
+                              fontWeight: 800
+                            }}>
+                              {setup.stock_symbol}
+                            </span>
+                            {isNifty && (
+                              <span style={{
+                                background: "rgba(59,130,246,0.12)",
+                                color: "#2563EB",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10px",
+                                fontWeight: 800
+                              }}>
+                                INDEX
+                              </span>
+                            )}
+                          </div>
+                          <span style={{
+                            display: "inline-block",
+                            marginTop: "4px",
+                            background: "rgba(16,185,129,0.12)",
+                            color: themeColor,
+                            padding: "2px 7px",
+                            borderRadius: "6px",
+                            fontSize: "11px",
+                            fontWeight: 800,
+                            letterSpacing: "0.3px"
+                          }}>
+                            BUY / BULLISH BREAKOUT
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Trigger Price */}
+                      {(setup.close_price || setup.open_price) && (
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", display: "block" }}>
+                            Trigger Price
+                          </span>
+                          <span style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", fontFamily: "monospace" }}>
+                            ₹{Number(setup.close_price || setup.open_price).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Timestamp info */}
+                    <p style={{ color: "#64748B", fontSize: "12px", fontWeight: 600, margin: "0 0 14px 0" }}>
+                      Signal Triggered at Start of Candle 4: <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.confirmationTime || setup.candle_time}</span>
+                    </p>
+
+                    {/* 3 Breakout Stages Visual Grid */}
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr 1fr",
+                      gap: "8px",
+                      background: "#F8FAFC",
+                      padding: "10px",
+                      borderRadius: "10px",
+                      border: "1px solid #E2E8F0",
+                      marginBottom: "12px",
+                      fontSize: "11px"
+                    }}>
+                      <div>
+                        <span style={{ color: "#DC2626", fontWeight: 800, display: "block" }}>1. Red Ref</span>
+                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{refRange?.high ? Number(refRange.high).toFixed(1) : '-'}</strong></div>
+                        <div style={{ color: "#64748B" }}>SL: <strong style={{ color: "#0F2044" }}>₹{refRange?.low ? Number(refRange.low).toFixed(1) : '-'}</strong></div>
+                      </div>
+                      <div>
+                        <span style={{ color: "#16A34A", fontWeight: 800, display: "block" }}>2. Green Breakout 1</span>
+                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{breakoutLevels?.c2High ? Number(breakoutLevels.c2High).toFixed(1) : '-'}</strong></div>
+                        <div style={{ color: "#16A34A", fontWeight: 700 }}>&gt; C1 High &check;</div>
+                      </div>
+                      <div>
+                        <span style={{ color: "#16A34A", fontWeight: 800, display: "block" }}>3. Green Breakout 2</span>
+                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{breakoutLevels?.c3High ? Number(breakoutLevels.c3High).toFixed(1) : '-'}</strong></div>
+                        <div style={{ color: "#16A34A", fontWeight: 700 }}>&gt; C2 High &check;</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CTA Footer */}
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingTop: "10px", borderTop: "1px solid #F1F5F9" }}>
+                    <span style={{ fontSize: "12px", fontWeight: 800, color: themeColor, display: "flex", alignItems: "center", gap: "4px" }}>
+                      Open 15m Chart ➔
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <style>{`
+          .special-setup-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 32px rgba(15, 32, 68, 0.08);
+          }
+        `}</style>
 
         
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>

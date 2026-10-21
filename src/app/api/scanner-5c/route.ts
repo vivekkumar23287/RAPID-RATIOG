@@ -5,8 +5,9 @@ import { NIFTY_50_STOCKS as SCAN_SYMBOLS } from "@/lib/stocks";
 export const dynamic = "force-dynamic";
 
 const fetchYahoo15mChart = async (symbol: string) => {
-  
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.NS?range=5d&interval=15m&includePrePost=false`;
+  const upper = symbol.toUpperCase();
+  const yahooSymbol = upper === "NIFTY50" || upper === "NIFTY" ? "^NSEI" : upper === "BTC" || upper === "BTC-USD" ? "BTC-USD" : `${symbol}.NS`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=5d&interval=15m&includePrePost=false`;
   try {
     const res = await fetch(url, {
       headers: {

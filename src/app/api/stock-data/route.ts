@@ -3,12 +3,15 @@ import { auth } from "@clerk/nextjs/server";
 import { sql } from "@/lib/db";
 
 const VALID_INTERVALS = ["1m", "5m", "15m", "30m", "60m", "1d", "1mo"];
-const VALID_RANGES = ["1d", "2d", "5d", "10d", "12d", "15d", "30d", "1y", "max"];
+const VALID_RANGES = ["1d", "2d", "5d", "10d", "12d", "15d", "30d", "3m", "6m", "1y", "2y", "3y", "max"];
 const SYMBOL_REGEX = /^[A-Z0-9&\-]{1,20}$/;
 
 const YAHOO_SYMBOL_MAP: Record<string, string> = {
   NIFTY50: "^NSEI",
+  NIFTY: "^NSEI",
+  "^NSEI": "^NSEI",
   INDIAVIX: "^INDIAVIX",
+  "^INDIAVIX": "^INDIAVIX",
   IFORGE: "BHARATFORG.NS",
   DEEPAKNTR: "DEEPAKNTR.NS",
   DEEPAKNI: "DEEPAKNTR.NS",
@@ -16,11 +19,13 @@ const YAHOO_SYMBOL_MAP: Record<string, string> = {
   TMCV: "TMPV.NS",
   TMPV: "TMPV.NS",
   BTC: "BTC-USD",
+  "BTC-USD": "BTC-USD",
 };
 
 function getYahooSymbol(symbol: string): string {
   const upper = symbol.toUpperCase();
   if (YAHOO_SYMBOL_MAP[upper]) return YAHOO_SYMBOL_MAP[upper];
+  if (upper.startsWith("^")) return upper;
   return `${upper}.NS`;
 }
 
@@ -28,7 +33,7 @@ function getYahooSymbol(symbol: string): string {
 function rangeToDays(range: string): number {
   const map: Record<string, number> = {
     "1d": 1, "2d": 2, "5d": 5, "10d": 10, "12d": 12, "15d": 15,
-    "30d": 30, "1y": 365, "max": 365,
+    "30d": 30, "3m": 90, "6m": 182, "1y": 365, "2y": 730, "3y": 1095, "max": 1095,
   };
   return map[range] ?? 30;
 }
@@ -58,7 +63,7 @@ async function get15mFromDB(
         AND candle_timestamp >= ${fromTs}
         AND candle_timestamp <= ${nowTs}
       ORDER BY candle_timestamp ASC
-      LIMIT 10000
+      LIMIT 30000
     `;
 
     if (rows.length > 0) {
@@ -319,8 +324,20 @@ export async function GET(req: NextRequest) {
       currentPrice = Number(cachedData.price);
     }
 
-    const change        = currentPrice - previousClose;
-    const changePercent = previousClose ? (change / previousClose) * 100 : 0;
+    let change        = currentPrice - previousClose;
+    let changePercent = previousClose ? (change / previousClose) * 100 : 0;
+
+    // In Yahoo v8 chart, when range is multi-day (e.g. 1y, 6m), meta.chartPreviousClose is the price
+    // prior to the START of the range (1 year ago). We prefer meta.fulldayChange or yesterday's candle:
+    if (meta?.fulldayChange != null && meta?.fulldayChange !== 0) {
+      change = meta.fulldayChange;
+      changePercent = meta.fulldayChangePercent ?? meta.regularMarketChangePercent ?? changePercent;
+      previousClose = currentPrice - change;
+    } else if (candles.length > 1 && range !== "1d") {
+      previousClose = candles[candles.length - 2].close;
+      change = currentPrice - previousClose;
+      changePercent = previousClose ? (change / previousClose) * 100 : 0;
+    }
 
     if (isIntraday && candles.length > 1 && currentPrice > 0) {
       const lastCandle = candles[candles.length - 1];
@@ -345,17 +362,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Update live price cache (fire-and-forget)
+    // Update live price cache (fire-and-forget, auto-creates table if needed)
     if (!isCacheFresh) {
-      sql`
-        INSERT INTO live_prices (symbol, price, change, change_percent, last_updated)
-        VALUES (${symbol.toUpperCase()}, ${currentPrice}, ${change}, ${changePercent}, NOW())
-        ON CONFLICT (symbol) DO UPDATE SET
-          price          = EXCLUDED.price,
-          change         = EXCLUDED.change,
-          change_percent = EXCLUDED.change_percent,
-          last_updated   = NOW()
-      `.catch(e => console.error("Database cache write error:", e));
+      (async () => {
+        try {
+          await sql`
+            CREATE TABLE IF NOT EXISTS live_prices (
+              symbol TEXT PRIMARY KEY,
+              price DECIMAL NOT NULL,
+              change DECIMAL NOT NULL,
+              change_percent DECIMAL NOT NULL,
+              last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+          `;
+          await sql`
+            INSERT INTO live_prices (symbol, price, change, change_percent, last_updated)
+            VALUES (${symbol.toUpperCase()}, ${currentPrice}, ${change}, ${changePercent}, NOW())
+            ON CONFLICT (symbol) DO UPDATE SET
+              price          = EXCLUDED.price,
+              change         = EXCLUDED.change,
+              change_percent = EXCLUDED.change_percent,
+              last_updated   = NOW()
+          `;
+        } catch (e: any) {
+          // Cache write is non-blocking
+        }
+      })();
     }
 
     return NextResponse.json({

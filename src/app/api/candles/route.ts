@@ -27,8 +27,8 @@ export async function GET(req: NextRequest) {
 
   if (daysParam) {
     const days = parseInt(daysParam, 10);
-    if (isNaN(days) || days < 1 || days > 365) {
-      return NextResponse.json({ error: 'days must be between 1 and 365' }, { status: 400 });
+    if (isNaN(days) || days < 1 || days > 1095) {
+      return NextResponse.json({ error: 'days must be between 1 and 1095' }, { status: 400 });
     }
     fromTs = nowTs - days * 86400;
     toTs   = nowTs;
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid time range' }, { status: 400 });
   }
 
-  const maxRows = limitParam ? Math.min(parseInt(limitParam, 10), 10000) : 10000;
+  const maxRows = limitParam ? Math.min(parseInt(limitParam, 10), 30000) : 30000;
 
   try {
     const rows = await sql`

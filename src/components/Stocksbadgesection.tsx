@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { TrendUp, TrendDown } from "@phosphor-icons/react";
 
 const STOCKS = [
@@ -277,6 +277,26 @@ function StockBadge({
 
 export default function StocksBadgeSection() {
   const headerRef = useRef<HTMLDivElement>(null);
+  const [liveData, setLiveData] = useState<Record<string, { currentPrice: number; change: number; changePercent: number }>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchLive = async () => {
+      try {
+        const res = await fetch("/api/batch-prices?symbols=NIFTY50,POLYCAB,IFORGE,IEX,DEEPAKNI,COCHINSHIP");
+        if (res.ok && isMounted) {
+          const data = await res.json();
+          setLiveData(data);
+        }
+      } catch (_) {}
+    };
+    fetchLive();
+    const interval = setInterval(fetchLive, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -410,9 +430,19 @@ export default function StocksBadgeSection() {
             gap: "16px",
           }}
         >
-          {STOCKS.map((stock, i) => (
-            <StockBadge key={stock.ticker} stock={stock} index={i} />
-          ))}
+          {STOCKS.map((stock, i) => {
+            const sym = stock.ticker === "NIFTY" ? "NIFTY50" : stock.ticker;
+            const live = liveData[sym] || liveData[stock.ticker];
+            const displayStock = live && live.currentPrice > 0 ? {
+              ...stock,
+              price: stock.ticker === "NIFTY"
+                ? live.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                : `₹${live.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              change: `${live.change >= 0 ? "+" : ""}${live.changePercent.toFixed(2)}%`,
+              up: live.change >= 0,
+            } : stock;
+            return <StockBadge key={stock.ticker} stock={displayStock} index={i} />;
+          })}
         </div>
       </div>
     </section>
