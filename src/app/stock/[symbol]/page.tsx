@@ -1126,7 +1126,7 @@ export default function StockChartPage() {
         }}
       >
         {/* Company Name & Symbol */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative", top: "-30px", left: "-8px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <h1
             style={{
               fontFamily: "Satoshi, sans-serif",
@@ -1146,66 +1146,13 @@ export default function StockChartPage() {
               {rawSymbol.toUpperCase()}
             </span>
           </h1>
-          {stockData && stockData.currentPrice > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "4px" }}>
-              <span
-                style={{
-                  fontFamily: "Satoshi, sans-serif",
-                  fontWeight: 800,
-                  fontSize: "17px",
-                  color: "#0F2044",
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                {currencySymbol}
-                {stockData.currentPrice.toLocaleString(isCrypto ? "en-US" : "en-IN", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
-              <span
-                style={{
-                  fontFamily: "Satoshi, sans-serif",
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: "6px",
-                  background: stockData.change >= 0 ? "rgba(34, 197, 94, 0.12)" : "rgba(239, 68, 68, 0.12)",
-                  color: stockData.change >= 0 ? "#16A34A" : "#DC2626",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "2px",
-                }}
-              >
-                {stockData.change >= 0 ? "+" : ""}
-                {stockData.change.toFixed(2)} ({stockData.change >= 0 ? "+" : ""}
-                {stockData.changePercent.toFixed(2)}%)
-              </span>
-            </div>
-          )}
           {isSyncingDb && (
             <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 500, animation: "pulse 2s infinite", whiteSpace: "nowrap" }}>Syncing...</span>
-          )}
-          {timeframe.interval === "15m" && !isSyncingDb && (
-            <span style={{
-              fontSize: "9px",
-              fontWeight: 800,
-              padding: "2px 7px",
-              borderRadius: "4px",
-              background: "rgba(15, 32, 68, 0.08)",
-              color: "#0F2044",
-              fontFamily: "Satoshi, sans-serif",
-              letterSpacing: "0.5px",
-              textTransform: "uppercase",
-              whiteSpace: "nowrap",
-            }}>
-              {(stockData as any)?.source === "database" ? "📊 DB" : "🌐 Live"}
-            </span>
           )}
         </div>
 
 
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start", marginLeft: "0px", position: "relative", top: "-6px", left: "-14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap", flex: 1, justifyContent: "flex-start" }}>
 
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
