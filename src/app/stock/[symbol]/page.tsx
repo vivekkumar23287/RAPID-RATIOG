@@ -95,7 +95,6 @@ export default function StockChartPage() {
   const chartRef = useRef<any>(null);
   const candleSeriesRef = useRef<any>(null);
   const liveCandleRef = useRef<any>(null);
-  const [dbRange, setDbRange] = useState<string>("30d"); // for DB-backed 15m candles
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [retryCount, setRetryCount] = useState(0);
 
@@ -842,10 +841,7 @@ export default function StockChartPage() {
       if (!isFirstLoad && document.hidden) return;
       const dateParam = selectedDate ? `&date=${selectedDate}` : "";
 
-      // For 15m interval, use the DB-backed range (dbRange). For all others, use timeframe.range.
-      const effectiveRange = timeframe.interval === "15m" ? dbRange : timeframe.range;
-
-      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${effectiveRange}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
+      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
         .then((res) => {
           if (!res.ok) throw new Error("Failed to fetch data");
           return res.json();
@@ -901,7 +897,7 @@ export default function StockChartPage() {
       isMounted = false;
       if (intervalId) clearInterval(intervalId);
     };
-  }, [rawSymbol, timeframe.interval, timeframe.range, dbRange, selectedDate, retryCount]);
+  }, [rawSymbol, timeframe.interval, timeframe.range, selectedDate, retryCount]);
 
   const [lineToolbarPos, setLineToolbarPos] = useState<{ x: number, y: number, price: number } | null>(null);
 
@@ -1028,17 +1024,6 @@ export default function StockChartPage() {
     { label: "1H", interval: "60m", range: "30d" },
     { label: "1D", interval: "1d", range: "1y" },
     { label: "1M", interval: "1mo", range: "max" },
-  ];
-
-  // For 15m interval, allow user to choose DB history range (up to 3 years)
-  const dbRangeOptions = [
-    { label: "1W",  value: "5d"  },
-    { label: "1M",  value: "30d" },
-    { label: "3M",  value: "3m"  },
-    { label: "6M",  value: "6m"  },
-    { label: "1Y",  value: "1y"  },
-    { label: "2Y",  value: "2y"  },
-    { label: "3Y",  value: "3y"  },
   ];
 
   const updateSelectedLine = (updates: Partial<ChartLine>) => {
@@ -1240,40 +1225,6 @@ export default function StockChartPage() {
               );
             })}
           </div>
-
-          {/* DB history range selector — shown only when 15m interval is active */}
-          {timeframe.interval === "15m" && (
-            <>
-              <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
-              <div style={{ display: "flex", gap: "3px", alignItems: "center" }}>
-                <span style={{ fontSize: "10px", fontWeight: 700, color: "#94A3B8", fontFamily: "Satoshi, sans-serif", marginRight: "2px", textTransform: "uppercase", letterSpacing: "0.5px" }}>History:</span>
-                {dbRangeOptions.map((opt) => {
-                  const isDbActive = dbRange === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      onClick={() => setDbRange(opt.value)}
-                      style={{
-                        fontFamily: "Satoshi, sans-serif",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        padding: "4px 9px",
-                        borderRadius: "6px",
-                        border: "1.5px solid",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                        borderColor: isDbActive ? "#0F2044" : "#E2E8F0",
-                        background: isDbActive ? "#0F2044" : "#F8FAFC",
-                        color: isDbActive ? "#FFFFFF" : "#64748B",
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
 
           <div style={{ width: "1px", height: "20px", background: "#E2E8F0" }} />
 
@@ -1645,38 +1596,6 @@ export default function StockChartPage() {
               </button>
             </div>
           </div>
-        </div>
-
-
-        <div style={{ position: "relative", top: "-24px" }}>
-          <a
-            href="/prices"
-            style={{
-              fontFamily: "Satoshi, sans-serif",
-              fontSize: "12px",
-              fontWeight: 700,
-              color: "#0F2044",
-              textDecoration: "none",
-              border: "1.5px solid #E2E8F0",
-              borderRadius: "8px",
-              padding: "8px 16px",
-              background: "#F8FAFC",
-              transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-              display: "inline-block",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#E01F2E";
-              e.currentTarget.style.borderColor = "#E01F2E";
-              e.currentTarget.style.color = "#FFFFFF";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "#F8FAFC";
-              e.currentTarget.style.borderColor = "#E2E8F0";
-              e.currentTarget.style.color = "#0F2044";
-            }}
-          >
-            ← Back to Prices
-          </a>
         </div>
       </div>
 
