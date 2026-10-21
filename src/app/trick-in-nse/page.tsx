@@ -550,7 +550,7 @@ export default function TricksInNSE() {
           </div>
 
           <p style={{ color: "#64748B", fontSize: "13px", margin: "0 0 16px 0", maxWidth: "800px", lineHeight: "1.5" }}>
-            Identifies completed 3-candle breakout confirmation: <strong>Candle 1</strong> (Red reference range) &rarr; <strong>Candle 2</strong> (Green breakout above C1 High) &rarr; <strong>Candle 3</strong> (Green breakout above C2 High). Signal triggers at the <strong>start of Candle 4</strong>.
+            Identifies completed 3-candle breakout confirmation: <strong>Candle 1</strong> (Red reference range) &rarr; <strong>Candle 2</strong> (Green breakout above C1 High) &rarr; <strong>Candle 3</strong> (Green breakout above C2 High). Company name is confirmed only after checking <strong>Candle 4 for 5–8 minutes</strong> and confirming it is a <strong>Green candle</strong>.
           </p>
 
           {/* Search Bar for Special Setups */}
@@ -604,7 +604,7 @@ export default function TricksInNSE() {
             <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
               {specialFilter === "NIFTY"
                 ? "Nifty 50 has not confirmed a 3-candle breakout sequence today yet. Live tick scanner is running."
-                : "No stocks currently match the 3-candle breakout sequence (C1 Red &rarr; C2 Green Breakout &rarr; C3 Green Breakout). Scanner evaluates continuously at the start of each 15-minute candle."}
+                : "No stocks currently match the 3-candle breakout sequence with a confirmed green Candle 4. Scanner evaluates continuously at the start of each 15-minute candle."}
             </div>
           </div>
         ) : (
@@ -618,9 +618,6 @@ export default function TricksInNSE() {
               const isNifty = setup.stock_symbol === "NIFTY50" || setup.stock_symbol === "NIFTY";
               const themeColor = "#10B981";
               const glowColor = "rgba(16,185,129,0.12)";
-
-              const refRange = setup.referenceRange || { high: setup.ref_high, low: setup.ref_low };
-              const breakoutLevels = setup.breakoutLevels || { c2High: setup.c2_high, c3High: setup.c3_high };
 
               return (
                 <div
@@ -642,7 +639,7 @@ export default function TricksInNSE() {
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: "220px",
+                    minHeight: "150px",
                   }}
                   className="special-setup-card"
                 >
@@ -723,38 +720,9 @@ export default function TricksInNSE() {
                     </div>
 
                     {/* Timestamp info */}
-                    <p style={{ color: "#64748B", fontSize: "12px", fontWeight: 600, margin: "0 0 14px 0" }}>
-                      Signal Triggered at Start of Candle 4: <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.confirmationTime || setup.candle_time}</span>
+                    <p style={{ color: "#64748B", fontSize: "12px", fontWeight: 600, margin: "0 0 10px 0" }}>
+                      Confirmed Green Candle 4: <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.confirmationTime || setup.candle_time}</span>
                     </p>
-
-                    {/* 3 Breakout Stages Visual Grid */}
-                    <div style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: "8px",
-                      background: "#F8FAFC",
-                      padding: "10px",
-                      borderRadius: "10px",
-                      border: "1px solid #E2E8F0",
-                      marginBottom: "12px",
-                      fontSize: "11px"
-                    }}>
-                      <div>
-                        <span style={{ color: "#DC2626", fontWeight: 800, display: "block" }}>1. Red Ref</span>
-                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{refRange?.high ? Number(refRange.high).toFixed(1) : '-'}</strong></div>
-                        <div style={{ color: "#64748B" }}>SL: <strong style={{ color: "#0F2044" }}>₹{refRange?.low ? Number(refRange.low).toFixed(1) : '-'}</strong></div>
-                      </div>
-                      <div>
-                        <span style={{ color: "#16A34A", fontWeight: 800, display: "block" }}>2. Green Breakout 1</span>
-                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{breakoutLevels?.c2High ? Number(breakoutLevels.c2High).toFixed(1) : '-'}</strong></div>
-                        <div style={{ color: "#16A34A", fontWeight: 700 }}>&gt; C1 High &check;</div>
-                      </div>
-                      <div>
-                        <span style={{ color: "#16A34A", fontWeight: 800, display: "block" }}>3. Green Breakout 2</span>
-                        <div style={{ color: "#64748B", marginTop: "2px" }}>High: <strong style={{ color: "#0F2044" }}>₹{breakoutLevels?.c3High ? Number(breakoutLevels.c3High).toFixed(1) : '-'}</strong></div>
-                        <div style={{ color: "#16A34A", fontWeight: 700 }}>&gt; C2 High &check;</div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* CTA Footer */}

@@ -188,16 +188,29 @@ export async function GET(req: NextRequest) {
             const isC3Breakout = c3.high > c2.high;
             if (!isC3Green || !isC3Breakout) continue;
 
-            // Condition 4: Start of Candle 4
-            // Candle 3 ends at c3.timestamp + 15 * 60, which is exactly when Candle 4 begins.
+            // Condition 4: Candle 4 verification (must check for 5 to 8 min and confirm it is a GREEN candle)
+            // Candle 3 ends at c3.timestamp + 15 * 60, which is precisely when Candle 4 begins.
             const c4StartTs = c3.timestamp + 15 * 60;
-            const hasC4Started = nowTs >= c4StartTs || Object.keys(allCandlesByTs).some(t => Number(t) >= c4StartTs);
-            if (!hasC4Started) {
-              // "Do not display the signal before the fourth candle starts."
+            const elapsedSec = nowTs - c4StartTs;
+            const c4Candle = allCandlesByTs[c4StartTs];
+            const isCompletedPastCandle = c4Candle != null && nowTs >= (c4StartTs + 15 * 60);
+
+            // 1. Must check for at least 5 to 8 minutes into Candle 4
+            // If Candle 4 is currently in progress, at least 5 minutes (300 seconds) must have elapsed
+            if (!isCompletedPastCandle && elapsedSec < 5 * 60) {
+              // Wait 5 to 8 minutes before adding company name
               continue;
             }
 
-            const c4Candle = allCandlesByTs[c4StartTs];
+            // 2. Check if Candle 4 has become a GREEN candle
+            const c4Open = c4Candle ? c4Candle.open : c3.close;
+            const c4CurrentPrice = c4Candle ? c4Candle.close : meta.regularMarketPrice ?? c3.close;
+            const isC4Green = c4CurrentPrice > c4Open;
+
+            if (!isC4Green) {
+              // Candle 4 is RED or flat — do not add company name
+              continue;
+            }
 
             const c4StartDate = new Date(c4StartTs * 1000);
             const c4StartTimeStr = c4StartDate.toLocaleTimeString("en-IN", {
@@ -232,7 +245,7 @@ export async function GET(req: NextRequest) {
                 c2High: c2.high,
                 c3High: c3.high
               },
-              triggerPrice: c4Candle ? c4Candle.open : c3.close,
+              triggerPrice: c4CurrentPrice,
             };
           }
 

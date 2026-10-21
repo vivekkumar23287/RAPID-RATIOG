@@ -43,15 +43,29 @@ function check3CandleBreakout(quotes) {
     if (c3.high <= c2.high) continue;
 
     // 4. Candle 4 verification:
-    // Candle 3 ends at c3.timestamp + 15 * 60, which is precisely when Candle 4 begins.
+    // Before giving the name of the company, check if it becomes a green candle or not,
+    // and check for 5 to 8 min then add the company name.
     const c4StartTs = c3.timestamp + 15 * 60;
     const c4EndTs = c4StartTs + 15 * 60;
+    const elapsedSec = nowTs - c4StartTs;
+    const isCompletedPastCandle = quotes.length > i + 3;
 
-    // The signal must NOT be displayed before the 4th candle starts!
-    const hasC4Started = (quotes.length > i + 3) || (nowTs >= c4StartTs);
-    if (!hasC4Started) continue;
+    // Must check for 5 to 8 minutes into Candle 4
+    if (!isCompletedPastCandle && elapsedSec < 5 * 60) {
+      continue;
+    }
 
     const c4 = quotes[i + 3];
+    const c4Open = c4 ? c4.open : c3.close;
+    const c4Price = c4 ? c4.close : c3.close;
+
+    // Check if Candle 4 has become a GREEN candle (close/price > open)
+    const isC4Green = c4 ? (c4.close > c4.open) : true;
+    if (c4 && !isC4Green) {
+      // Candle 4 is RED or flat — do not add company name
+      continue;
+    }
+
     const c4StartTimeStr = getISTTimeString(c4StartTs);
     const c4EndTimeStr = getISTTimeString(c4EndTs);
     const candleTime = `${c4StartTimeStr} - ${c4EndTimeStr}`;
@@ -68,7 +82,7 @@ function check3CandleBreakout(quotes) {
       refRange: { high: c1.high, low: c1.low },
       c2High: c2.high,
       c3High: c3.high,
-      triggerPrice: c4 ? c4.open : c3.close,
+      triggerPrice: c4 ? c4.close : c3.close,
     };
   }
   return null;
