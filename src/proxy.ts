@@ -8,14 +8,17 @@ const isPublicRoute = createRouteMatcher([
   "/prices(.*)",    // Prices page — public
   "/stock(.*)",     // Stock chart page — public
   "/trick-in-nse(.*)", // Public scanner page
+  "/sheetflow(.*)", // Sheet Flow page — public
   // Public data APIs — market data, no user-specific content
   "/api/batch-prices(.*)",
   "/api/stock-data(.*)",
   "/api/candles(.*)",
   "/api/nse-gaps(.*)",
   "/api/scanner-5c(.*)",
+  "/api/scanner-3c(.*)",
   "/api/setup-db(.*)",
   "/api/signals(.*)",
+  "/api/export-tricks(.*)",
 ]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {

@@ -29,6 +29,7 @@ const cors     = require('cors');
 const { scanStocks, pool } = require('./scanner');
 const { importAllCandles } = require('./candle-importer');
 const { runSyncCycle, backfillSymbol, getSyncStatus } = require('./candle-worker');
+const { exportAllTricksToExcel } = require('./tricks-exporter');
 const fs   = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
@@ -234,6 +235,30 @@ app.post('/api/worker/backfill', requireWorkerAuth, async (req, res) => {
   }
 });
 
+// ── Daily Tricks Excel Export (sheet name "date") ─────────────────────────────
+app.get('/api/export-tricks', async (req, res) => {
+  try {
+    console.log('[API] Triggering on-demand Tricks Excel export...');
+    const result = await exportAllTricksToExcel(req.query.date);
+    res.json(result);
+  } catch (err) {
+    console.error('[API] Tricks export error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/download-tricks', (req, res) => {
+  try {
+    const exportPath = path.join(__dirname, 'exports', 'Tricks_History.xlsx');
+    if (!fs.existsSync(exportPath)) {
+      return res.status(404).json({ error: 'Tricks export not generated yet. Trigger /api/export-tricks first.' });
+    }
+    res.download(exportPath, 'Tricks_History.xlsx');
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // WEBSOCKET
 // ─────────────────────────────────────────────────────────────────────────────
@@ -304,14 +329,25 @@ cron.schedule('*/2 9-15 * * 1-5', async () => {
   }
 }, { timezone: 'Asia/Kolkata' });
 
-// ── Post-market catch-up — 16:00 IST weekdays ────────────────────────────────
-// Captures any data Yahoo publishes after market close (delayed feeds, adjustments).
+// ── Post-market catch-up & Daily Tricks Excel Export — 16:00 IST weekdays ───
+// Captures full market close data and updates Excel sheet named "date" with all trick company names
 cron.schedule('0 16 * * 1-5', async () => {
-  console.log('[WORKER] 🔔 4:00 PM IST post-market catch-up');
+  console.log('');
+  console.log('╔══════════════════════════════════════════════════════════════════════╗');
+  console.log('║  [16:00 IST] 4:00 PM WORKING DAY POST-MARKET TRICKS EXCEL EXPORT     ║');
+  console.log('╚══════════════════════════════════════════════════════════════════════╝');
   try {
     await runSyncCycle(false);
   } catch (err) {
     console.error('[WORKER] Post-market sync error:', err.message);
+  }
+
+  try {
+    console.log('[WORKER] 📊 Generating daily tricks Excel export (sheet: "date")...');
+    const result = await exportAllTricksToExcel();
+    console.log(`[WORKER] ✅ 4:00 PM daily tricks Excel export complete: ${result.count} rows written to sheet "date"`);
+  } catch (exportErr) {
+    console.error('[WORKER] ❌ Error exporting daily tricks to Excel:', exportErr.message);
   }
 }, { timezone: 'Asia/Kolkata' });
 
