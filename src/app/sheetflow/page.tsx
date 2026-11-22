@@ -29,7 +29,7 @@ const TRICK_OPTIONS = [
   { id: "ALL", label: "All Tricks (Complete Sheet)" },
   { id: "TRICK_1", label: "Trick 1: True Gap Scanner" },
   { id: "TRICK_2", label: "Trick 2: 5-Candle Mother Range" },
-  { id: "TRICK_3", label: "Trick 3: 15-Minute 3-Candle Breakout" },
+  { id: "TRICK_3", label: "Trick 3: 15-Minute 3-Candle Gap Strategy" },
   { id: "TRICK_4_OL", label: "Trick 4: Open=Low (Bullish)" },
   { id: "TRICK_4_OH", label: "Trick 4: Open=High (Bearish)" },
   { id: "TRICK_4_ALL", label: "Trick 4: All O=H & O=L Signals" },
@@ -60,7 +60,7 @@ function matchesTrickFilter(row: TrickRow, filter: string): boolean {
   if (!filter || filter === "ALL") return true;
   if (filter === "TRICK_1") return t.includes("trick 1") || t.includes("gap");
   if (filter === "TRICK_2") return t.includes("trick 2") || t.includes("mother");
-  if (filter === "TRICK_3") return t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout");
+  if (filter === "TRICK_3") return t.includes("trick 3") || t.includes("3-candle") || (t.includes("gap") && !t.includes("trick 1")) || t.includes("breakout");
   if (filter === "TRICK_4_OH") return t.includes("open=high") || t.includes("open = high");
   if (filter === "TRICK_4_OL") return t.includes("open=low") || t.includes("open = low");
   if (filter === "TRICK_4_ALL") return t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
@@ -98,9 +98,9 @@ function getSheetNameFromRows(rows: TrickRow[], fallbackRows?: TrickRow[]): stri
 
 function getTrickGroup(trickName: string): { order: number; label: string } {
   const t = String(trickName || "").toLowerCase();
-  if (t.includes("trick 1") || t.includes("gap")) return { order: 1, label: "Trick 1: True Gap Scanner" };
+  if (t.includes("trick 1") || t.includes("true gap")) return { order: 1, label: "Trick 1: True Gap Scanner" };
   if (t.includes("trick 2") || t.includes("mother")) return { order: 2, label: "Trick 2: 5-Candle Mother Range" };
-  if (t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout")) return { order: 3, label: "Trick 3: 3-Candle Bullish Breakout" };
+  if (t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout") || t.includes("gap")) return { order: 3, label: "Trick 3: 15-Minute 3-Candle Gap Strategy" };
   if (t.includes("open=high") || t.includes("open = high")) return { order: 4, label: "Trick 4: Open=High Bearish" };
   if (t.includes("open=low") || t.includes("open = low")) return { order: 5, label: "Trick 4: Open=Low Bullish" };
   if (t.includes("trick 5") || t.includes("rsi")) return { order: 6, label: "Trick 5: RSI 60 Bullish Breakout" };

@@ -50,7 +50,7 @@ export default function TricksInNSE() {
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UP" | "DOWN">("ALL");
-  const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY" | "BTC">("ALL");
+  const [specialFilter, setSpecialFilter] = useState<"ALL" | "BULLISH" | "BEARISH" | "NIFTY" | "BTC">("ALL");
   const [specialSearch, setSpecialSearch] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
@@ -214,7 +214,7 @@ export default function TricksInNSE() {
     };
   }, []);
 
-  // Combine live /api/scanner-3c matches with any live stream 3-candle breakout signals
+  // Combine live /api/scanner-3c matches with any live stream 3-candle gap signals
   const specialSetups = useMemo(() => {
     const list: any[] = [];
     const seen = new Set<string>();
@@ -227,25 +227,31 @@ export default function TricksInNSE() {
           id: item.symbol === "NIFTY50" ? 999999 : undefined,
           stock_symbol: item.symbol,
           stock_name: item.name,
-          signal_type: item.signal_type || "3-CANDLE BUY BREAKOUT",
-          direction: "UP",
-          timeframe: "15m",
+          signal_type: item.signal_type || (item.direction === "DOWN" ? "BEARISH 3-CANDLE GAP" : "BULLISH 3-CANDLE GAP"),
+          direction: item.direction || (item.signal_type?.includes("BEARISH") ? "DOWN" : "UP"),
+          timeframe: item.timeframe || "15m",
+          gap_points: item.gap_points,
+          c1_high: item.c1_high,
+          c1_low: item.c1_low,
+          c3_high: item.c3_high,
+          c3_low: item.c3_low,
+          trigger_price: item.trigger_price || item.close_price,
           open_price: item.open_price,
           high_price: item.high_price,
           low_price: item.low_price,
           close_price: item.close_price,
           candle_time: item.candle_time,
           candle_date: item.candle_date,
-          confirmationTime: item.confirmationTime,
+          detection_time: item.detection_time || item.confirmationTime || item.candle_time,
+          confirmationTime: item.detection_time || item.confirmationTime || item.candle_time,
           referenceRange: item.referenceRange,
-          breakoutLevels: item.breakoutLevels,
           candles: item.candles,
         });
       }
     });
 
     signals.forEach(s => {
-      if (s.signal_type === "3-CANDLE BUY BREAKOUT") {
+      if (s.signal_type && (s.signal_type.includes("3-CANDLE") || s.signal_type.includes("GAP"))) {
         const key = `${s.stock_symbol}-${s.candle_date}-${s.candle_time}`;
         if (!seen.has(key)) {
           seen.add(key);
@@ -269,6 +275,8 @@ export default function TricksInNSE() {
         item.stock_symbol.toLowerCase().includes(specialSearch.toLowerCase()) ||
         item.stock_name.toLowerCase().includes(specialSearch.toLowerCase());
       if (!matchesSearch) return false;
+      if (specialFilter === "BULLISH") return item.direction === "UP" || item.signal_type?.includes("BULLISH");
+      if (specialFilter === "BEARISH") return item.direction === "DOWN" || item.signal_type?.includes("BEARISH");
       if (specialFilter === "NIFTY") return item.stock_symbol === "NIFTY50" || item.stock_symbol === "NIFTY";
       if (specialFilter === "BTC") return item.stock_symbol === "BTC" || item.stock_symbol === "BTC-USD";
       return true;
@@ -378,7 +386,7 @@ export default function TricksInNSE() {
             margin: "0",
             lineHeight: 1.6
           }}>
-            Track overnight opening gaps, 5-Candle Mother Range breakouts, 3-Candle Bullish Breakout confirmations, Live 15-Min Open=High & Open=Low Signals, and 14-Period RSI Overbought & Oversold reversals.
+            Track overnight opening gaps, 5-Candle Mother Range breakouts, 15-Minute 3-Candle Gap Strategy (Bullish & Bearish), Live 15-Min Open=High & Open=Low Signals, and 14-Period RSI Overbought & Oversold reversals.
           </p>
         </div>
 
@@ -555,16 +563,16 @@ export default function TricksInNSE() {
         </div>
 
         
-        {/* 15-MIN SPECIAL SETUP — NIFTY 50 & ALL COMPANIES */}
+        {/* 15-MIN SPECIAL SETUP — 3-CANDLE GAP STRATEGY */}
         <div style={{ marginBottom: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
-                3. 15-Minute 3-Candle Breakout Setup (All Companies, Nifty 50 &amp; Bitcoin)
+                3. 15-Minute 3-Candle Gap Strategy (All Companies, Nifty 50 &amp; Bitcoin)
               </h2>
               <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
                 <span style={{ width: "6px", height: "6px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
-                BUY BREAKOUT CONFIRMATION
+                15M 3-CANDLE GAP
               </div>
               <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "3px 8px", borderRadius: "6px" }}>
                 {filteredSpecialSetups.length} Found
@@ -575,6 +583,8 @@ export default function TricksInNSE() {
             <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
               {([
                 { key: "ALL", label: `All (${specialSetups.length})` },
+                { key: "BULLISH", label: "Bullish" },
+                { key: "BEARISH", label: "Bearish" },
                 { key: "NIFTY", label: "Nifty 50" },
                 { key: "BTC", label: "Bitcoin" },
               ] as const).map(tab => (
@@ -601,7 +611,7 @@ export default function TricksInNSE() {
           </div>
 
           <p style={{ color: "#64748B", fontSize: "13px", margin: "0 0 16px 0", maxWidth: "800px", lineHeight: "1.5" }}>
-            Identifies completed 3-candle breakout confirmation: <strong>Candle 1</strong> (Red reference range) &rarr; <strong>Candle 2</strong> (Green breakout above C1 High) &rarr; <strong>Candle 3</strong> (Green breakout above C2 High). Company name is confirmed only after checking <strong>Candle 4 for 5–8 minutes</strong> and confirming it is a <strong>Green candle</strong>.
+            Detects exact 15-minute 3-candle gap setups: <strong>Bullish</strong> (Green C1, any C2, Green C3 where <code>C3 Low &gt; C1 High</code>) and <strong>Bearish</strong> (Red C1, any C2, Red C3 where <code>C3 High &lt; C1 Low</code>). Evaluated strictly on three completed consecutive 15-minute candles.
           </p>
 
           {/* Search Bar for Special Setups */}
@@ -650,14 +660,26 @@ export default function TricksInNSE() {
               <Info size={22} weight="bold" />
             </div>
             <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>
-              {specialFilter === "NIFTY" ? "No Nifty 50 3-Candle Breakout Active" : specialFilter === "BTC" ? "No Bitcoin 3-Candle Breakout Active" : "No 3-Candle Breakout Setups Active"}
+              {specialFilter === "BULLISH"
+                ? "No Bullish 3-Candle Gap Setups Active"
+                : specialFilter === "BEARISH"
+                ? "No Bearish 3-Candle Gap Setups Active"
+                : specialFilter === "NIFTY"
+                ? "No Nifty 50 3-Candle Gap Active"
+                : specialFilter === "BTC"
+                ? "No Bitcoin 3-Candle Gap Active"
+                : "No 3-Candle Gap Setups Active"}
             </div>
             <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
-              {specialFilter === "NIFTY"
-                ? "Nifty 50 has not confirmed a 3-candle breakout sequence today yet. Live tick scanner is running."
+              {specialFilter === "BULLISH"
+                ? "No stocks currently match the Bullish 3-Candle Gap condition (Green C1, Green C3, C3 Low > C1 High)."
+                : specialFilter === "BEARISH"
+                ? "No stocks currently match the Bearish 3-Candle Gap condition (Red C1, Red C3, C3 High < C1 Low)."
+                : specialFilter === "NIFTY"
+                ? "Nifty 50 has not confirmed a 3-candle gap setup today yet. Live scanner evaluates completed 15-minute candles."
                 : specialFilter === "BTC"
-                ? "Bitcoin has not confirmed a 3-candle breakout sequence yet. Live tick scanner is running."
-                : "No stocks currently match the 3-candle breakout sequence with a confirmed green Candle 4. Scanner evaluates continuously at the start of each 15-minute candle."}
+                ? "Bitcoin has not confirmed a 3-candle gap setup yet. Live scanner evaluates completed 15-minute candles."
+                : "No stocks currently match the 3-candle gap setup. Scanner evaluates continuously on completed 15-minute candles."}
             </div>
           </div>
         ) : (
@@ -671,12 +693,18 @@ export default function TricksInNSE() {
               const isNifty = setup.stock_symbol === "NIFTY50" || setup.stock_symbol === "NIFTY";
               const isBtc = setup.stock_symbol === "BTC" || setup.stock_symbol === "BTC-USD";
               const currSym = isBtc ? "$" : "₹";
-              const themeColor = "#10B981";
-              const glowColor = "rgba(16,185,129,0.12)";
+              const isBullish = setup.direction === "UP" || setup.signal_type?.includes("BULLISH");
+              const themeColor = isBullish ? "#10B981" : "#EF4444";
+              const glowColor = isBullish ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)";
+              const bgTagColor = isBullish ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)";
+
+              const gapDisplay = setup.gap_points !== undefined && setup.gap_points !== null
+                ? `${isBullish ? "+" : "-"}${Math.abs(Number(setup.gap_points)).toFixed(2)} pts`
+                : null;
 
               return (
                 <div
-                  key={setup.id || `${setup.stock_symbol}-${setup.candle_time}`}
+                  key={setup.id || `${setup.stock_symbol}-${setup.candle_date}-${setup.candle_time}`}
                   onMouseEnter={() => prefetchStockCandles(setup.stock_symbol)}
                   onClick={() => {
                     localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
@@ -695,7 +723,7 @@ export default function TricksInNSE() {
                     display: "flex",
                     flexDirection: "column",
                     justifyContent: "space-between",
-                    minHeight: "150px",
+                    minHeight: "180px",
                   }}
                   className="special-setup-card"
                 >
@@ -709,7 +737,7 @@ export default function TricksInNSE() {
                           width: "44px",
                           height: "44px",
                           borderRadius: "12px",
-                          background: "rgba(16,185,129,0.12)",
+                          background: bgTagColor,
                           color: themeColor,
                           display: "flex",
                           alignItems: "center",
@@ -758,38 +786,92 @@ export default function TricksInNSE() {
                               </span>
                             )}
                           </div>
-                          <span style={{
-                            display: "inline-block",
-                            marginTop: "4px",
-                            background: "rgba(16,185,129,0.12)",
-                            color: themeColor,
-                            padding: "2px 7px",
-                            borderRadius: "6px",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            letterSpacing: "0.3px"
-                          }}>
-                            BUY / BULLISH BREAKOUT
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "4px", flexWrap: "wrap" }}>
+                            <span style={{
+                              background: bgTagColor,
+                              color: themeColor,
+                              padding: "2px 7px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 800,
+                              letterSpacing: "0.3px"
+                            }}>
+                              {isBullish ? "BULLISH 3-CANDLE GAP" : "BEARISH 3-CANDLE GAP"}
+                            </span>
+                            <span style={{
+                              background: "#F8FAFC",
+                              color: "#64748B",
+                              border: "1px solid #E2E8F0",
+                              padding: "1px 6px",
+                              borderRadius: "5px",
+                              fontSize: "10px",
+                              fontWeight: 700
+                            }}>
+                              15M TIMEFRAME
+                            </span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Trigger Price */}
-                      {(setup.close_price || setup.open_price) && (
+                      {/* Trigger / Latest Price */}
+                      {(setup.close_price || setup.open_price || setup.trigger_price) && (
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <span style={{ fontSize: "10px", color: "#94A3B8", fontWeight: 700, textTransform: "uppercase", display: "block" }}>
-                            Trigger Price
+                            Price
                           </span>
                           <span style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", fontFamily: "monospace" }}>
-                            {currSym}{Number(setup.close_price || setup.open_price).toFixed(2)}
+                            {currSym}{Number(setup.close_price || setup.open_price || setup.trigger_price).toFixed(2)}
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Timestamp info */}
-                    <p style={{ color: "#64748B", fontSize: "12px", fontWeight: 600, margin: "0 0 10px 0" }}>
-                      Confirmed Green Candle 4: <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.confirmationTime || setup.candle_time}</span>
+                    {/* Gap Size & Candle Levels Grid */}
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+                      gap: "8px",
+                      background: "#F8FAFC",
+                      borderRadius: "10px",
+                      padding: "10px 12px",
+                      margin: "10px 0 12px 0",
+                      border: "1px solid #E2E8F0"
+                    }}>
+                      {gapDisplay && (
+                        <div>
+                          <span style={{ fontSize: "10px", color: "#64748B", fontWeight: 700, textTransform: "uppercase", display: "block" }}>
+                            Gap Size
+                          </span>
+                          <span style={{ fontSize: "13px", fontWeight: 800, color: themeColor }}>
+                            {gapDisplay}
+                          </span>
+                        </div>
+                      )}
+                      {(setup.c1_high !== undefined && setup.c1_low !== undefined) && (
+                        <div>
+                          <span style={{ fontSize: "10px", color: "#64748B", fontWeight: 700, textTransform: "uppercase", display: "block" }}>
+                            Candle 1 (H / L)
+                          </span>
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F2044" }}>
+                            {currSym}{Number(setup.c1_high).toFixed(2)} / {currSym}{Number(setup.c1_low).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      {(setup.c3_high !== undefined && setup.c3_low !== undefined) && (
+                        <div>
+                          <span style={{ fontSize: "10px", color: "#64748B", fontWeight: 700, textTransform: "uppercase", display: "block" }}>
+                            Candle 3 (H / L)
+                          </span>
+                          <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F2044" }}>
+                            {currSym}{Number(setup.c3_high).toFixed(2)} / {currSym}{Number(setup.c3_low).toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Timestamp Info */}
+                    <p style={{ color: "#64748B", fontSize: "11px", fontWeight: 600, margin: "0 0 10px 0" }}>
+                      Confirmed on 15m candle: <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.candle_date}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{setup.detection_time || setup.confirmationTime || setup.candle_time}</span>
                     </p>
                   </div>
 

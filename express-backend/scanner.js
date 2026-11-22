@@ -12,15 +12,22 @@ const pool = new Pool({
 });
 
 /**
- * 3-CANDLE BREAKOUT STRATEGY LOGIC:
- * 1. Candle 1: Completed Red reference candle (close < open). High and Low form the reference range.
- * 2. Candle 2: Completed Green candle (close > open) whose High strictly breaks above C1 High (c2.high > c1.high).
- * 3. Candle 3: Completed Green candle (close > open) whose High strictly breaks above C2 High (c3.high > c2.high).
- * 4. Candle 4: Signal triggers strictly at the START of the fourth candle, immediately when it begins.
+ * 3-CANDLE GAP STRATEGY LOGIC:
+ * 1. Bullish 3-Candle Gap:
+ *    - Candle 1: Green (c1.close > c1.open)
+ *    - Candle 2: Any (bullish, bearish, or doji)
+ *    - Candle 3: Green (c3.close > c3.open)
+ *    - Gap: c3.low > c1.high (Gap Points = c3.low - c1.high)
+ *    - Pattern Type: BULLISH 3-CANDLE GAP
+ * 2. Bearish 3-Candle Gap:
+ *    - Candle 1: Red (c1.close < c1.open)
+ *    - Candle 2: Any (bullish, bearish, or doji)
+ *    - Candle 3: Red (c3.close < c3.open)
+ *    - Gap: c3.high < c1.low (Gap Points = c1.low - c3.high)
+ *    - Pattern Type: BEARISH 3-CANDLE GAP
  */
-function check3CandleBreakout(quotes) {
+function check3CandleGap(quotes) {
   if (!quotes || quotes.length < 3) return null;
-  const nowTs = Math.floor(Date.now() / 1000);
 
   // quotes are completed 15-minute candles sorted ascending by timestamp
   for (let i = quotes.length - 3; i >= 0; i--) {
@@ -28,62 +35,58 @@ function check3CandleBreakout(quotes) {
     const c2 = quotes[i + 1];
     const c3 = quotes[i + 2];
 
-    // Must be on the same trading day
-    if (c1.dateStr !== c2.dateStr || c2.dateStr !== c3.dateStr) continue;
-
-    // 1. Candle 1 must be RED (close < open)
-    if (c1.close >= c1.open) continue;
-
-    // 2. Candle 2 must be GREEN (close > open) and strictly break above C1 High
-    if (c2.close <= c2.open) continue;
-    if (c2.high <= c1.high) continue;
-
-    // 3. Candle 3 must be GREEN (close > open) and strictly break above C2 High
-    if (c3.close <= c3.open) continue;
-    if (c3.high <= c2.high) continue;
-
-    // 4. Candle 4 verification:
-    // Before giving the name of the company, check if it becomes a green candle or not,
-    // and check for 5 to 8 min then add the company name.
-    const c4StartTs = c3.timestamp + 15 * 60;
-    const c4EndTs = c4StartTs + 15 * 60;
-    const elapsedSec = nowTs - c4StartTs;
-    const isCompletedPastCandle = quotes.length > i + 3;
-
-    // Must check for 5 to 8 minutes into Candle 4
-    if (!isCompletedPastCandle && elapsedSec < 5 * 60) {
-      continue;
+    // Must be on the same trading day (if dateStr available)
+    if (c1.dateStr && c2.dateStr && c3.dateStr) {
+      if (c1.dateStr !== c2.dateStr || c2.dateStr !== c3.dateStr) continue;
     }
 
-    const c4 = quotes[i + 3];
-    const c4Open = c4 ? c4.open : c3.close;
-    const c4Price = c4 ? c4.close : c3.close;
+    const isBullish = (c1.close > c1.open) && (c3.close > c3.open) && (c3.low > c1.high);
+    const isBearish = (c1.close < c1.open) && (c3.close < c3.open) && (c3.high < c1.low);
 
-    // Check if Candle 4 has become a GREEN candle (close/price > open)
-    const isC4Green = c4 ? (c4.close > c4.open) : true;
-    if (c4 && !isC4Green) {
-      // Candle 4 is RED or flat — do not add company name
-      continue;
+    if (!isBullish && !isBearish) continue;
+
+    const candleTime = `${c1.timeStr || ''} - ${c3.timeStr || ''}`;
+    const detectionTime = c3.timeStr || '';
+
+    if (isBullish) {
+      const gapPoints = Number((c3.low - c1.high).toFixed(2));
+      return {
+        signalType: 'BULLISH 3-CANDLE GAP',
+        direction: 'UP',
+        gapPoints,
+        c1,
+        c2,
+        c3,
+        c1High: c1.high,
+        c1Low: c1.low,
+        c3High: c3.high,
+        c3Low: c3.low,
+        candleTime,
+        detectionTime,
+        candleDate: c3.dateStr,
+        triggerPrice: c3.close,
+      };
     }
 
-    const c4StartTimeStr = getISTTimeString(c4StartTs);
-    const c4EndTimeStr = getISTTimeString(c4EndTs);
-    const candleTime = `${c4StartTimeStr} - ${c4EndTimeStr}`;
-
-    return {
-      c1,
-      c2,
-      c3,
-      c4: c4 || null,
-      c4StartTs,
-      candleTime,
-      candleDate: c3.dateStr,
-      confirmationTime: c4StartTimeStr,
-      refRange: { high: c1.high, low: c1.low },
-      c2High: c2.high,
-      c3High: c3.high,
-      triggerPrice: c4 ? c4.close : c3.close,
-    };
+    if (isBearish) {
+      const gapPoints = Number((c1.low - c3.high).toFixed(2));
+      return {
+        signalType: 'BEARISH 3-CANDLE GAP',
+        direction: 'DOWN',
+        gapPoints,
+        c1,
+        c2,
+        c3,
+        c1High: c1.high,
+        c1Low: c1.low,
+        c3High: c3.high,
+        c3Low: c3.low,
+        candleTime,
+        detectionTime,
+        candleDate: c3.dateStr,
+        triggerPrice: c3.close,
+      };
+    }
   }
   return null;
 }
@@ -92,40 +95,46 @@ async function scanStocks(importedCandles) {
   const newSignals = [];
 
   // =========================================================================
-  // 1. Scan EVERY stock (including NIFTY50) for 3-Candle Bullish Breakout
+  // 1. Scan EVERY stock (including NIFTY50 & BTC) for 3-Candle Gap (Bullish & Bearish)
   // =========================================================================
-  console.log('[SCANNER] Scanning all stocks for 3-Candle Bullish Breakout setup...');
-  let breakoutCount = 0;
+  console.log('[SCANNER] Scanning all stocks for 3-Candle Gap setup (Bullish & Bearish)...');
+  let gapCount = 0;
 
   for (const [symbol, data] of Object.entries(importedCandles)) {
     try {
       const { quotes, name } = data;
       if (!quotes || quotes.length < 3) continue;
 
-      const breakout = check3CandleBreakout(quotes);
-      if (breakout) {
+      const gapSetup = check3CandleGap(quotes);
+      if (gapSetup) {
         newSignals.push({
           stock_symbol: symbol,
-          stock_name: name || (symbol === 'NIFTY50' ? 'Nifty 50 Index' : symbol),
-          signal_type: '3-CANDLE BUY BREAKOUT',
-          direction: 'UP',
+          stock_name: name || (symbol === 'NIFTY50' ? 'Nifty 50 Index' : symbol === 'BTC' ? 'Bitcoin' : symbol),
+          signal_type: gapSetup.signalType,
+          direction: gapSetup.direction,
           timeframe: '15m',
-          open_price: breakout.triggerPrice,
-          high_price: breakout.c3High,
-          low_price: breakout.refRange.low,
-          close_price: breakout.triggerPrice,
-          candle_time: breakout.candleTime,
-          candle_date: breakout.candleDate,
+          gap_points: gapSetup.gapPoints,
+          open_price: gapSetup.triggerPrice,
+          high_price: Math.max(gapSetup.c1High, gapSetup.c3High),
+          low_price: Math.min(gapSetup.c1Low, gapSetup.c3Low),
+          close_price: gapSetup.triggerPrice,
+          candle_time: gapSetup.candleTime,
+          candle_date: gapSetup.candleDate,
+          c1_high: gapSetup.c1High,
+          c1_low: gapSetup.c1Low,
+          c3_high: gapSetup.c3High,
+          c3_low: gapSetup.c3Low,
+          detection_time: gapSetup.detectionTime,
         });
-        breakoutCount++;
-        console.log(`[SCANNER] ✓ 3-Candle Breakout confirmed for ${symbol} at ${breakout.candleTime}`);
+        gapCount++;
+        console.log(`[SCANNER] ✓ ${gapSetup.signalType} (${gapSetup.direction}) confirmed for ${symbol}: Gap=${gapSetup.gapPoints} pts at ${gapSetup.candleTime}`);
       }
     } catch (err) {
-      console.error(`[SCANNER] Error checking 3-candle breakout for ${symbol}:`, err.message);
+      console.error(`[SCANNER] Error checking 3-candle gap for ${symbol}:`, err.message);
     }
   }
 
-  console.log(`[SCANNER] Found ${breakoutCount} 3-Candle Breakout setups`);
+  console.log(`[SCANNER] Found ${gapCount} 3-Candle Gap setups`);
 
   // =========================================================================
   // 2. Scan stocks for 15-Min Open = High / Open = Low Signals (Trick 4)

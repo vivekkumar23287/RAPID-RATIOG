@@ -37,7 +37,7 @@ function filterRowsByTrick(rows: any[], filter: string | null) {
     const t = String(r["Trick Name"] || "").toLowerCase();
     if (f === "trick_1" || f === "1") return t.includes("trick 1") || t.includes("gap");
     if (f === "trick_2" || f === "2") return t.includes("trick 2") || t.includes("mother");
-    if (f === "trick_3" || f === "3") return t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout");
+    if (f === "trick_3" || f === "3") return t.includes("trick 3") || t.includes("3-candle") || t.includes("gap") || t.includes("breakout");
     if (f === "trick_4_oh") return t.includes("open=high") || t.includes("open = high");
     if (f === "trick_4_ol") return t.includes("open=low") || t.includes("open = low");
     if (f === "trick_4" || f === "4") return t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
@@ -193,7 +193,11 @@ export async function GET(req: NextRequest) {
           SELECT 
             stock_name as "Company Name",
             CASE 
-              WHEN signal_type LIKE '%3-CANDLE%' THEN 'Trick 3: 3-Candle Bullish Breakout'
+              WHEN signal_type LIKE '%3-CANDLE%' OR signal_type LIKE '%GAP%' THEN 
+                CASE
+                  WHEN direction = 'UP' THEN 'Trick 3: Bullish 3-Candle Gap'
+                  ELSE 'Trick 3: Bearish 3-Candle Gap'
+                END
               ELSE CONCAT('Trick 4: ', signal_type)
             END as "Trick Name",
             stock_symbol as "Symbol",
@@ -206,7 +210,7 @@ export async function GET(req: NextRequest) {
             candle_time as "Time",
             CONCAT('Signal Type: ', signal_type, ' (', timeframe, ')') as "Details"
           FROM signals_history
-          WHERE (signal_type LIKE '%3-CANDLE%')
+          WHERE (signal_type LIKE '%3-CANDLE%' OR signal_type LIKE '%GAP%')
              OR (signal_type LIKE 'OPEN = %' AND UPPER(stock_symbol) IN ('APOLLOHOSP', 'BAJAJ-AUTO', 'EICHERMOT', 'MARUTI', 'ULTRACEMCO', 'NIFTY50', 'NIFTY', '^NSEI', 'BTC', 'BTC-USD'))
           ORDER BY id DESC
           LIMIT 500

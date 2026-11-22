@@ -158,18 +158,40 @@ export async function GET(req: NextRequest) {
 
           if (sortedDates.length === 0) return null;
 
-          // Scan the latest session's completed candles
-          const latestDate = sortedDates[sortedDates.length - 1];
-          const completedCandles = [...candleGroups[latestDate]].sort((a, b) => a.timestamp - b.timestamp);
+          const isCrypto = item.symbol.toUpperCase() === "BTC" || item.symbol.toUpperCase() === "BTC-USD";
+          let completedCandles: Candle[] = [];
+
+          if (isCrypto) {
+            // For 24/7 crypto, scan across all recent completed candles
+            const allCompleted = Object.values(candleGroups).flat().sort((a, b) => a.timestamp - b.timestamp);
+            completedCandles = allCompleted.slice(-40);
+          } else {
+            // Scan the latest session's completed candles
+            const latestDate = sortedDates[sortedDates.length - 1];
+            completedCandles = [...candleGroups[latestDate]].sort((a, b) => a.timestamp - b.timestamp);
+            // If latest session has fewer than 3 candles (e.g. morning open), fall back to previous session
+            if (completedCandles.length < 3 && sortedDates.length >= 2) {
+              const prevDate = sortedDates[sortedDates.length - 2];
+              completedCandles = [...candleGroups[prevDate]].sort((a, b) => a.timestamp - b.timestamp);
+            }
+          }
 
           if (completedCandles.length < 3) return null;
 
           // -------------------------------------------------------------
-          // 3-CANDLE BREAKOUT STRATEGY LOGIC
-          // 1. Candle 1: Red reference candle (close < open)
-          // 2. Candle 2: Green candle (close > open) & c2.high > c1.high
-          // 3. Candle 3: Green candle (close > open) & c3.high > c2.high
-          // 4. Candle 4: Signal triggers only when Candle 4 begins!
+          // 3-CANDLE GAP STRATEGY LOGIC (Bullish & Bearish)
+          // 1. Bullish 3-Candle Gap:
+          //    - Candle 1: Green (c1.close > c1.open)
+          //    - Candle 2: Any (bullish, bearish, or doji)
+          //    - Candle 3: Green (c3.close > c3.open)
+          //    - Gap Condition: c3.low > c1.high
+          //    - Gap Points: c3.low - c1.high
+          // 2. Bearish 3-Candle Gap:
+          //    - Candle 1: Red (c1.close < c1.open)
+          //    - Candle 2: Any (bullish, bearish, or doji)
+          //    - Candle 3: Red (c3.close < c3.open)
+          //    - Gap Condition: c3.high < c1.low
+          //    - Gap Points: c1.low - c3.high
           // -------------------------------------------------------------
           let latestConfirmedSetup: any = null;
 
@@ -178,108 +200,73 @@ export async function GET(req: NextRequest) {
             const c2 = completedCandles[idx + 1];
             const c3 = completedCandles[idx + 2];
 
-            // Condition 1: Candle 1 must be RED
-            const isC1Red = c1.close < c1.open;
-            if (!isC1Red) continue;
+            // Bullish Detection Rule:
+            // Candle 1 Close > Candle 1 Open AND Candle 3 Close > Candle 3 Open AND Candle 3 Low > Candle 1 High
+            const isBullish = (c1.close > c1.open) && (c3.close > c3.open) && (c3.low > c1.high);
 
-            // Condition 2: Candle 2 must be GREEN and HIGH > c1.high
-            const isC2Green = c2.close > c2.open;
-            const isC2Breakout = c2.high > c1.high;
-            if (!isC2Green || !isC2Breakout) continue;
+            // Bearish Detection Rule:
+            // Candle 1 Close < Candle 1 Open AND Candle 3 Close < Candle 3 Open AND Candle 3 High < Candle 1 Low
+            const isBearish = (c1.close < c1.open) && (c3.close < c3.open) && (c3.high < c1.low);
 
-            // Condition 3: Candle 3 must be GREEN and HIGH > c2.high
-            const isC3Green = c3.close > c3.open;
-            const isC3Breakout = c3.high > c2.high;
-            if (!isC3Green || !isC3Breakout) continue;
+            if (!isBullish && !isBearish) continue;
 
-            // Condition 4: Candle 4 verification (must check for 5 to 8 min and confirm it is a GREEN candle)
-            // Candle 3 ends at c3.timestamp + 15 * 60, which is precisely when Candle 4 begins.
-            const c4StartTs = c3.timestamp + 15 * 60;
-            const elapsedSec = nowTs - c4StartTs;
-            const c4Candle = allCandlesByTs[c4StartTs];
-            const isCompletedPastCandle = c4Candle != null && nowTs >= (c4StartTs + 15 * 60);
-
-            // 1. Must check for at least 5 to 8 minutes into Candle 4
-            // If Candle 4 is currently in progress, at least 5 minutes (300 seconds) must have elapsed
-            if (!isCompletedPastCandle && elapsedSec < 5 * 60) {
-              // Wait 5 to 8 minutes before adding company name
-              continue;
-            }
-
-            // 2. Check if Candle 4 has become a GREEN candle
-            const c4Open = c4Candle ? c4Candle.open : c3.close;
-            const c4CurrentPrice = c4Candle ? c4Candle.close : meta.regularMarketPrice ?? c3.close;
-            const isC4Green = c4CurrentPrice > c4Open;
-
-            if (!isC4Green) {
-              // Candle 4 is RED or flat — do not add company name
-              continue;
-            }
-
-            const c4StartDate = new Date(c4StartTs * 1000);
-            const c4StartTimeStr = c4StartDate.toLocaleTimeString("en-IN", {
-              timeZone: "Asia/Kolkata",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true
-            }).toUpperCase();
-
-            const c4EndDate = new Date((c4StartTs + 15 * 60) * 1000);
-            const c4EndTimeStr = c4EndDate.toLocaleTimeString("en-IN", {
-              timeZone: "Asia/Kolkata",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true
-            }).toUpperCase();
+            const gapPoints = isBullish
+              ? Number((c3.low - c1.high).toFixed(2))
+              : Number((c1.low - c3.high).toFixed(2));
 
             latestConfirmedSetup = {
               c1,
               c2,
               c3,
-              c4: c4Candle || null,
-              c4StartTs,
-              candleTime: `${c4StartTimeStr} - ${c4EndTimeStr}`,
-              candleDate: latestDate,
-              confirmationTime: c4StartTimeStr,
-              referenceRange: {
-                high: c1.high,
-                low: c1.low
-              },
-              breakoutLevels: {
-                c2High: c2.high,
-                c3High: c3.high
-              },
-              triggerPrice: c4CurrentPrice,
+              signal_type: isBullish ? "BULLISH 3-CANDLE GAP" : "BEARISH 3-CANDLE GAP",
+              direction: isBullish ? "UP" : "DOWN",
+              gap_points: gapPoints,
+              c1_high: c1.high,
+              c1_low: c1.low,
+              c3_high: c3.high,
+              c3_low: c3.low,
+              detection_time: c3.timeString,
+              candle_time: `${c1.timeString} - ${c3.timeString}`,
+              candle_date: c3.dateString,
+              trigger_price: c3.close,
             };
           }
 
           if (!latestConfirmedSetup) return null;
 
-          const currentPrice = meta.regularMarketPrice ?? latestConfirmedSetup.triggerPrice;
+          const currentPrice = meta.regularMarketPrice ?? latestConfirmedSetup.trigger_price;
           const changePercent = meta.regularMarketChangePercent ?? 0;
 
           return {
             symbol: item.symbol,
             name: item.name,
-            signal_type: "3-CANDLE BUY BREAKOUT",
-            direction: "UP",
+            signal_type: latestConfirmedSetup.signal_type,
+            direction: latestConfirmedSetup.direction,
             timeframe: "15m",
+            gap_points: latestConfirmedSetup.gap_points,
             currentPrice,
             changePercent,
-            open_price: latestConfirmedSetup.triggerPrice,
-            high_price: latestConfirmedSetup.breakoutLevels.c3High,
-            low_price: latestConfirmedSetup.referenceRange.low,
-            close_price: latestConfirmedSetup.triggerPrice,
-            candle_time: latestConfirmedSetup.candleTime,
-            candle_date: latestConfirmedSetup.candleDate,
-            confirmationTime: latestConfirmedSetup.confirmationTime,
-            referenceRange: latestConfirmedSetup.referenceRange,
-            breakoutLevels: latestConfirmedSetup.breakoutLevels,
+            trigger_price: latestConfirmedSetup.trigger_price,
+            open_price: latestConfirmedSetup.trigger_price,
+            high_price: Math.max(latestConfirmedSetup.c1_high, latestConfirmedSetup.c3_high),
+            low_price: Math.min(latestConfirmedSetup.c1_low, latestConfirmedSetup.c3_low),
+            close_price: latestConfirmedSetup.trigger_price,
+            c1_high: latestConfirmedSetup.c1_high,
+            c1_low: latestConfirmedSetup.c1_low,
+            c3_high: latestConfirmedSetup.c3_high,
+            c3_low: latestConfirmedSetup.c3_low,
+            candle_time: latestConfirmedSetup.candle_time,
+            detection_time: latestConfirmedSetup.detection_time,
+            candle_date: latestConfirmedSetup.candle_date,
+            confirmationTime: latestConfirmedSetup.detection_time,
+            referenceRange: {
+              high: latestConfirmedSetup.c1_high,
+              low: latestConfirmedSetup.c1_low
+            },
             candles: [
               latestConfirmedSetup.c1,
               latestConfirmedSetup.c2,
-              latestConfirmedSetup.c3,
-              ...(latestConfirmedSetup.c4 ? [latestConfirmedSetup.c4] : [])
+              latestConfirmedSetup.c3
             ]
           };
         } catch (err) {
@@ -326,7 +313,7 @@ export async function GET(req: NextRequest) {
     console.error("Scanner-3C exception:", error);
     return NextResponse.json({
       success: false,
-      error: "Failed to run 3-candle breakout scanner"
+      error: "Failed to run 3-candle gap scanner"
     }, { status: 500 });
   }
 }

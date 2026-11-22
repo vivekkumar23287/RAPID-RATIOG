@@ -174,65 +174,74 @@ function scanTrick2MotherRange(allCandles, todayStr) {
 }
 
 /**
- * Scan for Trick 3: 15-Minute 3-Candle Bullish Breakout
+ * Scan for Trick 3: 15-Minute 3-Candle Gap Strategy (Bullish & Bearish)
  */
 function scanTrick3Breakouts(allCandles, todayStr) {
-  const breakoutResults = [];
+  const gapResults = [];
 
   for (const [symbol, data] of Object.entries(allCandles)) {
     try {
       const quotes = data.quotes || [];
       if (quotes.length < 3) continue;
 
-      let latestBreakout = null;
+      let latestGap = null;
 
       for (let i = 0; i <= quotes.length - 3; i++) {
         const c1 = quotes[i];
         const c2 = quotes[i + 1];
         const c3 = quotes[i + 2];
 
-        // Only today's breakouts
+        // Only today's setups (if dateStr available and filter applied)
         if (c3.dateStr !== todayStr && todayStr) continue;
-        if (c1.dateStr !== c2.dateStr || c2.dateStr !== c3.dateStr) continue;
-
-        // 1. C1 Red
-        if (c1.close >= c1.open) continue;
-        // 2. C2 Green & C2 High > C1 High
-        if (c2.close <= c2.open || c2.high <= c1.high) continue;
-        // 3. C3 Green & C3 High > C2 High
-        if (c3.close <= c3.open || c3.high <= c2.high) continue;
-
-        // 4. Candle 4 Green verification (if candle 4 exists in data)
-        const c4 = quotes[i + 3];
-        if (c4 && c4.close <= c4.open) {
-          // If C4 formed and was red, skip
-          continue;
+        if (c1.dateStr && c2.dateStr && c3.dateStr) {
+          if (c1.dateStr !== c2.dateStr || c2.dateStr !== c3.dateStr) continue;
         }
 
-        const compName = symbol === 'NIFTY50' ? 'Nifty 50 Index' : (data.name || symbol);
-        const candleTime = `${c3.timeStr} -> C4 Entry`;
+        const isBullish = (c1.close > c1.open) && (c3.close > c3.open) && (c3.low > c1.high);
+        const isBearish = (c1.close < c1.open) && (c3.close < c3.open) && (c3.high < c1.low);
 
-        latestBreakout = {
-          "Date": c3.dateStr,
-          "Time": candleTime,
-          "Company Name": compName,
-          "Symbol": symbol,
-          "Trick Name": "Trick 3: 3-Candle Bullish Breakout",
-          "Signal Direction": "BUY / Bullish",
-          "Price": c3.close,
-          "Details": `C1 Red Ref (H: ₹${c1.high.toFixed(2)}, L: ₹${c1.low.toFixed(2)}) -> C2 Green (H: ₹${c2.high.toFixed(2)}) -> C3 Green Breakout (H: ₹${c3.high.toFixed(2)})`
-        };
+        if (!isBullish && !isBearish) continue;
+
+        const compName = symbol === 'NIFTY50' ? 'Nifty 50 Index' : symbol === 'BTC' ? 'Bitcoin' : (data.name || symbol);
+        const candleTime = `${c1.timeStr || ''} - ${c3.timeStr || ''}`;
+        const currSym = (symbol === 'BTC' || symbol === 'BTC-USD') ? '$' : '₹';
+
+        if (isBullish) {
+          const gapPoints = Number((c3.low - c1.high).toFixed(2));
+          latestGap = {
+            "Date": c3.dateStr,
+            "Time": candleTime,
+            "Company Name": compName,
+            "Symbol": symbol,
+            "Trick Name": "Trick 3: Bullish 3-Candle Gap",
+            "Signal Direction": "BUY / Bullish",
+            "Price": c3.close,
+            "Details": `Gap: +${gapPoints} pts | C1 High: ${currSym}${c1.high.toFixed(2)}, Low: ${currSym}${c1.low.toFixed(2)} | C3 High: ${currSym}${c3.high.toFixed(2)}, Low: ${currSym}${c3.low.toFixed(2)}`
+          };
+        } else {
+          const gapPoints = Number((c1.low - c3.high).toFixed(2));
+          latestGap = {
+            "Date": c3.dateStr,
+            "Time": candleTime,
+            "Company Name": compName,
+            "Symbol": symbol,
+            "Trick Name": "Trick 3: Bearish 3-Candle Gap",
+            "Signal Direction": "SELL / Bearish",
+            "Price": c3.close,
+            "Details": `Gap: -${gapPoints} pts | C1 High: ${currSym}${c1.high.toFixed(2)}, Low: ${currSym}${c1.low.toFixed(2)} | C3 High: ${currSym}${c3.high.toFixed(2)}, Low: ${currSym}${c3.low.toFixed(2)}`
+          };
+        }
       }
 
-      if (latestBreakout) {
-        breakoutResults.push(latestBreakout);
+      if (latestGap) {
+        gapResults.push(latestGap);
       }
     } catch (e) {
-      console.warn(`[EXPORTER] Error checking 3-candle breakout for ${symbol}:`, e.message);
+      console.warn(`[EXPORTER] Error checking 3-candle gap for ${symbol}:`, e.message);
     }
   }
 
-  return breakoutResults;
+  return gapResults;
 }
 
 // Trick 4 is strictly implemented for only these 7 selected assets:
