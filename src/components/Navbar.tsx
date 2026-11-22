@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { List, X } from "@phosphor-icons/react";
-import { prefetchAllNiftyPrices, prefetchSheetTricks } from "@/lib/data-cache";
+import { prefetchAllNiftyPrices, prefetchSheetTricks, prefetchTricksPage } from "@/lib/data-cache";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -136,6 +136,7 @@ export default function Navbar() {
                 setHoveredIdx(i);
                 if (link.href === "/prices") prefetchAllNiftyPrices();
                 if (link.href === "/sheetflow") prefetchSheetTricks();
+                if (link.href === "/trick-in-nse") prefetchTricksPage();
                 const rect = e.currentTarget.getBoundingClientRect();
                 const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
                 if (parentRect) {

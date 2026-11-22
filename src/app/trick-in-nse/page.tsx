@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
-import { prefetchStockCandles } from "@/lib/data-cache";
+import { prefetchStockCandles, getCachedTricksPage, fetchTricksPageCached } from "@/lib/data-cache";
 
 type SignalData = {
   id: number;
@@ -36,36 +36,73 @@ type LiveStockData = {
 export default function TricksInNSE() {
   const router = useRouter();
   
-  const [loadingGaps, setLoadingGaps] = useState(true);
-  const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
-  const [gapDowns, setGapDowns] = useState<LiveStockData[]>([]);
+  const initialCache = typeof window !== "undefined" ? getCachedTricksPage() : null;
 
-  const [loadingMother, setLoadingMother] = useState(true);
-  const [motherMatches, setMotherMatches] = useState<any[]>([]);
+  const [loadingGaps, setLoadingGaps] = useState(!initialCache?.gaps);
+  const [gapUps, setGapUps] = useState<LiveStockData[]>(initialCache?.gaps?.gapUps || []);
+  const [gapDowns, setGapDowns] = useState<LiveStockData[]>(initialCache?.gaps?.gapDowns || []);
 
-  const [breakoutMatches, setBreakoutMatches] = useState<any[]>([]);
+  const [loadingMother, setLoadingMother] = useState(!initialCache?.motherRange);
+  const [motherMatches, setMotherMatches] = useState<any[]>(initialCache?.motherRange?.matches || []);
 
-  
-  const [signals, setSignals] = useState<SignalData[]>([]);
-  const [loadingSignals, setLoadingSignals] = useState(true);
+  const [breakoutMatches, setBreakoutMatches] = useState<any[]>(initialCache?.breakouts?.matches || []);
+
+  const [signals, setSignals] = useState<SignalData[]>(initialCache?.signals || []);
+  const [loadingSignals, setLoadingSignals] = useState(!initialCache?.signals || initialCache.signals.length === 0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UP" | "DOWN">("ALL");
   const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY">("ALL");
   const [specialSearch, setSpecialSearch] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [lastUpdated, setLastUpdated] = useState<string>(initialCache?.lastUpdated || "");
 
   // Trick 5: RSI 60 Bullish Breakout Scanner (Yellow crosses 60 with 1H confirmation)
-  const [rsiMatches, setRsiMatches] = useState<any[]>([]);
-  const [rsi1hConfirmed, setRsi1hConfirmed] = useState<any[]>([]);
-  const [rsi15mBreakouts, setRsi15mBreakouts] = useState<any[]>([]);
-  const [loadingRsi, setLoadingRsi] = useState(true);
+  const [rsiMatches, setRsiMatches] = useState<any[]>(initialCache?.rsi?.matches || []);
+  const [rsi1hConfirmed, setRsi1hConfirmed] = useState<any[]>(initialCache?.rsi?.confirmed1H || []);
+  const [rsi15mBreakouts, setRsi15mBreakouts] = useState<any[]>(initialCache?.rsi?.breakouts15M || []);
+  const [loadingRsi, setLoadingRsi] = useState(!initialCache?.rsi);
   const [rsiFilter, setRsiFilter] = useState<"ALL" | "1H_CONFIRMED" | "15M_BREAKOUT">("ALL");
   const [rsiSearch, setRsiSearch] = useState("");
+
+  const loadAllTricks = async (forceFresh = false) => {
+    try {
+      const data = await fetchTricksPageCached(forceFresh);
+      if (data) {
+        if (data.gaps) {
+          setGapUps(data.gaps.gapUps || []);
+          setGapDowns(data.gaps.gapDowns || []);
+        }
+        if (data.motherRange) {
+          setMotherMatches(data.motherRange.matches || []);
+        }
+        if (data.breakouts) {
+          setBreakoutMatches(data.breakouts.matches || []);
+        }
+        if (data.rsi) {
+          setRsiMatches(data.rsi.matches || []);
+          setRsi1hConfirmed(data.rsi.confirmed1H || []);
+          setRsi15mBreakouts(data.rsi.breakouts15M || []);
+        }
+        if (data.signals && data.signals.length > 0) {
+          setSignals(data.signals);
+        }
+        if (data.lastUpdated) {
+          setLastUpdated(data.lastUpdated);
+        }
+      }
+    } catch (e) {
+      console.warn("Unified tricks load error:", e);
+    } finally {
+      setLoadingGaps(false);
+      setLoadingMother(false);
+      setLoadingRsi(false);
+      setLoadingSignals(false);
+    }
+  };
 
   const fetchGaps = async () => {
     setLoadingGaps(true);
     try {
-      const response = await fetch("/api/nse-gaps", { cache: "no-store" });
+      const response = await fetch("/api/nse-gaps");
       if (!response.ok) throw new Error("Failed to scan live gaps");
       const data = await response.json();
       setGapUps(data.gapUps || []);
@@ -82,7 +119,7 @@ export default function TricksInNSE() {
   const fetchMotherRange = async () => {
     setLoadingMother(true);
     try {
-      const res = await fetch("/api/scanner-5c", { cache: "no-store" });
+      const res = await fetch("/api/scanner-5c");
       if (!res.ok) throw new Error("Failed to scan 5-candle");
       const data = await res.json();
       if (data.success) {
@@ -98,7 +135,7 @@ export default function TricksInNSE() {
 
   const fetchBreakoutSetups = async () => {
     try {
-      const res = await fetch("/api/scanner-3c", { cache: "no-store" });
+      const res = await fetch("/api/scanner-3c");
       if (!res.ok) throw new Error("Failed to scan 3-candle breakout");
       const data = await res.json();
       if (data.success) {
@@ -113,7 +150,7 @@ export default function TricksInNSE() {
   const fetchRsi = async () => {
     setLoadingRsi(true);
     try {
-      const res = await fetch("/api/scanner-rsi", { cache: "no-store" });
+      const res = await fetch("/api/scanner-rsi");
       if (!res.ok) throw new Error("Failed to scan RSI");
       const data = await res.json();
       if (data.success) {
@@ -132,10 +169,7 @@ export default function TricksInNSE() {
   };
 
   useEffect(() => {
-    fetchGaps();
-    fetchMotherRange();
-    fetchBreakoutSetups();
-    fetchRsi();
+    loadAllTricks();
   }, []);
 
   useEffect(() => {

@@ -203,11 +203,13 @@ async function scanLiveOpenHighLow(): Promise<LiveSignal[]> {
   return scannedSignals;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const now = Date.now();
+  const url = new URL(req.url);
+  const forceSync = url.searchParams.get("sync") === "true";
 
   // Return cached result if fresh
-  if (cachedSignals.length > 0 && now - lastCacheTime < CACHE_TTL_MS) {
+  if (!forceSync && cachedSignals.length > 0 && now - lastCacheTime < CACHE_TTL_MS) {
     return NextResponse.json({
       success: true,
       data: cachedSignals,
@@ -245,6 +247,34 @@ export async function GET() {
     }
   } catch (error: any) {
     console.warn("Signals DB read warning:", error?.message);
+  }
+
+  // If DB signals exist and not forcing a live scan, return immediately (< 30ms)
+  if (dbSignals.length > 0 && !forceSync) {
+    const mapped = dbSignals.map((r: any) => ({
+      id: r.id,
+      stock_symbol: r.stock_symbol,
+      stock_name: r.stock_name,
+      signal_type: r.signal_type,
+      direction: r.direction,
+      timeframe: r.timeframe || "15m",
+      open_price: Number(r.open_price),
+      high_price: Number(r.high_price),
+      low_price: Number(r.low_price),
+      close_price: Number(r.close_price),
+      candle_time: r.candle_time,
+      candle_date: r.candle_date,
+      created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+    }));
+    cachedSignals = mapped;
+    lastCacheTime = now;
+    return NextResponse.json({
+      success: true,
+      data: mapped,
+      count: mapped.length,
+      timestamp: new Date().toISOString(),
+      source: "neon_db",
+    });
   }
 
   // 2. Scan live candles from Yahoo Finance across 09:15 AM to 03:30 PM IST

@@ -43,20 +43,14 @@ export async function GET() {
     const dateStr = `${nowIST.getFullYear()}-${(nowIST.getMonth() + 1).toString().padStart(2, '0')}-${nowIST.getDate().toString().padStart(2, '0')}`;
 
     
-    const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'nse-gaps'`;
-    if (cached.length > 0) {
+    const cached = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'nse-gaps' ORDER BY id DESC LIMIT 1`;
+    if (cached.length > 0 && cached[0].results) {
        return NextResponse.json(cached[0].results);
     }
-    
     
     const isMarketOpenAndCandleClosed = nowIST.getHours() > 9 || (nowIST.getHours() === 9 && nowIST.getMinutes() >= 31);
     
     if (!isMarketOpenAndCandleClosed) {
-      
-      const latest = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'nse-gaps' ORDER BY date_str DESC LIMIT 1`;
-      if (latest.length > 0) {
-         return NextResponse.json(latest[0].results);
-      }
       return NextResponse.json({
         gapUps: [],
         gapDowns: [],
