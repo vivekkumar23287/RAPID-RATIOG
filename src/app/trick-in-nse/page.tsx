@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import { 
-  MagnifyingGlass, Clock, CaretUp, CaretDown, BellRinging, BellSlash, 
+  MagnifyingGlass, Clock, CaretUp, CaretDown, 
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
@@ -52,7 +52,6 @@ export default function TricksInNSE() {
   const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY">("ALL");
   const [specialSearch, setSpecialSearch] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
-  const [soundEnabled, setSoundEnabled] = useState(true);
 
   // Trick 5: RSI 60 Bullish Breakout Scanner (Yellow crosses 60 with 1H confirmation)
   const [rsiMatches, setRsiMatches] = useState<any[]>([]);
@@ -61,8 +60,6 @@ export default function TricksInNSE() {
   const [loadingRsi, setLoadingRsi] = useState(true);
   const [rsiFilter, setRsiFilter] = useState<"ALL" | "1H_CONFIRMED" | "15M_BREAKOUT">("ALL");
   const [rsiSearch, setRsiSearch] = useState("");
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchGaps = async () => {
     setLoadingGaps(true);
@@ -141,10 +138,6 @@ export default function TricksInNSE() {
   }, []);
 
   useEffect(() => {
-    try {
-      audioRef.current = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-    } catch (_) {}
-
     const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL;
     const fetchSignals = async () => {
       try {
@@ -198,10 +191,6 @@ export default function TricksInNSE() {
             const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
             return [...toAdd, ...prev];
           });
-
-          if (soundEnabled && audioRef.current) {
-            audioRef.current.play().catch(e => console.warn("Audio play failed:", e));
-          }
         });
       } catch (e) {
         console.warn("Socket init failed, falling back to polling:", e);
@@ -215,7 +204,7 @@ export default function TricksInNSE() {
       if (socket) socket.disconnect();
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [soundEnabled]);
+  }, []);
 
   // Combine live /api/scanner-3c matches with any live stream 3-candle breakout signals
   const specialSetups = useMemo(() => {
@@ -698,7 +687,7 @@ export default function TricksInNSE() {
                           justifyContent: "center",
                           flexShrink: 0
                         }}>
-                          <BellRinging size={22} weight="bold" />
+                          <Crosshair size={22} weight="bold" />
                         </div>
                         <div>
                           <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
@@ -847,14 +836,6 @@ export default function TricksInNSE() {
               ))}
             </div>
           </div>
-
-          <button 
-            onClick={() => setSoundEnabled(!soundEnabled)}
-            style={{ display: "flex", alignItems: "center", gap: "8px", background: soundEnabled ? "rgba(59,130,246,0.1)" : "#F1F5F9", color: soundEnabled ? "#3B82F6" : "#64748B", border: "1px solid " + (soundEnabled ? "rgba(59,130,246,0.2)" : "#E2E8F0"), padding: "10px 16px", borderRadius: "10px", fontWeight: 700, fontSize: "13px", cursor: "pointer", transition: "all 0.2s" }}
-          >
-            {soundEnabled ? <BellRinging size={18} weight="bold" /> : <BellSlash size={18} weight="bold" />}
-            Sound Alerts
-          </button>
         </div>
 
         
