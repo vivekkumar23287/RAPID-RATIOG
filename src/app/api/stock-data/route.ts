@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import { sql } from "@/lib/db";
 
 const VALID_INTERVALS = ["1m", "5m", "15m", "30m", "60m", "1d", "1mo"];
@@ -149,7 +148,6 @@ export async function GET(req: NextRequest) {
       const currentPrice  = lastCandle.close;
       const previousClose = prevCandle.close;
       const change        = currentPrice - previousClose;
-      const changePercent = previousClose ? (change / previousClose) * 100 : 0;
 
       // Enrich the last candle with live price if available (cache check)
       let finalPrice = currentPrice;

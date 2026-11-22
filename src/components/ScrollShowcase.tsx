@@ -1,13 +1,12 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
-import { Crosshair, Diamond, ChartLineUp } from "@phosphor-icons/react";
-import { IconBolt } from "@tabler/icons-react";
+import { Crosshair, Diamond, ChartLineUp, Lightning } from "@phosphor-icons/react";
 
 const FONT = "Satoshi, sans-serif";
 const FEATURES: { title: string; desc: string; gradient: string; icon: ReactNode }[] = [
-  { title: "Smooth Scroll Animation", desc: "Buttery-smooth parallax effects powered by Lenis. Every element glides with cinematic precision.", gradient: "linear-gradient(135deg, #E01F2E, #FF6B7A)", icon: <Crosshair size={24} color="white" weight="bold" /> },
+  { title: "Smooth Scroll Animation", desc: "Buttery-smooth parallax effects. Every element glides with cinematic precision.", gradient: "linear-gradient(135deg, #E01F2E, #FF6B7A)", icon: <Crosshair size={24} color="white" weight="bold" /> },
   { title: "3D Interactive Design", desc: "Cards tilt and respond to your mouse. Real depth, perspective, and shadows create a tactile experience.", gradient: "linear-gradient(135deg, #0F2044, #1A3460)", icon: <Diamond size={24} color="white" weight="bold" /> },
-  { title: "Real-Time Data Streams", desc: "Live stock prices flowing in real-time. Watch the market pulse through beautifully animated visualizations.", gradient: "linear-gradient(135deg, #16A34A, #22C55E)", icon: <IconBolt size={24} color="white" stroke={2} /> },
+  { title: "Real-Time Data Streams", desc: "Live stock prices flowing in real-time. Watch the market pulse through beautifully animated visualizations.", gradient: "linear-gradient(135deg, #16A34A, #22C55E)", icon: <Lightning size={24} color="white" weight="bold" /> },
   { title: "Interactive Charts & Tools", desc: "Candlestick charts, RSI indicators, and drawing tools that rival professional trading terminals.", gradient: "linear-gradient(135deg, #E01F2E, #B8161F)", icon: <ChartLineUp size={24} color="white" weight="bold" /> },
 ];
 

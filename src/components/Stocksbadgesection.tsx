@@ -288,7 +288,7 @@ export default function StocksBadgeSection() {
           const data = await res.json();
           setLiveData(data);
         }
-      } catch (_) {}
+      } catch {}
     };
     fetchLive();
     const interval = setInterval(fetchLive, 10000);

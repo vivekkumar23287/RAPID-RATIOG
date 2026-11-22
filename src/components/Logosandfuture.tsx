@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { Sparkle, ArrowRight, Rocket, ChartLine, FileCsv } from "@phosphor-icons/react";
 
 const LOGOS = [
@@ -12,7 +12,7 @@ const LOGOS = [
   { name: "TATAMOTORS", full: "Tata Motors Ltd", color: "#EF4444" },
 ];
 
-function BacklightLogo({ logo, index }: { logo: typeof LOGOS[0]; index: number }) {
+function BacklightLogo({ logo }: { logo: typeof LOGOS[0]; index?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const floatRef = useRef<number | null>(null);
@@ -282,7 +282,7 @@ export function FutureSection() {
             fontFamily: "Satoshi, sans-serif", fontSize: "11px", fontWeight: 700,
             color: "#E6A100", letterSpacing: "2px", textTransform: "uppercase",
           }}>
-            What's coming
+            What&apos;s coming
           </span>
         </div>
 
@@ -302,7 +302,7 @@ export function FutureSection() {
           color: "rgba(255,255,255,0.45)", maxWidth: "480px",
           lineHeight: 1.75, marginBottom: "3.5rem",
         }}>
-          We're just getting started. Here's what's on the horizon — shaped entirely by user feedback.
+          We&apos;re just getting started. Here&apos;s what&apos;s on the horizon — shaped entirely by user feedback.
         </p>
 
         
@@ -315,7 +315,7 @@ export function FutureSection() {
             marginBottom: "3rem",
           }}
         >
-          {items.map((item, i) => (
+          {items.map((item) => (
             <div
               key={item.title}
               className="future-card"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);

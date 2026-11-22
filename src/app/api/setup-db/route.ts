@@ -12,7 +12,7 @@ export async function GET() {
 
     await initDatabase();
     return NextResponse.json({ message: "Database initialized successfully! You can now close this tab." });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json({ error: "Database initialization failed" }, { status: 500 });
   }
 }

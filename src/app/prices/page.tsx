@@ -5,10 +5,7 @@ import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { NIFTY_50_STOCKS as nifty50Stocks } from "@/lib/stocks";
 import {
-  TrendUp,
-  TrendDown,
   MagnifyingGlass,
-  ArrowUpRight,
   Funnel,
   CaretLeft,
   CaretRight,

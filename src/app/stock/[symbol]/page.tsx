@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import Navbar from "@/components/Navbar";
 import { useParams } from "next/navigation";
 import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import { ChartLineUp } from "@phosphor-icons/react";
@@ -88,7 +87,6 @@ export default function StockChartPage() {
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
 
   const isCrypto = rawSymbol.toUpperCase() === "BTC" || rawSymbol.toUpperCase() === "BTC-USD" || stockData?.currency === "USD";
-  const currencySymbol = isCrypto ? "$" : "₹";
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const rsiContainerRef = useRef<HTMLDivElement>(null);
@@ -159,7 +157,6 @@ export default function StockChartPage() {
     bb: { enabled: false, period: 20, stdDev: 2, color: "rgba(33, 150, 243, 0.2)" },
   });
   const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
-  const [activeSettingsGroup, setActiveSettingsGroup] = useState<string | null>(null);
   const [rsiTab, setRsiTab] = useState<'inputs' | 'style'>('inputs');
 
 
@@ -1034,8 +1031,6 @@ export default function StockChartPage() {
     };
   }, [drawingMode, activeLayoutId, layouts, chartReady, stockData]);
 
-  const isPositive = stockData ? stockData.change >= 0 : true;
-
   const timeframes = [
     { label: "1m", interval: "1m", range: "1d" },
     { label: "5m", interval: "5m", range: "5d" },
@@ -1794,7 +1789,7 @@ export default function StockChartPage() {
           {lineToolbarPos && selectedLineId && (
             <div style={{
               position: "absolute",
-              left: `${Math.min(lineToolbarPos.x, (chartContainerRef.current?.clientWidth || 800) - 340)}px`,
+              left: `min(${lineToolbarPos.x}px, calc(100% - 340px))`,
               top: `${Math.max(lineToolbarPos.y - 70, 16)}px`,
               zIndex: 2000,
               background: "#FFFFFF",

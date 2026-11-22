@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
 import { SignUpButton } from "@clerk/nextjs";
 
@@ -163,7 +163,7 @@ export default function ScrollCTA() {
         <div className="cta-counters" style={{
           display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24,
         }}>
-          {COUNTERS.map((c, i) => (
+          {COUNTERS.map((c) => (
             <div key={c.label} className="cta-counter" style={{
               background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)",
               borderRadius: 20, padding: "2rem 1rem",

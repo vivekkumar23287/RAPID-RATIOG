@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-
 import { NIFTY_50_STOCKS } from "@/lib/stocks";
 
 // Symbols that use v8/chart or special APIs (indexes, crypto)
@@ -220,7 +218,7 @@ function buildNseChunkPromises(nseSymbols: string[]): Promise<Record<string, any
                 };
               }
             }
-          } catch (_) {}
+          } catch {}
         })
       );
     }

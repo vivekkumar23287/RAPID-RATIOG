@@ -32,35 +32,8 @@ type LiveStockData = {
   gapPercent: number;
 };
 
-const check3CandleBreakoutSetup = (candles: any[]) => {
-  if (candles.length < 3) return { matched: false };
-  const c1 = candles[candles.length - 3];
-  const c2 = candles[candles.length - 2];
-  const c3 = candles[candles.length - 1];
-
-  const isC1Red = c1.close < c1.open;
-  const isC2Green = c2.close > c2.open;
-  const isC2Breakout = c2.high > c1.high;
-  const isC3Green = c3.close > c3.open;
-  const isC3Breakout = c3.high > c2.high;
-
-  if (isC1Red && isC2Green && isC2Breakout && isC3Green && isC3Breakout) {
-    return {
-      matched: true,
-      c1,
-      c2,
-      c3,
-      refRange: { high: c1.high, low: c1.low },
-      breakoutLevels: { c2High: c2.high, c3High: c3.high },
-      triggerPrice: c3.close
-    };
-  }
-  return { matched: false };
-};
-
 export default function TricksInNSE() {
   const router = useRouter();
-  
   
   const [loadingGaps, setLoadingGaps] = useState(true);
   const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
@@ -69,9 +42,7 @@ export default function TricksInNSE() {
   const [loadingMother, setLoadingMother] = useState(true);
   const [motherMatches, setMotherMatches] = useState<any[]>([]);
 
-  
   const [breakoutMatches, setBreakoutMatches] = useState<any[]>([]);
-  const [loadingBreakout, setLoadingBreakout] = useState(true);
 
   
   const [signals, setSignals] = useState<SignalData[]>([]);
@@ -128,7 +99,6 @@ export default function TricksInNSE() {
   };
 
   const fetchBreakoutSetups = async () => {
-    setLoadingBreakout(true);
     try {
       const res = await fetch("/api/scanner-3c", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to scan 3-candle breakout");
@@ -139,8 +109,6 @@ export default function TricksInNSE() {
     } catch (error) {
       console.warn("Failed to load 3-candle breakout setups:", error);
       setBreakoutMatches([]);
-    } finally {
-      setLoadingBreakout(false);
     }
   };
 
@@ -447,7 +415,7 @@ export default function TricksInNSE() {
                 }}>
                   <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Ups</div>
                   <div style={{ fontSize: "12px", color: "#64748B", marginTop: "6px", maxWidth: "240px", lineHeight: "1.4" }}>
-                    No stocks have broken out above yesterday's session peak yet.
+                    No stocks have broken out above yesterday&apos;s session peak yet.
                   </div>
                 </div>
               ) : (
@@ -498,7 +466,7 @@ export default function TricksInNSE() {
                 }}>
                   <div style={{ fontSize: "15px", fontWeight: 800, color: "#0F2044" }}>No Active Gap Downs</div>
                   <div style={{ fontSize: "12px", color: "#64748B", marginTop: "6px", maxWidth: "240px", lineHeight: "1.4" }}>
-                    No stocks have broken down below yesterday's session floor yet.
+                    No stocks have broken down below yesterday&apos;s session floor yet.
                   </div>
                 </div>
               ) : (

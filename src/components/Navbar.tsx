@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import { List, X, ChartLineUp } from "@phosphor-icons/react";
+import { List, X } from "@phosphor-icons/react";
 
 const navLinks = [
   { label: "Home", href: "/" },

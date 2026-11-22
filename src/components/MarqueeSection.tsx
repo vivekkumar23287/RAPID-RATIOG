@@ -62,15 +62,15 @@ export default function MarqueeSection() {
       );
 
       
-      let skewProxy = { skew: 0 };
-      let clamp = gsap.utils.clamp(-4, 4);
+      const skewProxy = { skew: 0 };
+      const clamp = gsap.utils.clamp(-4, 4);
 
       ScrollTrigger.create({
         trigger: section,
         start: "top bottom",
         end: "bottom top",
         onUpdate: (self) => {
-          let skew = clamp(self.getVelocity() / -200);
+          const skew = clamp(self.getVelocity() / -200);
           if (Math.abs(skew) > Math.abs(skewProxy.skew)) {
             skewProxy.skew = skew;
             gsap.to(skewProxy, {

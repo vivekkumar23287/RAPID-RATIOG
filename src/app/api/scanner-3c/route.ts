@@ -62,7 +62,7 @@ export async function GET(req: NextRequest) {
         if (cached.length > 0) {
           return NextResponse.json(cached[0].results);
         }
-      } catch (_) {}
+      } catch {}
     }
 
     const symbolsToScan = singleSymbol
@@ -312,7 +312,7 @@ export async function GET(req: NextRequest) {
           VALUES (${dateStr}, 'scanner-3c', ${JSON.stringify(responsePayload)})
           ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
         `;
-      } catch (cacheErr) {
+      } catch {
         // Cache table might not exist or connection failed; ignore and proceed
       }
     }

@@ -162,7 +162,7 @@ export async function GET(req: NextRequest) {
         if (cached.length > 0) {
           return NextResponse.json(cached[0].results);
         }
-      } catch (_) {}
+      } catch {}
     }
 
     const symbolsToScan = singleSymbol

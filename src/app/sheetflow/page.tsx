@@ -56,7 +56,7 @@ function formatToSheetDate(dateVal?: any): string {
   const str = String(dateVal).trim();
   const match = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/) || str.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})/);
   if (match) {
-    const [_, p1, p2, p3] = match;
+    const [, p1, p2, p3] = match;
     const [d, m, y] = p1.length === 4 ? [p3, p2, p1] : [p1, p2, p3];
     return `${d.padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
   }
