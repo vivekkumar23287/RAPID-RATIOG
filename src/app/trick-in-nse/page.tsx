@@ -50,7 +50,7 @@ export default function TricksInNSE() {
   const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UP" | "DOWN">("ALL");
-  const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY">("ALL");
+  const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY" | "BTC">("ALL");
   const [specialSearch, setSpecialSearch] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
@@ -172,7 +172,14 @@ export default function TricksInNSE() {
       }
     };
 
-    fetchSignals();
+    const updateAllTricks = () => {
+      fetchSignals();
+      fetchBreakoutSetups();
+      fetchRsi();
+      fetchMotherRange();
+    };
+
+    updateAllTricks();
 
     let socket: Socket | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
@@ -185,7 +192,7 @@ export default function TricksInNSE() {
         });
 
         socket.on("new_signals", (newSignals: SignalData[]) => {
-          fetchBreakoutSetups();
+          updateAllTricks();
 
           setSignals(prev => {
             const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
@@ -195,10 +202,10 @@ export default function TricksInNSE() {
         });
       } catch (e) {
         console.warn("Socket init failed, falling back to polling:", e);
-        pollInterval = setInterval(fetchSignals, 10000);
+        pollInterval = setInterval(updateAllTricks, 12000);
       }
     } else {
-      pollInterval = setInterval(fetchSignals, 10000);
+      pollInterval = setInterval(updateAllTricks, 12000);
     }
 
     return () => {
@@ -263,6 +270,7 @@ export default function TricksInNSE() {
         item.stock_name.toLowerCase().includes(specialSearch.toLowerCase());
       if (!matchesSearch) return false;
       if (specialFilter === "NIFTY") return item.stock_symbol === "NIFTY50" || item.stock_symbol === "NIFTY";
+      if (specialFilter === "BTC") return item.stock_symbol === "BTC" || item.stock_symbol === "BTC-USD";
       return true;
     });
   }, [specialSetups, specialSearch, specialFilter]);
@@ -552,7 +560,7 @@ export default function TricksInNSE() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
-                3. 15-Minute 3-Candle Breakout Setup (All Companies & Nifty 50)
+                3. 15-Minute 3-Candle Breakout Setup (All Companies, Nifty 50 &amp; Bitcoin)
               </h2>
               <div style={{ background: "rgba(16,185,129,0.15)", color: "#10B981", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(16,185,129,0.2)" }}>
                 <span style={{ width: "6px", height: "6px", background: "#10B981", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
@@ -568,6 +576,7 @@ export default function TricksInNSE() {
               {([
                 { key: "ALL", label: `All (${specialSetups.length})` },
                 { key: "NIFTY", label: "Nifty 50" },
+                { key: "BTC", label: "Bitcoin" },
               ] as const).map(tab => (
                 <button
                   key={tab.key}
@@ -641,11 +650,13 @@ export default function TricksInNSE() {
               <Info size={22} weight="bold" />
             </div>
             <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>
-              {specialFilter === "NIFTY" ? "No Nifty 50 3-Candle Breakout Active" : "No 3-Candle Breakout Setups Active"}
+              {specialFilter === "NIFTY" ? "No Nifty 50 3-Candle Breakout Active" : specialFilter === "BTC" ? "No Bitcoin 3-Candle Breakout Active" : "No 3-Candle Breakout Setups Active"}
             </div>
             <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
               {specialFilter === "NIFTY"
                 ? "Nifty 50 has not confirmed a 3-candle breakout sequence today yet. Live tick scanner is running."
+                : specialFilter === "BTC"
+                ? "Bitcoin has not confirmed a 3-candle breakout sequence yet. Live tick scanner is running."
                 : "No stocks currently match the 3-candle breakout sequence with a confirmed green Candle 4. Scanner evaluates continuously at the start of each 15-minute candle."}
             </div>
           </div>
@@ -658,6 +669,8 @@ export default function TricksInNSE() {
           }}>
             {filteredSpecialSetups.map((setup) => {
               const isNifty = setup.stock_symbol === "NIFTY50" || setup.stock_symbol === "NIFTY";
+              const isBtc = setup.stock_symbol === "BTC" || setup.stock_symbol === "BTC-USD";
+              const currSym = isBtc ? "$" : "₹";
               const themeColor = "#10B981";
               const glowColor = "rgba(16,185,129,0.12)";
 
@@ -732,6 +745,18 @@ export default function TricksInNSE() {
                                 INDEX
                               </span>
                             )}
+                            {isBtc && (
+                              <span style={{
+                                background: "rgba(245,158,11,0.12)",
+                                color: "#D97706",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10px",
+                                fontWeight: 800
+                              }}>
+                                CRYPTO
+                              </span>
+                            )}
                           </div>
                           <span style={{
                             display: "inline-block",
@@ -756,7 +781,7 @@ export default function TricksInNSE() {
                             Trigger Price
                           </span>
                           <span style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", fontFamily: "monospace" }}>
-                            ₹{Number(setup.close_price || setup.open_price).toFixed(2)}
+                            {currSym}{Number(setup.close_price || setup.open_price).toFixed(2)}
                           </span>
                         </div>
                       )}
@@ -1100,6 +1125,8 @@ export default function TricksInNSE() {
             }}>
               {filteredRsiList.map((item) => {
                 const is1H = item.is1HConfirmed;
+                const isBtc = (item.symbol || "").toUpperCase().startsWith("BTC");
+                const currSym = isBtc ? "$" : "₹";
                 const themeColor = is1H ? "#EAB308" : "#22C55E";
                 const glowColor = is1H ? "rgba(234, 179, 8, 0.15)" : "rgba(34, 197, 94, 0.12)";
                 const rsiGaugePercent = Math.min(Math.max(item.rsi, 0), 100);
@@ -1161,6 +1188,18 @@ export default function TricksInNSE() {
                               }}>
                                 {item.symbol}
                               </span>
+                              {isBtc && (
+                                <span style={{
+                                  background: "rgba(245,158,11,0.12)",
+                                  color: "#D97706",
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "10px",
+                                  fontWeight: 800
+                                }}>
+                                  CRYPTO
+                                </span>
+                              )}
                             </div>
                             <span style={{
                               display: "inline-block",
@@ -1182,7 +1221,7 @@ export default function TricksInNSE() {
                         {/* Price Display */}
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <span style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", fontFamily: "monospace", display: "block" }}>
-                            ₹{Number(item.currentPrice).toFixed(2)}
+                            {currSym}{Number(item.currentPrice).toFixed(2)}
                           </span>
                           <span style={{
                             fontSize: "11px",
@@ -1387,6 +1426,9 @@ function StockRow({ stock, isUp, onClick }: { stock: LiveStockData; isUp: boolea
 function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
   const [hovered, setHovered] = useState(false);
   const isUp = stock.changePercent >= 0;
+  const isBtc = (stock.symbol || "").toUpperCase().startsWith("BTC");
+  const currSym = isBtc ? "$" : "₹";
+  const exchangeTag = isBtc ? "CRYPTO" : "NSE";
 
   return (
     <div
@@ -1430,11 +1472,12 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
             <span style={{
               fontSize: "10px",
               fontFamily: "monospace",
-              color: "#94A3B8",
-              background: "#F1F5F9",
+              color: isBtc ? "#D97706" : "#94A3B8",
+              background: isBtc ? "rgba(245,158,11,0.12)" : "#F1F5F9",
               padding: "2px 6px",
-              borderRadius: "4px"
-            }}>NSE</span>
+              borderRadius: "4px",
+              fontWeight: 700
+            }}>{exchangeTag}</span>
           </div>
           <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", maxWidth: "160px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {stock.name}
@@ -1445,7 +1488,7 @@ function MotherRow({ stock, onClick }: { stock: any; onClick: () => void }) {
       
       <div style={{ textAlign: "right", marginLeft: "auto", marginRight: "auto" }}>
         <span style={{ fontWeight: 800, color: "#0F2044", fontSize: "16px", fontFamily: "monospace" }}>
-          ₹{stock.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {currSym}{stock.currentPrice.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
         <div style={{ 
           fontSize: "11px", 

@@ -4,12 +4,16 @@ import { NIFTY_50_STOCKS as RAW_SYMBOLS } from "@/lib/stocks";
 
 export const dynamic = "force-dynamic";
 
-// Filter out BTC so scanner strictly scans NSE stocks and NIFTY50 index
-const SCAN_SYMBOLS = RAW_SYMBOLS.filter(s => s.symbol.toUpperCase() !== "BTC");
+// Include all stocks, NIFTY50 index, and Bitcoin (BTC)
+const SCAN_SYMBOLS = RAW_SYMBOLS;
 
 const fetchYahoo15mCandles = async (symbol: string) => {
   const upper = symbol.toUpperCase();
-  const yahooSymbol = upper === "NIFTY50" || upper === "NIFTY" ? "^NSEI" : `${symbol}.NS`;
+  const yahooSymbol = upper === "NIFTY50" || upper === "NIFTY" 
+    ? "^NSEI" 
+    : upper === "BTC" || upper === "BTC-USD" 
+    ? "BTC-USD" 
+    : `${symbol}.NS`;
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=5d&interval=15m&includePrePost=false`;
   try {
     const res = await fetch(url, {

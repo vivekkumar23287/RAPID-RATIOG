@@ -139,7 +139,8 @@ async function fetchFromYahoo(ticker, range = '2d') {
 
 async function fetchCleanCandles(symbol) {
   try {
-    const ticker = symbol === 'NIFTY50' ? '^NSEI' : `${symbol}.NS`;
+    const isCrypto = symbol === 'BTC' || symbol === 'BTC-USD';
+    const ticker = symbol === 'NIFTY50' ? '^NSEI' : isCrypto ? 'BTC-USD' : `${symbol}.NS`;
     const data = await fetchFromYahoo(ticker, '2d');
 
     const result = data?.chart?.result?.[0];
@@ -165,10 +166,10 @@ async function fetchCleanCandles(symbol) {
       const ts = alignTo15Min(timestamps[i]);
 
       
-      if (!isWeekdayIST(ts)) continue;
+      if (!isCrypto && !isWeekdayIST(ts)) continue;
 
       
-      if (!isMarketHoursIST(ts)) continue;
+      if (!isCrypto && !isMarketHoursIST(ts)) continue;
 
       
       // Only skip future candles that haven't started yet.
@@ -254,12 +255,22 @@ async function importAllCandles() {
   console.log('[CANDLE IMPORT] Importing NIFTY 50 index...');
   const niftyResult = await fetchCleanCandles('NIFTY50');
 
+  console.log('[CANDLE IMPORT] Importing Bitcoin (BTC)...');
+  const btcResult = await fetchCleanCandles('BTC');
+
   const allCandles = { ...batch1, ...batch2 };
   if (niftyResult.quotes.length > 0) {
     allCandles['NIFTY50'] = { quotes: niftyResult.quotes, meta: niftyResult.meta, name: 'Nifty 50 Index' };
     console.log(`  ✓ NIFTY50: ${niftyResult.quotes.length} clean candles`);
   } else {
     console.log('  ✗ NIFTY50: No valid candles');
+  }
+
+  if (btcResult.quotes.length > 0) {
+    allCandles['BTC'] = { quotes: btcResult.quotes, meta: btcResult.meta, name: 'Bitcoin' };
+    console.log(`  ✓ BTC: ${btcResult.quotes.length} clean candles`);
+  } else {
+    console.log('  ✗ BTC: No valid candles');
   }
 
   const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);

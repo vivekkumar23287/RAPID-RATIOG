@@ -40,7 +40,8 @@ function scanTrick1Gaps(allCandles, todayStr) {
   const gapResults = [];
 
   for (const [symbol, data] of Object.entries(allCandles)) {
-    if (symbol === 'NIFTY50') continue;
+    // Trick 1 excludes NIFTY50 and BTC (BTC included in Tricks 2, 3, 4, 5)
+    if (symbol === 'NIFTY50' || symbol === 'BTC' || symbol === 'BTC-USD') continue;
     try {
       const quotes = data.quotes || [];
       if (quotes.length < 2) continue;
@@ -115,7 +116,7 @@ function scanTrick2MotherRange(allCandles, todayStr) {
   const motherResults = [];
 
   for (const [symbol, data] of Object.entries(allCandles)) {
-    if (symbol === 'NIFTY50') continue;
+    if (symbol === 'NIFTY50') continue; // BTC included
     try {
       const quotes = data.quotes || [];
       if (quotes.length < 5) continue;
@@ -392,7 +393,7 @@ function scanTrick5RSI(allCandles, todayStr) {
   const rsiResults = [];
 
   for (const [symbol, data] of Object.entries(allCandles)) {
-    if (symbol === 'NIFTY50') continue;
+    if (symbol === 'NIFTY50') continue; // BTC included
     try {
       const quotes = data.quotes || [];
       if (quotes.length < 25) continue;
