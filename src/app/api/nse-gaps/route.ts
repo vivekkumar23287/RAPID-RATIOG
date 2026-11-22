@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { getSavedScannerFromDB, saveScannerToDB } from "@/lib/server-scanner-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -43,26 +44,10 @@ export async function GET() {
     const dateStr = `${nowIST.getFullYear()}-${(nowIST.getMonth() + 1).toString().padStart(2, '0')}-${nowIST.getDate().toString().padStart(2, '0')}`;
 
     
-    const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'nse-gaps'`;
-    if (cached.length > 0) {
-       return NextResponse.json(cached[0].results);
-    }
-    
-    
-    const isMarketOpenAndCandleClosed = nowIST.getHours() > 9 || (nowIST.getHours() === 9 && nowIST.getMinutes() >= 31);
-    
-    if (!isMarketOpenAndCandleClosed) {
-      
-      const latest = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'nse-gaps' ORDER BY date_str DESC LIMIT 1`;
-      if (latest.length > 0) {
-         return NextResponse.json(latest[0].results);
-      }
-      return NextResponse.json({
-        gapUps: [],
-        gapDowns: [],
-        timestamp: new Date().toISOString(),
-        message: "Waiting for the first 15-minute candle to close (9:31 AM IST)."
-      });
+    // Fast Path: Immediately serve saved pre-calculated results from database (0 calculation on website)
+    const savedData = await getSavedScannerFromDB("nse-gaps", dateStr);
+    if (savedData) {
+      return NextResponse.json(savedData);
     }
 
     const rawResults = await Promise.all(
@@ -187,11 +172,8 @@ export async function GET() {
     };
     
     
-    await sql`
-      INSERT INTO scanner_cache (date_str, scanner_type, results)
-      VALUES (${dateStr}, 'nse-gaps', ${JSON.stringify(responsePayload)})
-      ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
-    `;
+    // Save calculated results to database for instant future retrieval
+    await saveScannerToDB("nse-gaps", dateStr, responsePayload);
 
     return NextResponse.json(responsePayload);
   } catch (error) {

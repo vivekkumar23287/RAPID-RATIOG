@@ -8,7 +8,14 @@ import {
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
-import { prefetchStockCandles } from "@/lib/data-cache";
+import { 
+  prefetchStockCandles, 
+  fetchNseGapsCached, 
+  fetchScanner5cCached, 
+  fetchScanner3cCached, 
+  fetchScannerRsiCached, 
+  fetchSignalsCached 
+} from "@/lib/data-cache";
 
 type SignalData = {
   id: number;
@@ -63,34 +70,27 @@ export default function TricksInNSE() {
   const [rsiSearch, setRsiSearch] = useState("");
 
   const fetchGaps = async () => {
-    setLoadingGaps(true);
     try {
-      const response = await fetch("/api/nse-gaps", { cache: "no-store" });
-      if (!response.ok) throw new Error("Failed to scan live gaps");
-      const data = await response.json();
-      setGapUps(data.gapUps || []);
-      setGapDowns(data.gapDowns || []);
+      const data = await fetchNseGapsCached();
+      if (data) {
+        setGapUps(data.gapUps || []);
+        setGapDowns(data.gapDowns || []);
+      }
     } catch (error) {
       console.warn("Scanner load failed:", error);
-      setGapUps([]);
-      setGapDowns([]);
     } finally {
       setLoadingGaps(false);
     }
   };
 
   const fetchMotherRange = async () => {
-    setLoadingMother(true);
     try {
-      const res = await fetch("/api/scanner-5c", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to scan 5-candle");
-      const data = await res.json();
-      if (data.success) {
+      const data = await fetchScanner5cCached();
+      if (data && data.matches) {
         setMotherMatches(data.matches || []);
       }
     } catch (e) {
       console.warn("Mother range scanner load failed:", e);
-      setMotherMatches([]);
     } finally {
       setLoadingMother(false);
     }
@@ -98,75 +98,72 @@ export default function TricksInNSE() {
 
   const fetchBreakoutSetups = async () => {
     try {
-      const res = await fetch("/api/scanner-3c", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to scan 3-candle breakout");
-      const data = await res.json();
-      if (data.success) {
+      const data = await fetchScanner3cCached();
+      if (data && data.matches) {
         setBreakoutMatches(data.matches || []);
       }
     } catch (error) {
-      console.warn("Failed to load 3-candle breakout setups:", error);
-      setBreakoutMatches([]);
+      console.warn("Failed to load 3-candle gap setups:", error);
     }
   };
 
   const fetchRsi = async () => {
-    setLoadingRsi(true);
     try {
-      const res = await fetch("/api/scanner-rsi", { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to scan RSI");
-      const data = await res.json();
-      if (data.success) {
+      const data = await fetchScannerRsiCached();
+      if (data) {
         setRsiMatches(data.matches || []);
         setRsi1hConfirmed(data.confirmed1H || []);
         setRsi15mBreakouts(data.breakouts15M || []);
       }
     } catch (e) {
       console.warn("RSI scanner load failed:", e);
-      setRsiMatches([]);
-      setRsi1hConfirmed([]);
-      setRsi15mBreakouts([]);
     } finally {
       setLoadingRsi(false);
     }
   };
 
   useEffect(() => {
-    fetchGaps();
-    fetchMotherRange();
-    fetchBreakoutSetups();
-    fetchRsi();
+    // Load all trick data simultaneously using fast database/client cache
+    Promise.allSettled([
+      fetchGaps(),
+      fetchMotherRange(),
+      fetchBreakoutSetups(),
+      fetchRsi(),
+    ]);
   }, []);
 
   useEffect(() => {
     const signalsUrl = process.env.NEXT_PUBLIC_SIGNALS_URL;
     const fetchSignals = async () => {
       try {
-        const fetchUrl = signalsUrl ? `${signalsUrl}/api/today` : `/api/signals`;
-        const res = await fetch(fetchUrl);
-        const data = await res.json();
-        if (data.success && data.data) {
-          const signalsList = data.data;
+        let signalsList: any[] = [];
+        if (signalsUrl) {
+          const res = await fetch(`${signalsUrl}/api/today`);
+          const data = await res.json();
+          if (data.success && data.data) signalsList = data.data;
+        } else {
+          const data = await fetchSignalsCached();
+          if (data && data.success && data.data) signalsList = data.data;
+        }
+
+        if (signalsList.length > 0) {
           setSignals(signalsList);
+          const latest = signalsList.reduce((acc: any, curr: any) => {
+            if (!acc) return curr;
+            const currMs = curr.created_at ? new Date(curr.created_at).getTime() : 0;
+            const accMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
+            return currMs > accMs ? curr : acc;
+          }, null);
           
-          if (signalsList.length > 0) {
-            const latest = signalsList.reduce((acc: any, curr: any) => {
-              if (!acc) return curr;
-              const currMs = curr.created_at ? new Date(curr.created_at).getTime() : 0;
-              const accMs = acc.created_at ? new Date(acc.created_at).getTime() : 0;
-              return currMs > accMs ? curr : acc;
-            }, null);
-            
-            if (latest && latest.created_at) {
-              const updateDate = new Date(latest.created_at);
-              setLastUpdated(updateDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-            } else if (latest && latest.candle_time) {
-              setLastUpdated(latest.candle_time);
-            }
+          if (latest && latest.created_at) {
+            const updateDate = new Date(latest.created_at);
+            setLastUpdated(updateDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+          } else if (latest && latest.candle_time) {
+            setLastUpdated(latest.candle_time);
           }
         }
       } catch (err) {
-        console.warn("Error fetching signals:", err);
+        console.warn("Signals load failed:", err);
       } finally {
         setLoadingSignals(false);
       }

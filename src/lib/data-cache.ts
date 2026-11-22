@@ -180,6 +180,115 @@ export async function fetchTricksDataCached(forceFresh: boolean = false): Promis
   return getFromCache<any>(cacheKey, 3600000) || null;
 }
 
+// ── Trick Scanner Cached Fetchers (Instant Loading) ───────────────────────────
+
+const TTL_SCANNER_DATA = 45000; // 45 seconds cache for pre-calculated trick data
+
+export async function fetchNseGapsCached(forceFresh: boolean = false): Promise<any> {
+  const cacheKey = "scanner_nse_gaps";
+  if (!forceFresh) {
+    const cached = getFromCache<any>(cacheKey, TTL_SCANNER_DATA);
+    if (cached && isCacheFresh(cacheKey, TTL_SCANNER_DATA)) return cached;
+  }
+  try {
+    const res = await fetch("/api/nse-gaps");
+    if (res.ok) {
+      const data = await res.json();
+      saveToCache(cacheKey, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("[data-cache] nse-gaps error:", err);
+  }
+  return getFromCache<any>(cacheKey, 3600000) || null;
+}
+
+export async function fetchScanner5cCached(forceFresh: boolean = false): Promise<any> {
+  const cacheKey = "scanner_5c_data";
+  if (!forceFresh) {
+    const cached = getFromCache<any>(cacheKey, TTL_SCANNER_DATA);
+    if (cached && isCacheFresh(cacheKey, TTL_SCANNER_DATA)) return cached;
+  }
+  try {
+    const res = await fetch("/api/scanner-5c");
+    if (res.ok) {
+      const data = await res.json();
+      saveToCache(cacheKey, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("[data-cache] scanner-5c error:", err);
+  }
+  return getFromCache<any>(cacheKey, 3600000) || null;
+}
+
+export async function fetchScanner3cCached(forceFresh: boolean = false): Promise<any> {
+  const cacheKey = "scanner_3c_data";
+  if (!forceFresh) {
+    const cached = getFromCache<any>(cacheKey, TTL_SCANNER_DATA);
+    if (cached && isCacheFresh(cacheKey, TTL_SCANNER_DATA)) return cached;
+  }
+  try {
+    const res = await fetch("/api/scanner-3c");
+    if (res.ok) {
+      const data = await res.json();
+      saveToCache(cacheKey, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("[data-cache] scanner-3c error:", err);
+  }
+  return getFromCache<any>(cacheKey, 3600000) || null;
+}
+
+export async function fetchScannerRsiCached(forceFresh: boolean = false): Promise<any> {
+  const cacheKey = "scanner_rsi_data";
+  if (!forceFresh) {
+    const cached = getFromCache<any>(cacheKey, TTL_SCANNER_DATA);
+    if (cached && isCacheFresh(cacheKey, TTL_SCANNER_DATA)) return cached;
+  }
+  try {
+    const res = await fetch("/api/scanner-rsi");
+    if (res.ok) {
+      const data = await res.json();
+      saveToCache(cacheKey, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("[data-cache] scanner-rsi error:", err);
+  }
+  return getFromCache<any>(cacheKey, 3600000) || null;
+}
+
+export async function fetchSignalsCached(forceFresh: boolean = false): Promise<any> {
+  const cacheKey = "signals_data";
+  if (!forceFresh) {
+    const cached = getFromCache<any>(cacheKey, TTL_SCANNER_DATA);
+    if (cached && isCacheFresh(cacheKey, TTL_SCANNER_DATA)) return cached;
+  }
+  try {
+    const res = await fetch("/api/signals");
+    if (res.ok) {
+      const data = await res.json();
+      saveToCache(cacheKey, data);
+      return data;
+    }
+  } catch (err) {
+    console.warn("[data-cache] signals error:", err);
+  }
+  return getFromCache<any>(cacheKey, 3600000) || null;
+}
+
+export function prefetchAllTricksData(): void {
+  Promise.allSettled([
+    fetchNseGapsCached(),
+    fetchScanner5cCached(),
+    fetchScanner3cCached(),
+    fetchScannerRsiCached(),
+    fetchSignalsCached(),
+  ]).catch(() => {});
+}
+
 // ── Smart Prefetch Actions ───────────────────────────────────────────────────
 
 let isNiftyPrefetching = false;

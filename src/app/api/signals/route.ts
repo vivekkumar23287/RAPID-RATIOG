@@ -246,7 +246,7 @@ export async function GET() {
     });
   }
 
-  // 1. Fetch any stored signals from DB strictly for the 7 target Trick 4 assets
+  // 1. Fetch stored signals from DB strictly for the 7 target Trick 4 assets
   let dbSignals: any[] = [];
   try {
     const rows = await sql`
@@ -271,13 +271,38 @@ export async function GET() {
       LIMIT 200
     `;
     if (rows && rows.length > 0) {
-      dbSignals = rows;
+      dbSignals = rows.map((r: any) => ({
+        id: r.id,
+        stock_symbol: r.stock_symbol,
+        stock_name: r.stock_name,
+        signal_type: r.signal_type,
+        direction: r.direction,
+        timeframe: r.timeframe || "15m",
+        open_price: Number(r.open_price),
+        high_price: Number(r.high_price),
+        low_price: Number(r.low_price),
+        close_price: Number(r.close_price),
+        candle_time: r.candle_time,
+        candle_date: r.candle_date,
+        created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
+      }));
+
+      // Fast Path: Immediately return saved database signals (0 calculation on website visit)
+      cachedSignals = dbSignals;
+      lastCacheTime = now;
+      return NextResponse.json({
+        success: true,
+        data: dbSignals,
+        count: dbSignals.length,
+        timestamp: new Date().toISOString(),
+        fromDB: true,
+      });
     }
   } catch (error: any) {
     console.warn("Signals DB read warning:", error?.message);
   }
 
-  // 2. Scan live candles from Yahoo Finance across 09:15 AM to 03:30 PM IST
+  // 2. Only if DB is completely empty: scan and persist initial batch to DB
   let liveSignals: LiveSignal[] = [];
   try {
     liveSignals = await scanLiveOpenHighLow();

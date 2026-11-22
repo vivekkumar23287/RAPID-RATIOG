@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { NIFTY_50_STOCKS as RAW_SYMBOLS } from "@/lib/stocks";
+import { getSavedScannerFromDB, saveScannerToDB } from "@/lib/server-scanner-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -53,20 +54,14 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const singleSymbol = searchParams.get("symbol");
+    const forceSync = searchParams.get("sync") === "true";
 
-    // Only serve from static DB cache if market is completely closed (after 3:35 PM IST or weekends)
-    const isMarketOpen = 
-      nowIST.getDay() >= 1 && 
-      nowIST.getDay() <= 5 && 
-      ((nowIST.getHours() === 9 && nowIST.getMinutes() >= 15) || (nowIST.getHours() > 9 && nowIST.getHours() < 15) || (nowIST.getHours() === 15 && nowIST.getMinutes() <= 35));
-
-    if (!singleSymbol && !isMarketOpen) {
-      try {
-        const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'scanner-3c'`;
-        if (cached.length > 0) {
-          return NextResponse.json(cached[0].results);
-        }
-      } catch {}
+    // Fast Path: Immediately serve saved pre-calculated results from database (0 calculation on website)
+    if (!singleSymbol && !forceSync) {
+      const savedData = await getSavedScannerFromDB("scanner-3c", dateStr);
+      if (savedData) {
+        return NextResponse.json(savedData);
+      }
     }
 
     const symbolsToScan = singleSymbol
@@ -295,17 +290,9 @@ export async function GET(req: NextRequest) {
       timeTakenMs: timeTaken
     };
 
-    // Cache results in DB if scanning full list
+    // Save calculated results to database for instant future retrieval
     if (!singleSymbol) {
-      try {
-        await sql`
-          INSERT INTO scanner_cache (date_str, scanner_type, results)
-          VALUES (${dateStr}, 'scanner-3c', ${JSON.stringify(responsePayload)})
-          ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results
-        `;
-      } catch {
-        // Cache table might not exist or connection failed; ignore and proceed
-      }
+      await saveScannerToDB("scanner-3c", dateStr, responsePayload);
     }
 
     return NextResponse.json(responsePayload);

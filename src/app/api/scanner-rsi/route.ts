@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { NIFTY_50_STOCKS as RAW_SYMBOLS } from "@/lib/stocks";
+import { getSavedScannerFromDB, saveScannerToDB } from "@/lib/server-scanner-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -154,19 +155,12 @@ export async function GET(req: NextRequest) {
     const singleSymbol = searchParams.get("symbol");
     const forceSync = searchParams.get("sync") === "true";
 
-    const isMarketOpen =
-      nowIST.getDay() >= 1 &&
-      nowIST.getDay() <= 5 &&
-      ((nowIST.getHours() === 9 && nowIST.getMinutes() >= 15) || (nowIST.getHours() > 9 && nowIST.getHours() < 15) || (nowIST.getHours() === 15 && nowIST.getMinutes() <= 35));
-
-    // Check DB cache if not market open and not force sync
-    if (!singleSymbol && !isMarketOpen && !forceSync) {
-      try {
-        const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'scanner-rsi'`;
-        if (cached.length > 0) {
-          return NextResponse.json(cached[0].results);
-        }
-      } catch {}
+    // Fast Path: Immediately serve saved pre-calculated results from database (0 calculation on website)
+    if (!singleSymbol && !forceSync) {
+      const savedData = await getSavedScannerFromDB("scanner-rsi", dateStr);
+      if (savedData) {
+        return NextResponse.json(savedData);
+      }
     }
 
     const symbolsToScan = singleSymbol
@@ -368,18 +362,9 @@ export async function GET(req: NextRequest) {
       durationMs: Date.now() - startTime
     };
 
-    // Cache results in DB if market is closed or on weekend
-    if (!singleSymbol && !isMarketOpen) {
-      try {
-        await sql`
-          INSERT INTO scanner_cache (date_str, scanner_type, results)
-          VALUES (${dateStr}, 'scanner-rsi', ${JSON.stringify(responsePayload)})
-          ON CONFLICT (date_str, scanner_type)
-          DO UPDATE SET results = EXCLUDED.results, created_at = CURRENT_TIMESTAMP
-        `;
-      } catch (cacheErr) {
-        console.warn("RSI Scanner Cache save error:", cacheErr);
-      }
+    // Save calculated results to database for instant future retrieval
+    if (!singleSymbol) {
+      await saveScannerToDB("scanner-rsi", dateStr, responsePayload);
     }
 
     return NextResponse.json(responsePayload);

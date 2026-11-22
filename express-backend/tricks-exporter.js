@@ -546,6 +546,91 @@ async function exportAllTricksToExcel(targetDateStr) {
 
   console.log(`[TRICKS EXPORTER] Collected ${todayRows.length} total trick events across all 5 tricks.`);
 
+  // Persist all calculated tricks into PostgreSQL Neon DB scanner_cache
+  try {
+    // 1. Trick 1: nse-gaps
+    const gapUps = trick1.filter(t => t["Signal Direction"] && t["Signal Direction"].includes("BUY")).map(t => ({
+      symbol: t.Symbol,
+      name: t["Company Name"],
+      price: t.Price,
+      gapPercent: t["Gap %"] || 0,
+      changePercent: t["Gap %"] || 0,
+      isGapUp: true
+    }));
+    const gapDowns = trick1.filter(t => t["Signal Direction"] && t["Signal Direction"].includes("SELL")).map(t => ({
+      symbol: t.Symbol,
+      name: t["Company Name"],
+      price: t.Price,
+      gapPercent: Math.abs(t["Gap %"] || 0),
+      changePercent: t["Gap %"] || 0,
+      isGapDown: true
+    }));
+    await pool.query(
+      `INSERT INTO scanner_cache (date_str, scanner_type, results)
+       VALUES ($1, 'nse-gaps', $2)
+       ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results`,
+      [todayStr, JSON.stringify({ gapUps, gapDowns, timestamp: new Date().toISOString() })]
+    );
+
+    // 2. Trick 2: scanner-5c (5-candle mother range)
+    const motherMatches = trick2.map(t => ({
+      symbol: t.Symbol,
+      name: t["Company Name"],
+      breakoutType: t["Signal Direction"] && t["Signal Direction"].includes("BUY") ? "BULLISH BREAKOUT" : "BEARISH BREAKDOWN",
+      currentPrice: t.Price,
+      timeframe: "15m",
+      breakoutTime: t.Time,
+      isSetupMatched: true
+    }));
+    await pool.query(
+      `INSERT INTO scanner_cache (date_str, scanner_type, results)
+       VALUES ($1, 'scanner-5c', $2)
+       ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results`,
+      [todayStr, JSON.stringify({ success: true, matchesCount: motherMatches.length, matches: motherMatches, timestamp: new Date().toISOString() })]
+    );
+
+    // 3. Trick 3: scanner-3c (15-min 3-candle gap)
+    const gap3cMatches = trick3.map(t => ({
+      symbol: t.Symbol,
+      name: t["Company Name"],
+      signal_type: t["Trick Name"] && t["Trick Name"].includes("Bullish") ? "BULLISH 3-CANDLE GAP" : "BEARISH 3-CANDLE GAP",
+      direction: t["Signal Direction"] && t["Signal Direction"].includes("BUY") ? "UP" : "DOWN",
+      timeframe: "15m",
+      currentPrice: t.Price,
+      close_price: t.Price,
+      candle_time: t.Time,
+      candle_date: t.Date,
+      gap_points: t["Gap Points"] || 0
+    }));
+    await pool.query(
+      `INSERT INTO scanner_cache (date_str, scanner_type, results)
+       VALUES ($1, 'scanner-3c', $2)
+       ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results`,
+      [todayStr, JSON.stringify({ success: true, matchesCount: gap3cMatches.length, matches: gap3cMatches, timestamp: new Date().toISOString() })]
+    );
+
+    // 4. Trick 5: scanner-rsi (RSI 60 breakout)
+    const rsiMatches = trick5.map(t => ({
+      symbol: t.Symbol,
+      name: t["Company Name"],
+      rsi: t.RSI || 60,
+      currentPrice: t.Price,
+      breakoutType: t["Signal Direction"] && t["Signal Direction"].includes("BUY") ? "BULLISH" : "BEARISH",
+      time: t.Time,
+      isBullishCrossover: true
+    }));
+    await pool.query(
+      `INSERT INTO scanner_cache (date_str, scanner_type, results)
+       VALUES ($1, 'scanner-rsi', $2)
+       ON CONFLICT (date_str, scanner_type) DO UPDATE SET results = EXCLUDED.results`,
+      [todayStr, JSON.stringify({ success: true, matchesCount: rsiMatches.length, matches: rsiMatches, confirmed1H: rsiMatches, breakouts15M: rsiMatches, timestamp: new Date().toISOString() })]
+    );
+
+    console.log('[TRICKS EXPORTER] ✅ All trick calculations saved directly into Neon DB scanner_cache');
+  } catch (dbCacheErr) {
+    console.warn('[TRICKS EXPORTER] DB scanner_cache insert error:', dbCacheErr.message);
+  }
+
   // If no triggers occurred today (e.g. holiday or quiet market), add an informative placeholder
   if (todayRows.length === 0) {
     todayRows.push({

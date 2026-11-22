@@ -300,6 +300,13 @@ cron.schedule('1,16,31,46 9-15 * * 1-5', async () => {
     } else {
       console.log(`[${timeStr}] No new signals`);
     }
+
+    // Persist all trick calculations into database scanner_cache and Excel
+    try {
+      await exportAllTricksToExcel();
+    } catch (e) {
+      console.warn(`[${timeStr}] Tricks DB cache calculation error:`, e.message);
+    }
   } catch (err) {
     console.error(`[${timeStr}] Scanner error:`, err.message);
   }
@@ -383,6 +390,14 @@ server.listen(PORT, async () => {
       if (newSignals && newSignals.length > 0) {
         console.log(`[SCANNER] Startup scan found ${newSignals.length} signals`);
         io.emit('new_signals', newSignals);
+      }
+
+      // Initial tricks calculation & Neon DB scanner_cache population on boot
+      try {
+        console.log('[SCANNER] 🚀 Initializing tricks calculation and DB cache...');
+        await exportAllTricksToExcel();
+      } catch (exportInitErr) {
+        console.warn('[SCANNER] Initial tricks calculation warning:', exportInitErr.message);
       }
     } catch (scanErr) {
       console.error('[SCANNER] Startup scan error:', scanErr.message);

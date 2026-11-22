@@ -11,7 +11,7 @@ import StocksBadgeSection from "@/components/Stocksbadgesection";
 import { LogosSection, FutureSection } from "@/components/Logosandfuture";
 import ScrollCTA from "@/components/ScrollCTA";
 import Footer from "@/components/Footer";
-import { fetchBatchPricesCached, markAppReady, prefetchAllNiftyPrices } from "@/lib/data-cache";
+import { fetchBatchPricesCached, markAppReady, prefetchAllNiftyPrices, prefetchAllTricksData } from "@/lib/data-cache";
 
 // Canvas components that need browser window/document APIs
 const EquiductBackground = dynamic(() => import("@/components/EquiductBackground"), { ssr: false });
@@ -27,10 +27,11 @@ export default function HomePage() {
         markAppReady();
       });
 
-    // 2. Idle prefetch: pre-warm the full Nifty 50 dataset for instant navigation to Company page
+    // 2. Idle prefetch: pre-warm the full Nifty 50 dataset & Tricks data for instant transitions
     const idleTimer = setTimeout(() => {
       prefetchAllNiftyPrices();
-    }, 1500);
+      prefetchAllTricksData();
+    }, 1200);
 
     return () => clearTimeout(idleTimer);
   }, []);
