@@ -5,7 +5,7 @@
 
 require('dotenv').config({ path: '../.env.local' });
 const { Pool } = require('pg');
-const { getISTTimeString, getISTDateString } = require('./candle-importer');
+const { getISTTimeString, getISTDateString, getISTHourMinute } = require('./candle-importer');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -140,44 +140,55 @@ async function scanStocks(importedCandles) {
       const { quotes, name } = data;
       if (!quotes || quotes.length === 0) continue;
 
-      const lastCandle = quotes[quotes.length - 1];
-      if (!lastCandle) continue;
+      // Identify the latest trading date present in the quotes
+      const latestDateStr = quotes[quotes.length - 1].dateStr;
 
-      const { open, high, low, close, timestamp, dateStr, timeStr } = lastCandle;
+      // Scan all candles for the trading day between 9:15 AM and 3:30 PM IST
+      const sessionCandles = quotes.filter(c => {
+        if (c.dateStr !== latestDateStr) return false;
+        const { hours, minutes } = getISTHourMinute(c.timestamp);
+        const totalMinutes = hours * 60 + minutes;
+        return totalMinutes >= 9 * 60 + 15 && totalMinutes <= 15 * 60 + 30;
+      });
 
-      let signalType = null;
-      let direction = null;
+      for (const candle of sessionCandles) {
+        const { open, high, low, close, timestamp, dateStr, timeStr } = candle;
 
-      // RULE 1: If candle HIGH == OPEN → signal = DOWN (Bearish)
-      if (high === open) {
-        signalType = 'OPEN = HIGH ↓';
-        direction = 'DOWN';
-      }
-      // RULE 2: If candle LOW == OPEN → signal = UP (Bullish)
-      else if (low === open) {
-        signalType = 'OPEN = LOW ↑';
-        direction = 'UP';
-      }
+        let signalType = null;
+        let direction = null;
 
-      if (signalType) {
-        const candleEndTs = timestamp + 15 * 60;
-        const candleTimeEnd = getISTTimeString(candleEndTs);
-        const candleTime = `${timeStr} - ${candleTimeEnd}`;
+        // RULE 1: If candle HIGH == OPEN → signal = DOWN (Bearish)
+        // Uses floating-point tolerance (< 0.02)
+        if (Math.abs(high - open) < 0.02) {
+          signalType = 'OPEN = HIGH ↓';
+          direction = 'DOWN';
+        }
+        // RULE 2: If candle LOW == OPEN → signal = UP (Bullish)
+        else if (Math.abs(low - open) < 0.02) {
+          signalType = 'OPEN = LOW ↑';
+          direction = 'UP';
+        }
 
-        newSignals.push({
-          stock_symbol: symbol,
-          stock_name: name,
-          signal_type: signalType,
-          direction: direction,
-          timeframe: '15m',
-          open_price: open,
-          high_price: high,
-          low_price: low,
-          close_price: close,
-          candle_time: candleTime,
-          candle_date: dateStr,
-        });
-        signalCount++;
+        if (signalType) {
+          const candleEndTs = timestamp + 15 * 60;
+          const candleTimeEnd = getISTTimeString(candleEndTs);
+          const candleTime = `${timeStr} - ${candleTimeEnd}`;
+
+          newSignals.push({
+            stock_symbol: symbol,
+            stock_name: name,
+            signal_type: signalType,
+            direction: direction,
+            timeframe: '15m',
+            open_price: open,
+            high_price: high,
+            low_price: low,
+            close_price: close,
+            candle_time: candleTime,
+            candle_date: dateStr,
+          });
+          signalCount++;
+        }
       }
     } catch (e) {
       console.error(`[SCANNER] Error scanning O=H/O=L for ${symbol}:`, e.message);

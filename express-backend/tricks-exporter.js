@@ -1,11 +1,12 @@
 /**
  * tricks-exporter.js
  *
- * Automatically collects all stocks that triggered ANY of the 4 NSE Tricks:
+ * Automatically collects all stocks that triggered ANY of the 5 NSE Tricks:
  *   1. Trick 1: True Gap Scanner (Gap Up / Gap Down)
  *   2. Trick 2: 5-Candle Mother Range Setup
  *   3. Trick 3: 15-Minute 3-Candle Bullish Breakout Setup
  *   4. Trick 4: Live 15-Min Open=High (Bearish) & Open=Low (Bullish) Signals
+ *   5. Trick 5: RSI (Overbought >= 70 & Oversold <= 30 Reversal Signals)
  *
  * Runs every working day (Mon-Fri) at 4:00 PM IST (16:00).
  * Generates/updates an Excel workbook with sheet name "date".
@@ -249,7 +250,7 @@ function scanTrick4OpenHighLow(allCandles, todayStr) {
       quotes.forEach(c => {
         if (todayStr && c.dateStr !== todayStr) return;
 
-        if (c.high === c.open) {
+        if (Math.abs(c.high - c.open) < 0.02) {
           latestOH = {
             "Date": c.dateStr,
             "Time": `${c.timeStr}`,
@@ -260,7 +261,7 @@ function scanTrick4OpenHighLow(allCandles, todayStr) {
             "Price": c.close,
             "Details": `Open equals High (₹${c.open.toFixed(2)}) — Strong intraday bearish rejection`
           };
-        } else if (c.low === c.open) {
+        } else if (Math.abs(c.low - c.open) < 0.02) {
           latestOL = {
             "Date": c.dateStr,
             "Time": `${c.timeStr}`,
@@ -282,6 +283,160 @@ function scanTrick4OpenHighLow(allCandles, todayStr) {
   }
 
   return ohlResults;
+}
+
+/**
+ * Helper to calculate RSI(23) with Wilder's smoothing
+ */
+function calculateRSIQuotes(quotes, period = 23) {
+  if (!quotes || quotes.length <= period) return [];
+  const results = [];
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= period; i++) {
+    const diff = quotes[i].close - quotes[i - 1].close;
+    if (diff >= 0) gains += diff;
+    else losses -= diff;
+  }
+
+  let avgGain = gains / period;
+  let avgLoss = losses / period;
+
+  for (let i = period + 1; i < quotes.length; i++) {
+    const diff = quotes[i].close - quotes[i - 1].close;
+    avgGain = (avgGain * (period - 1) + (diff > 0 ? diff : 0)) / period;
+    avgLoss = (avgLoss * (period - 1) + (diff < 0 ? -diff : 0)) / period;
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    const rsi = 100 - (100 / (1 + rs));
+    results.push({
+      candle: quotes[i],
+      rsi: parseFloat(rsi.toFixed(2))
+    });
+  }
+  return results;
+}
+
+/**
+ * Calculate 14-period Simple Moving Average of RSI (Green Line)
+ */
+function calculateRSIMAQuotes(rsiPoints, maLength = 14) {
+  return rsiPoints.map((p, idx) => {
+    if (idx < maLength - 1) return { ...p, ma: p.rsi };
+    let sum = 0;
+    for (let j = idx - maLength + 1; j <= idx; j++) {
+      sum += rsiPoints[j].rsi;
+    }
+    return {
+      ...p,
+      ma: parseFloat((sum / maLength).toFixed(2))
+    };
+  });
+}
+
+/**
+ * Aggregate 15m quotes into 1-Hour candles for higher timeframe confirmation
+ */
+function aggregateQuotesTo1H(quotes) {
+  if (!quotes || quotes.length === 0) return [];
+  const hourBuckets = {};
+
+  quotes.forEach(c => {
+    const key = `${c.dateStr}_${c.timeStr ? c.timeStr.substring(0, 2) : "00"}`;
+    if (!hourBuckets[key]) hourBuckets[key] = [];
+    hourBuckets[key].push(c);
+  });
+
+  const hourQuotes = [];
+  Object.keys(hourBuckets).forEach(key => {
+    const list = hourBuckets[key];
+    if (list.length === 0) return;
+    hourQuotes.push({
+      open: list[0].open,
+      high: Math.max(...list.map(x => x.high)),
+      low: Math.min(...list.map(x => x.low)),
+      close: list[list.length - 1].close,
+      dateStr: list[0].dateStr,
+      timeStr: list[0].timeStr,
+      timestamp: list[0].timestamp
+    });
+  });
+
+  return hourQuotes;
+}
+
+/**
+ * Scan for Trick 5: RSI 60 Bullish Momentum Breakout (Yellow crosses 60 with 1H confirmation)
+ * - RSI Length = 23 (Yellow)
+ * - RSI-based MA = 14 (Green)
+ * - Intraday cross above 60 = Strong upward momentum
+ * - 1-Hour RSI above 60 = Confirmed strong upside continuation
+ */
+function scanTrick5RSI(allCandles, todayStr) {
+  const rsiResults = [];
+
+  for (const [symbol, data] of Object.entries(allCandles)) {
+    if (symbol === 'NIFTY50') continue;
+    try {
+      const quotes = data.quotes || [];
+      if (quotes.length < 25) continue;
+
+      // 1. Calculate 15m RSI(23) with 14-period MA
+      const rsiPoints = calculateRSIQuotes(quotes, 23);
+      if (rsiPoints.length === 0) continue;
+      const rsiWithMA = calculateRSIMAQuotes(rsiPoints, 14);
+
+      // 2. Calculate 1-Hour RSI(23)
+      const hourQuotes = aggregateQuotesTo1H(quotes);
+      const rsi1hPoints = calculateRSIQuotes(hourQuotes, 23);
+      const latest1HRsi = rsi1hPoints.length > 0 ? rsi1hPoints[rsi1hPoints.length - 1].rsi : 50;
+
+      // Filter eligible points for today
+      const eligiblePoints = todayStr
+        ? rsiWithMA.filter(p => p.candle.dateStr === todayStr)
+        : [rsiWithMA[rsiWithMA.length - 1]];
+
+      if (eligiblePoints.length === 0) {
+        eligiblePoints.push(rsiWithMA[rsiWithMA.length - 1]);
+      }
+
+      // Check if Yellow RSI crossed above 60 (or holds above 60)
+      const latestPoint = eligiblePoints[eligiblePoints.length - 1];
+      const isCrossAbove60 = latestPoint.rsi >= 60;
+      const isAboveMA = latestPoint.rsi >= latestPoint.ma;
+      const is1HConfirmed = latest1HRsi >= 60;
+
+      if (isCrossAbove60) {
+        if (is1HConfirmed) {
+          rsiResults.push({
+            "Date": latestPoint.candle.dateStr,
+            "Time": latestPoint.candle.timeStr || "Market Hours",
+            "Company Name": data.name || symbol,
+            "Symbol": symbol,
+            "Trick Name": "Trick 5: RSI 60 Breakout (1H Confirmed)",
+            "Signal Direction": "STRONG BUY / Confirmed Bullish",
+            "Price": latestPoint.candle.close,
+            "Details": `RSI(23) [Yellow: ${latestPoint.rsi.toFixed(1)}] crossed > 60 & > MA(14) [Green: ${latestPoint.ma.toFixed(1)}] with 1H RSI [${latest1HRsi.toFixed(1)}] > 60`
+          });
+        } else {
+          rsiResults.push({
+            "Date": latestPoint.candle.dateStr,
+            "Time": latestPoint.candle.timeStr || "Market Hours",
+            "Company Name": data.name || symbol,
+            "Symbol": symbol,
+            "Trick Name": "Trick 5: RSI 60 Breakout (15M)",
+            "Signal Direction": "BUY / Bullish Momentum",
+            "Price": latestPoint.candle.close,
+            "Details": `RSI(23) [Yellow: ${latestPoint.rsi.toFixed(1)}] crossed > 60 & > MA(14) [Green: ${latestPoint.ma.toFixed(1)}]`
+          });
+        }
+      }
+    } catch (e) {
+      console.warn(`[EXPORTER] Error checking RSI for ${symbol}:`, e.message);
+    }
+  }
+
+  return rsiResults;
 }
 
 /**
@@ -325,11 +480,12 @@ async function exportAllTricksToExcel(targetDateStr) {
   // 1. Import latest candles for all stocks
   const allCandles = await importAllCandles();
 
-  // 2. Run scans for all 4 tricks
+  // 2. Run scans for all 5 tricks
   const trick1 = scanTrick1Gaps(allCandles, todayStr);
   const trick2 = scanTrick2MotherRange(allCandles, todayStr);
   const trick3 = scanTrick3Breakouts(allCandles, todayStr);
   const trick4 = scanTrick4OpenHighLow(allCandles, todayStr);
+  const trick5 = scanTrick5RSI(allCandles, todayStr);
 
   // 3. Optional DB signals overlay
   const dbSignals = await getDBSignalsToday(todayStr);
@@ -351,9 +507,10 @@ async function exportAllTricksToExcel(targetDateStr) {
   trick2.forEach(addRow);
   trick3.forEach(addRow);
   trick4.forEach(addRow);
+  trick5.forEach(addRow);
   dbSignals.forEach(addRow);
 
-  console.log(`[TRICKS EXPORTER] Collected ${todayRows.length} total trick events across all 4 tricks.`);
+  console.log(`[TRICKS EXPORTER] Collected ${todayRows.length} total trick events across all 5 tricks.`);
 
   // If no triggers occurred today (e.g. holiday or quiet market), add an informative placeholder
   if (todayRows.length === 0) {
@@ -517,5 +674,6 @@ module.exports = {
   scanTrick1Gaps,
   scanTrick2MotherRange,
   scanTrick3Breakouts,
-  scanTrick4OpenHighLow
+  scanTrick4OpenHighLow,
+  scanTrick5RSI
 };

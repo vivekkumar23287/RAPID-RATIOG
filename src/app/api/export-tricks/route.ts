@@ -17,6 +17,7 @@ function filterRowsByTrick(rows: any[], filter: string | null) {
     if (f === "trick_4_oh") return t.includes("open=high") || t.includes("open = high");
     if (f === "trick_4_ol") return t.includes("open=low") || t.includes("open = low");
     if (f === "trick_4" || f === "4") return t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
+    if (f === "trick_5" || f === "5" || f === "rsi") return t.includes("trick 5") || t.includes("rsi");
     return t.includes(f);
   });
 }
@@ -96,7 +97,8 @@ export async function GET(req: NextRequest) {
     // 1. If today's daily file doesn't exist yet or sync requested, run live market scan
     if (!fs.existsSync(publicDailyPath) || forceSync) {
       try {
-        const { exportAllTricksToExcel } = require(path.join(process.cwd(), "express-backend", "tricks-exporter"));
+        const reqFunc = eval("require");
+        const { exportAllTricksToExcel } = reqFunc(path.join(process.cwd(), "express-backend", "tricks-exporter"));
         await exportAllTricksToExcel(todayStr);
       } catch (err: any) {
         console.warn("Could not run on-demand exportAllTricksToExcel:", err.message);

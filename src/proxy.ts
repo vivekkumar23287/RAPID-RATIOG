@@ -16,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/nse-gaps(.*)",
   "/api/scanner-5c(.*)",
   "/api/scanner-3c(.*)",
+  "/api/scanner-rsi(.*)",
   "/api/setup-db(.*)",
   "/api/signals(.*)",
   "/api/export-tricks(.*)",

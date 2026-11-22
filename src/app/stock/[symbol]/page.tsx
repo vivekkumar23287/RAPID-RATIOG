@@ -143,15 +143,16 @@ export default function StockChartPage() {
   const [indicatorSettings, setIndicatorSettings] = useState({
     rsi: {
       enabled: false,
-      period: 14,
-      smoothingLength: 20,
-      color: "#9c27b0",
-      maColor: "#FFB000",
+      period: 23,
+      smoothingLength: 14,
+      color: "#FACC15",
+      maColor: "#22C55E",
       upperLimit: 70,
+      bullLimit: 60,
       middleLimit: 50,
       lowerLimit: 30,
       limitColor: "rgba(100, 116, 139, 0.5)",
-      backgroundColor: "rgba(156, 39, 176, 0.05)"
+      backgroundColor: "rgba(250, 204, 21, 0.05)"
     },
     ema1: { enabled: false, period: 9, color: "#2196f3" },
     ema2: { enabled: false, period: 21, color: "#ff9800" },
@@ -685,6 +686,16 @@ export default function StockChartPage() {
             priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
           });
 
+          // Bullish Momentum Level 60 reference line (TradingView setup)
+          const bullLine = rsiSeries.createPriceLine({
+            price: indicatorSettings.rsi.bullLimit || 60,
+            color: "#EAB308",
+            lineWidth: 2,
+            lineStyle: 0, // Solid
+            axisLabelVisible: true,
+            title: `BULL 60`,
+          });
+
           // Create Upper Limit (70) and Lower Limit (30) reference lines
           const upperLine = rsiSeries.createPriceLine({
             price: indicatorSettings.rsi.upperLimit,
@@ -707,6 +718,7 @@ export default function StockChartPage() {
           rsiChartRef.current = rsiChart;
           rsiSeriesRef.current = rsiSeries;
           (rsiChartRef.current as any).maSeries = rsiMASeries;
+          (rsiChartRef.current as any).bullLine = bullLine;
           (rsiChartRef.current as any).upperLine = upperLine;
           (rsiChartRef.current as any).lowerLine = lowerLine;
           setRsiChartReady(true);
@@ -723,8 +735,16 @@ export default function StockChartPage() {
           }
 
           // Update limit line prices and colors dynamically
+          const bullLine = (rsiChartRef.current as any).bullLine;
           const upperLine = (rsiChartRef.current as any).upperLine;
           const lowerLine = (rsiChartRef.current as any).lowerLine;
+          if (bullLine) {
+            bullLine.applyOptions({
+              price: indicatorSettings.rsi.bullLimit || 60,
+              color: "#EAB308",
+              title: `BULL ${indicatorSettings.rsi.bullLimit || 60}`,
+            });
+          }
           if (upperLine) {
             upperLine.applyOptions({
               price: indicatorSettings.rsi.upperLimit,
@@ -1440,6 +1460,10 @@ export default function StockChartPage() {
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: "6px", borderTop: "1px dashed #E2E8F0" }}>
                               <span style={{ fontSize: "9px", color: "#64748B", fontWeight: 700, fontFamily: "Satoshi, sans-serif" }}>UPPER LIMIT</span>
                               <input type="number" value={indicatorSettings.rsi.upperLimit} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, upperLimit: parseInt(e.target.value) || 0 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#0F2044", fontSize: "10px", outline: "none" }} />
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <span style={{ fontSize: "9px", color: "#EAB308", fontWeight: 800, fontFamily: "Satoshi, sans-serif" }}>BULL TRIGGER (60)</span>
+                              <input type="number" value={indicatorSettings.rsi.bullLimit || 60} onChange={(e) => setIndicatorSettings({ ...indicatorSettings, rsi: { ...indicatorSettings.rsi, bullLimit: parseInt(e.target.value) || 0 } })} style={{ width: "45px", padding: "3px 6px", borderRadius: "4px", border: "1px solid #EAB308", background: "#FEF9C3", color: "#854D0E", fontSize: "10px", fontWeight: 700, outline: "none" }} />
                             </div>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                               <span style={{ fontSize: "9px", color: "#64748B", fontWeight: 700, fontFamily: "Satoshi, sans-serif" }}>LOWER LIMIT</span>

@@ -279,9 +279,9 @@ cron.schedule('1,16,31,46 9-15 * * 1-5', async () => {
   const timeStr = new Intl.DateTimeFormat('en-IN', opts).format(d);
   const [hour, minute] = timeStr.split(':').map(Number);
 
-  if (hour === 9  && minute < 31) return; // before first 15m candle
-  if (hour === 15 && minute > 31) return; // after market close
-  if (hour > 15) return;
+  if (hour === 9  && minute < 15) return; // market opens at 09:15 IST
+  if (hour === 15 && minute > 35) return; // market closes at 15:30 IST (allows 15:31 post-close scan)
+  if (hour > 15 || hour < 9) return;
 
   console.log('');
   console.log(`╔══════════════════════════════════════════════════════════╗`);
@@ -374,6 +374,18 @@ server.listen(PORT, async () => {
       await runSyncCycle(false);
     } catch (err) {
       console.error('[WORKER] Startup sync error:', err.message);
+    }
+
+    try {
+      console.log('[SCANNER] 🚀 Startup scan — checking for Open=High / Open=Low signals (09:15 - 15:30)...');
+      const importedCandles = await importAllCandles();
+      const newSignals = await scanStocks(importedCandles);
+      if (newSignals && newSignals.length > 0) {
+        console.log(`[SCANNER] Startup scan found ${newSignals.length} signals`);
+        io.emit('new_signals', newSignals);
+      }
+    } catch (scanErr) {
+      console.error('[SCANNER] Startup scan error:', scanErr.message);
     }
   }, 5000);
 });

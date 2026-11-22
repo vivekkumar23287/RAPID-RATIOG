@@ -86,8 +86,8 @@ function isWeekdayIST(unixSeconds) {
 function isMarketHoursIST(unixSeconds) {
   const { hours, minutes } = getISTHourMinute(unixSeconds);
   const totalMinutes = hours * 60 + minutes;
-  const MARKET_OPEN  = 9 * 60 + 15;   
-  const LAST_CANDLE  = 15 * 60 + 15;  
+  const MARKET_OPEN  = 9 * 60 + 15;   // 09:15 IST
+  const LAST_CANDLE  = 15 * 60 + 30;  // 15:30 IST (covers entire session through 3:30 PM)
   return totalMinutes >= MARKET_OPEN && totalMinutes <= LAST_CANDLE;
 }
 
@@ -171,7 +171,9 @@ async function fetchCleanCandles(symbol) {
       if (!isMarketHoursIST(ts)) continue;
 
       
-      if (!isCandleCompleted(ts)) continue;
+      // Only skip future candles that haven't started yet.
+      // During market hours (09:15 - 15:30 IST), the current active candle is included for live scanning.
+      if (ts * 1000 > Date.now()) continue;
 
       const open  = Number(rawOpen.toFixed(2));
       const high  = Number(rawHigh.toFixed(2));

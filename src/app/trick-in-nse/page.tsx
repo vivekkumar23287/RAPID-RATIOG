@@ -5,7 +5,7 @@ import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 import { 
   MagnifyingGlass, Clock, CaretUp, CaretDown, BellRinging, BellSlash, 
-  ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info 
+  ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
 
@@ -82,6 +82,14 @@ export default function TricksInNSE() {
   const [specialSearch, setSpecialSearch] = useState("");
   const [lastUpdated, setLastUpdated] = useState<string>("");
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // Trick 5: RSI 60 Bullish Breakout Scanner (Yellow crosses 60 with 1H confirmation)
+  const [rsiMatches, setRsiMatches] = useState<any[]>([]);
+  const [rsi1hConfirmed, setRsi1hConfirmed] = useState<any[]>([]);
+  const [rsi15mBreakouts, setRsi15mBreakouts] = useState<any[]>([]);
+  const [loadingRsi, setLoadingRsi] = useState(true);
+  const [rsiFilter, setRsiFilter] = useState<"ALL" | "1H_CONFIRMED" | "15M_BREAKOUT">("ALL");
+  const [rsiSearch, setRsiSearch] = useState("");
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -136,10 +144,32 @@ export default function TricksInNSE() {
     }
   };
 
+  const fetchRsi = async () => {
+    setLoadingRsi(true);
+    try {
+      const res = await fetch("/api/scanner-rsi", { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to scan RSI");
+      const data = await res.json();
+      if (data.success) {
+        setRsiMatches(data.matches || []);
+        setRsi1hConfirmed(data.confirmed1H || []);
+        setRsi15mBreakouts(data.breakouts15M || []);
+      }
+    } catch (e) {
+      console.warn("RSI scanner load failed:", e);
+      setRsiMatches([]);
+      setRsi1hConfirmed([]);
+      setRsi15mBreakouts([]);
+    } finally {
+      setLoadingRsi(false);
+    }
+  };
+
   useEffect(() => {
     fetchGaps();
     fetchMotherRange();
     fetchBreakoutSetups();
+    fetchRsi();
   }, []);
 
   useEffect(() => {
@@ -283,6 +313,46 @@ export default function TricksInNSE() {
     router.push(`/stock/${symbol}`);
   };
 
+  const handleRsiStockClick = (symbol: string) => {
+    try {
+      // Auto-enable RSI indicator in chart settings so it opens with RSI visible
+      const savedIndicators = localStorage.getItem("indicator_settings");
+      let indSettings: any = {};
+      if (savedIndicators) {
+        try { indSettings = JSON.parse(savedIndicators); } catch (_) {}
+      }
+      indSettings.rsi = {
+        ...(indSettings.rsi || {}),
+        enabled: true,
+        period: 23,
+        smoothingLength: 14,
+        color: "#FACC15", // TradingView Yellow
+        maColor: "#22C55E", // TradingView Green
+        bullLimit: 60,
+        upperLimit: 70,
+        lowerLimit: 30
+      };
+      localStorage.setItem("indicator_settings", JSON.stringify(indSettings));
+      localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
+    } catch (_) {}
+    router.push(`/stock/${symbol}`);
+  };
+
+  const filteredRsiList = useMemo(() => {
+    let sourceList: any[] = [];
+    if (rsiFilter === "1H_CONFIRMED") sourceList = rsi1hConfirmed;
+    else if (rsiFilter === "15M_BREAKOUT") sourceList = rsi15mBreakouts;
+    else sourceList = rsiMatches;
+
+    return sourceList.filter(item => {
+      const q = rsiSearch.toLowerCase();
+      return (
+        item.symbol.toLowerCase().includes(q) ||
+        (item.name && item.name.toLowerCase().includes(q))
+      );
+    });
+  }, [rsiMatches, rsi1hConfirmed, rsi15mBreakouts, rsiFilter, rsiSearch]);
+
   const ohlSignals = useMemo(() => {
     return signals.filter(sig => 
       sig.signal_type.includes("OPEN =") || 
@@ -328,7 +398,7 @@ export default function TricksInNSE() {
             margin: "0",
             lineHeight: 1.6
           }}>
-            Track overnight opening gaps, 5-Candle Mother Range breakouts, 3-Candle Bullish Breakout confirmations, and Live 15-Min Open=High & Open=Low Signals.
+            Track overnight opening gaps, 5-Candle Mother Range breakouts, 3-Candle Bullish Breakout confirmations, Live 15-Min Open=High & Open=Low Signals, and 14-Period RSI Overbought & Oversold reversals.
           </p>
         </div>
 
@@ -888,6 +958,292 @@ export default function TricksInNSE() {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* 5. RSI 60 BULLISH BREAKOUT SCANNER (YELLOW CROSSES 60) */}
+        <div style={{ marginTop: "60px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
+                5. RSI 60 Bullish Breakout Scanner (Yellow Crosses 60)
+              </h2>
+              <div style={{ background: "rgba(234,179,8,0.15)", color: "#854D0E", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(234,179,8,0.3)" }}>
+                RSI(23) YELLOW &gt; 60
+              </div>
+              <div style={{ background: "rgba(34,197,94,0.15)", color: "#166534", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(34,197,94,0.3)" }}>
+                MA(14) GREEN
+              </div>
+              <div style={{ background: "rgba(59,130,246,0.12)", color: "#1E40AF", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(59,130,246,0.25)" }}>
+                1H CONFIRMED
+              </div>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "3px 8px", borderRadius: "6px" }}>
+                {filteredRsiList.length} Setups
+              </span>
+            </div>
+
+            {/* Filter Buttons */}
+            <div style={{ display: "flex", background: "#F1F5F9", padding: "4px", borderRadius: "10px", border: "1px solid #E2E8F0" }}>
+              {([
+                { key: "ALL", label: `All Breakouts (${rsiMatches.length})` },
+                { key: "1H_CONFIRMED", label: `1H Confirmed (${rsi1hConfirmed.length})` },
+                { key: "15M_BREAKOUT", label: `15M Breakouts (${rsi15mBreakouts.length})` },
+              ] as const).map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setRsiFilter(tab.key)}
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "7px",
+                    border: "none",
+                    background: rsiFilter === tab.key ? "#FFFFFF" : "transparent",
+                    color: rsiFilter === tab.key ? "#0F2044" : "#64748B",
+                    fontWeight: 700,
+                    fontSize: "12px",
+                    cursor: "pointer",
+                    boxShadow: rsiFilter === tab.key ? "0 2px 8px rgba(0,0,0,0.1)" : "none",
+                    transition: "all 0.2s"
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <p style={{ color: "#64748B", fontSize: "13px", margin: "0 0 16px 0", maxWidth: "860px", lineHeight: "1.5" }}>
+            TradingView Strategy: <strong>Yellow Line</strong> (RSI Length: 23) crossing above <strong>60</strong> and above the <strong>Green Line</strong> (RSI-based MA: 14). When Yellow crosses 60 on intraday charts (15M), upward momentum is triggered. When the <strong>1-Hour (1H)</strong> RSI is also above 60, higher-timeframe continuation confirms the move will definitely keep surging upward.
+          </p>
+
+          {/* Metric Overview Badges & Search */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
+            <div style={{ position: "relative", minWidth: "280px", maxWidth: "380px", flex: 1 }}>
+              <MagnifyingGlass size={16} color="#94A3B8" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)" }} />
+              <input
+                type="text"
+                placeholder="Search RSI momentum stocks by name or symbol..."
+                value={rsiSearch}
+                onChange={(e) => setRsiSearch(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "#FFFFFF",
+                  border: "1px solid #E2E8F0",
+                  padding: "9px 14px 9px 38px",
+                  borderRadius: "10px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "#0F2044",
+                  outline: "none"
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "16px" }}>
+              <div style={{ background: "rgba(234,179,8,0.12)", border: "1px solid rgba(234,179,8,0.3)", borderRadius: "14px", padding: "8px 16px", minWidth: "160px" }}>
+                <div style={{ fontSize: "11px", color: "#854D0E", fontWeight: 800, textTransform: "uppercase" }}>🌟 1H Confirmed (&gt;60)</div>
+                <div style={{ fontSize: "20px", fontWeight: 900, color: "#0F2044" }}>{rsi1hConfirmed.length} Stocks</div>
+              </div>
+              <div style={{ background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.3)", borderRadius: "14px", padding: "8px 16px", minWidth: "160px" }}>
+                <div style={{ fontSize: "11px", color: "#166534", fontWeight: 800, textTransform: "uppercase" }}>🚀 15M Breakouts (&gt;60)</div>
+                <div style={{ fontSize: "20px", fontWeight: 900, color: "#0F2044" }}>{rsi15mBreakouts.length} Stocks</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* RSI Cards Grid */}
+        <div style={{ marginBottom: "60px" }}>
+          {loadingRsi ? (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))", gap: "20px" }}>
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonLoader key={i} />)}
+            </div>
+          ) : filteredRsiList.length === 0 ? (
+            <div style={{
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: "24px",
+              padding: "48px 24px",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              textAlign: "center"
+            }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "10px", background: "rgba(234,179,8,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "#854D0E", marginBottom: "16px" }}>
+                <ChartLineUp size={22} weight="bold" />
+              </div>
+              <div style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", marginBottom: "6px" }}>
+                {rsiFilter === "1H_CONFIRMED" ? "No 1H Confirmed RSI > 60 Setups Right Now" : "No RSI 60 Breakout Setups Active"}
+              </div>
+              <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
+                No stocks currently have Yellow RSI(23) crossing above 60. Scanner continuously checks on each 15-minute candle.
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
+              gap: "20px"
+            }}>
+              {filteredRsiList.map((item) => {
+                const is1H = item.is1HConfirmed;
+                const themeColor = is1H ? "#EAB308" : "#22C55E";
+                const glowColor = is1H ? "rgba(234, 179, 8, 0.15)" : "rgba(34, 197, 94, 0.12)";
+                const rsiGaugePercent = Math.min(Math.max(item.rsi, 0), 100);
+
+                return (
+                  <div
+                    key={`${item.symbol}-${item.timeDetected}`}
+                    onClick={() => handleRsiStockClick(item.symbol)}
+                    style={{
+                      background: "#FFFFFF",
+                      border: `1.5px solid ${themeColor}`,
+                      borderRadius: "20px",
+                      padding: "24px",
+                      boxShadow: `0 8px 24px ${glowColor}, 0 2px 10px rgba(0,0,0,0.04)`,
+                      position: "relative",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      minHeight: "190px",
+                    }}
+                    className="special-setup-card"
+                  >
+                    <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "5px", background: themeColor }} />
+
+                    <div>
+                      {/* Top Header */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "12px", marginBottom: "14px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                          <div style={{
+                            width: "44px",
+                            height: "44px",
+                            borderRadius: "12px",
+                            background: is1H ? "rgba(234,179,8,0.15)" : "rgba(34,197,94,0.15)",
+                            color: is1H ? "#854D0E" : "#166534",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 900,
+                            fontSize: "14px",
+                            flexShrink: 0
+                          }}>
+                            {item.symbol.substring(0, 3)}
+                          </div>
+                          <div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                              <span style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044" }}>
+                                {item.name || item.symbol}
+                              </span>
+                              <span style={{
+                                background: "#F1F5F9",
+                                color: "#475569",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "10px",
+                                fontWeight: 800
+                              }}>
+                                {item.symbol}
+                              </span>
+                            </div>
+                            <span style={{
+                              display: "inline-block",
+                              marginTop: "4px",
+                              background: is1H ? "#FEF9C3" : "#DCFCE7",
+                              color: is1H ? "#854D0E" : "#166534",
+                              border: is1H ? "1px solid #FDE047" : "1px solid #86EFAC",
+                              padding: "2px 8px",
+                              borderRadius: "6px",
+                              fontSize: "11px",
+                              fontWeight: 800,
+                              letterSpacing: "0.3px"
+                            }}>
+                              {is1H ? "🌟 1H CONFIRMED BULLISH (>60)" : "🚀 15M BULLISH BREAKOUT (>60)"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Price Display */}
+                        <div style={{ textAlign: "right", flexShrink: 0 }}>
+                          <span style={{ fontSize: "16px", fontWeight: 900, color: "#0F2044", fontFamily: "monospace", display: "block" }}>
+                            ₹{Number(item.currentPrice).toFixed(2)}
+                          </span>
+                          <span style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            color: item.changePercent >= 0 ? "#16A34A" : "#DC2626",
+                            display: "block",
+                            marginTop: "2px"
+                          }}>
+                            {item.changePercent >= 0 ? "+" : ""}{Number(item.changePercent).toFixed(2)}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* RSI Indicator Indicators (Yellow Line & Green Line) */}
+                      <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "10px 0 12px 0" }}>
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#FEF9C3", border: "1px solid #FACC15", padding: "3px 8px", borderRadius: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#EAB308", display: "inline-block" }}></span>
+                          <span style={{ fontSize: "11px", fontWeight: 800, color: "#854D0E" }}>
+                            Yellow RSI(23): <strong>{item.rsi.toFixed(1)}</strong>
+                          </span>
+                        </div>
+
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#DCFCE7", border: "1px solid #4ADE80", padding: "3px 8px", borderRadius: "6px" }}>
+                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22C55E", display: "inline-block" }}></span>
+                          <span style={{ fontSize: "11px", fontWeight: 800, color: "#166534" }}>
+                            Green MA(14): <strong>{item.ma.toFixed(1)}</strong>
+                          </span>
+                        </div>
+
+                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: is1H ? "#DBEAFE" : "#F1F5F9", border: is1H ? "1px solid #60A5FA" : "1px solid #E2E8F0", padding: "3px 8px", borderRadius: "6px" }}>
+                          <span style={{ fontSize: "11px", fontWeight: 800, color: is1H ? "#1E40AF" : "#64748B" }}>
+                            1H RSI: <strong>{item.rsi1h.toFixed(1)}</strong> {is1H ? "✓ (Aligned)" : "(Watching)"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Visual track with 60 Level Marker */}
+                      <div style={{ margin: "10px 0" }}>
+                        <div style={{ position: "relative", width: "100%", height: "8px", background: "#E2E8F0", borderRadius: "999px", overflow: "hidden" }}>
+                          <div style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: `${rsiGaugePercent}%`,
+                            background: "linear-gradient(90deg, #FACC15, #EAB308)",
+                            borderRadius: "999px",
+                            transition: "width 0.5s ease"
+                          }} />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#64748B", marginTop: "3px", fontWeight: 700 }}>
+                          <span>0</span>
+                          <span style={{ color: "#EAB308", fontWeight: 800 }}>▲ 60 Breakout Trigger</span>
+                          <span>100</span>
+                        </div>
+                      </div>
+
+                      {/* Time detection */}
+                      <p style={{ color: "#64748B", fontSize: "12px", fontWeight: 600, margin: "8px 0 0 0" }}>
+                        Confirmed: <span style={{ color: "#0F2044", fontWeight: 700 }}>{item.dateDetected}</span> at <span style={{ color: "#0F2044", fontWeight: 700 }}>{item.timeDetected}</span>
+                      </p>
+                    </div>
+
+                    {/* Action link */}
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingTop: "12px", marginTop: "10px", borderTop: "1px solid #F1F5F9" }}>
+                      <span style={{ fontSize: "12px", fontWeight: 800, color: is1H ? "#854D0E" : "#166534", display: "flex", alignItems: "center", gap: "4px" }}>
+                        Open 15M Chart (Yellow &amp; Green RSI) ➔
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

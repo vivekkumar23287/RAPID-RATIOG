@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useCallback, useRef, useState, useMemo } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useCallback, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import "@fortune-sheet/react/dist/index.css";
 import * as xlsx from "xlsx";
 
-// Dynamically import Workbook with ssr: false — FortuneSheet uses 2D canvas which requires browser APIs
+// Dynamically import Workbook with ssr: false — FortuneSheet requires browser APIs
 const Workbook = dynamic(
   () => import("@fortune-sheet/react").then((m) => m.Workbook),
   { ssr: false }
@@ -32,6 +32,7 @@ const TRICK_OPTIONS = [
   { id: "TRICK_4_OL", label: "Trick 4: Open=Low (Bullish)" },
   { id: "TRICK_4_OH", label: "Trick 4: Open=High (Bearish)" },
   { id: "TRICK_4_ALL", label: "Trick 4: All O=H & O=L Signals" },
+  { id: "TRICK_5_RSI", label: "Trick 5: RSI 60 Bullish Breakout" },
 ];
 
 function matchesTrickFilter(row: TrickRow, filter: string): boolean {
@@ -43,81 +44,50 @@ function matchesTrickFilter(row: TrickRow, filter: string): boolean {
   if (filter === "TRICK_4_OH") return t.includes("open=high") || t.includes("open = high");
   if (filter === "TRICK_4_OL") return t.includes("open=low") || t.includes("open = low");
   if (filter === "TRICK_4_ALL") return t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
+  if (filter === "TRICK_5_RSI" || filter === "RSI") return t.includes("trick 5") || t.includes("rsi");
   return true;
 }
 
 function formatToSheetDate(dateVal?: any): string {
-  if (dateVal === null || dateVal === undefined || dateVal === "") {
+  if (!dateVal) {
     const today = new Date();
-    const d = String(today.getDate()).padStart(2, "0");
-    const m = String(today.getMonth() + 1).padStart(2, "0");
-    const y = today.getFullYear();
-    return `${d}.${m}.${y}`;
+    return `${String(today.getDate()).padStart(2, "0")}.${String(today.getMonth() + 1).padStart(2, "0")}.${today.getFullYear()}`;
   }
-
-  if (typeof dateVal === "number") {
-    if (dateVal > 30000 && dateVal < 80000) {
-      const date = new Date(Math.round((dateVal - 25569) * 86400 * 1000));
-      const d = String(date.getDate()).padStart(2, "0");
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      const y = date.getFullYear();
-      return `${d}.${m}.${y}`;
-    }
-  }
-
   const str = String(dateVal).trim();
-
-  // Pattern: DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
-  const ddmmyyyy = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/);
-  if (ddmmyyyy) {
-    const d = ddmmyyyy[1].padStart(2, "0");
-    const m = ddmmyyyy[2].padStart(2, "0");
-    const y = ddmmyyyy[3];
-    return `${d}.${m}.${y}`;
+  const match = str.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})/) || str.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})/);
+  if (match) {
+    const [_, p1, p2, p3] = match;
+    const [d, m, y] = p1.length === 4 ? [p3, p2, p1] : [p1, p2, p3];
+    return `${d.padStart(2, "0")}.${m.padStart(2, "0")}.${y}`;
   }
-
-  // Pattern: YYYY-MM-DD or YYYY/MM/DD or YYYY.MM.DD
-  const yyyymmdd = str.match(/^(\d{4})[\/\.-](\d{1,2})[\/\.-](\d{1,2})/);
-  if (yyyymmdd) {
-    const y = yyyymmdd[1];
-    const m = yyyymmdd[2].padStart(2, "0");
-    const d = yyyymmdd[3].padStart(2, "0");
-    return `${d}.${m}.${y}`;
-  }
-
   const parsed = new Date(str);
   if (!isNaN(parsed.getTime())) {
-    const d = String(parsed.getDate()).padStart(2, "0");
-    const m = String(parsed.getMonth() + 1).padStart(2, "0");
-    const y = parsed.getFullYear();
-    return `${d}.${m}.${y}`;
+    return `${String(parsed.getDate()).padStart(2, "0")}.${String(parsed.getMonth() + 1).padStart(2, "0")}.${parsed.getFullYear()}`;
   }
-
   return str.replace(/[\/\\:\*\?\[\]]/g, ".").slice(0, 31) || "Sheet1";
 }
 
 function getSheetNameFromRows(rows: TrickRow[], fallbackRows?: TrickRow[]): string {
-  if (Array.isArray(rows)) {
-    for (const r of rows) {
-      const d = r["Date"] || r["date"];
-      if (d && String(d).trim()) {
-        return formatToSheetDate(d);
-      }
-    }
-  }
-  if (Array.isArray(fallbackRows)) {
-    for (const r of fallbackRows) {
-      const d = r["Date"] || r["date"];
-      if (d && String(d).trim()) {
-        return formatToSheetDate(d);
-      }
-    }
+  const all = [...(rows || []), ...(fallbackRows || [])];
+  for (const r of all) {
+    const d = r["Date"] || r["date"];
+    if (d && String(d).trim()) return formatToSheetDate(d);
   }
   return formatToSheetDate();
 }
 
+function getTrickGroup(trickName: string): { order: number; label: string } {
+  const t = String(trickName || "").toLowerCase();
+  if (t.includes("trick 1") || t.includes("gap")) return { order: 1, label: "Trick 1: True Gap Scanner" };
+  if (t.includes("trick 2") || t.includes("mother")) return { order: 2, label: "Trick 2: 5-Candle Mother Range" };
+  if (t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout")) return { order: 3, label: "Trick 3: 3-Candle Bullish Breakout" };
+  if (t.includes("open=high") || t.includes("open = high")) return { order: 4, label: "Trick 4: Open=High Bearish" };
+  if (t.includes("open=low") || t.includes("open = low")) return { order: 5, label: "Trick 4: Open=Low Bullish" };
+  if (t.includes("trick 5") || t.includes("rsi")) return { order: 6, label: "Trick 5: RSI 60 Bullish Breakout" };
+  return { order: 7, label: trickName || "Other Tricks" };
+}
+
 function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sheetName?: string) {
-  // Ordered with Company Name in Column A and Trick Name in Column B
   const headers = [
     "Company Name",
     "Trick Name",
@@ -131,7 +101,7 @@ function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sh
 
   const celldata: any[] = [];
 
-  // Header row (Row 0)
+  // Header row
   headers.forEach((h, colIdx) => {
     celldata.push({
       r: 0,
@@ -142,48 +112,25 @@ function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sh
         bg: "#0F2044",
         fc: "#FFFFFF",
         bl: 1,
-        ht: 1, // center align
+        ht: 1,
         vt: 1,
       }
     });
   });
 
   const columnlen: Record<string, number> = {
-    0: 260, // Col A: Company Name
-    1: 270, // Col B: Trick Name
-    2: 120, // Col C: Symbol
-    3: 160, // Col D: Signal Direction
-    4: 120, // Col E: Price (₹)
-    5: 110, // Col F: Date
-    6: 140, // Col G: Time
-    7: 520, // Col H: Details
+    0: 260,
+    1: 270,
+    2: 120,
+    3: 160,
+    4: 120,
+    5: 110,
+    6: 140,
+    7: 520,
   };
 
-  // Helper to categorize each trick for grouping
-  const getTrickGroup = (trickName: string): { order: number; label: string } => {
-    const t = String(trickName || "").toLowerCase();
-    if (t.includes("trick 1") || t.includes("gap")) {
-      return { order: 1, label: "Trick 1: True Gap Scanner" };
-    }
-    if (t.includes("trick 2") || t.includes("mother")) {
-      return { order: 2, label: "Trick 2: 5-Candle Mother Range" };
-    }
-    if (t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout")) {
-      return { order: 3, label: "Trick 3: 3-Candle Bullish Breakout" };
-    }
-    if (t.includes("open=high") || t.includes("open = high")) {
-      return { order: 4, label: "Trick 4: Open=High Bearish" };
-    }
-    if (t.includes("open=low") || t.includes("open = low")) {
-      return { order: 5, label: "Trick 4: Open=Low Bullish" };
-    }
-    return { order: 6, label: trickName || "Other Tricks" };
-  };
-
-  // Group rows by trick category
+  // Group and sort rows by trick category
   const groupedTricks = new Map<string, TrickRow[]>();
-
-  // Sort rows by trick order first, then company name
   const sortedRows = [...rows].sort((a, b) => {
     const grpA = getTrickGroup(a["Trick Name"] || "");
     const grpB = getTrickGroup(b["Trick Name"] || "");
@@ -204,17 +151,13 @@ function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sh
 
   for (const [, groupRows] of groupedTricks.entries()) {
     if (!isFirstGroup && isAllTricks) {
-      // 3 LINE GAP in between every trick when viewing all tricks
-      currentRowIdx += 3;
+      currentRowIdx += 3; // 3-line gap between trick categories
     }
     isFirstGroup = false;
 
     groupRows.forEach(row => {
-      const r = currentRowIdx;
-      currentRowIdx++;
-
-      const isEven = r % 2 === 0;
-      const rowBg = isEven ? "#F8FAFC" : "#FFFFFF";
+      const r = currentRowIdx++;
+      const rowBg = r % 2 === 0 ? "#F8FAFC" : "#FFFFFF";
 
       const direction = String(row["Signal Direction"] || "");
       const isBullish = direction.includes("BUY") || direction.includes("Bullish") || direction.includes("UP");
@@ -246,7 +189,7 @@ function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sh
             fc: val.fc,
             bl: val.bl,
             t: val.t,
-            tb: "2", // text wrap
+            tb: "2",
           }
         });
       });
@@ -283,16 +226,8 @@ export default function SheetFlowPage() {
   const [sheetData, setSheetData] = useState<any[]>([]);
   const [lastSyncTime, setLastSyncTime] = useState("");
   const [isExporting, setIsExporting] = useState(false);
-  const [autoFitStatus, setAutoFitStatus] = useState<string | null>(null);
 
-  const workbookRef = useRef<any>(null);
-  const workbookDataRef = useRef<any[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnlenRef = useRef<Record<string, number>>({
-    0: 260, 1: 270, 2: 120, 3: 160, 4: 120, 5: 110, 6: 140, 7: 520
-  });
-
-  // Load today's trade tricks data from /api/export-tricks?format=json
+  // Load tricks data from /api/export-tricks?format=json
   const fetchTricksData = useCallback(async (isManualSync: boolean = false) => {
     setLoading(true);
     try {
@@ -301,7 +236,6 @@ export default function SheetFlowPage() {
       if (!res.ok) throw new Error("Failed to load tricks data");
       const json = await res.json();
       const rawRows: TrickRow[] = json.data || [];
-      // Filter out empty rows
       const cleanRows = rawRows.filter(r => r["Company Name"] || r["Trick Name"] || r["Symbol"]);
       setAllRows(cleanRows);
 
@@ -312,9 +246,7 @@ export default function SheetFlowPage() {
 
       const isAll = selectedTrickFilter === "ALL";
       const filtered = cleanRows.filter(r => matchesTrickFilter(r, selectedTrickFilter));
-      const fData = buildFortuneSheetData(filtered, isAll, computedSheetName);
-      setSheetData(fData);
-      workbookDataRef.current = fData;
+      setSheetData(buildFortuneSheetData(filtered, isAll, computedSheetName));
 
       const now = new Date();
       setLastSyncTime(now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
@@ -336,9 +268,7 @@ export default function SheetFlowPage() {
       setAllRows(fallbackRows);
       const computedSheetName = getSheetNameFromRows(fallbackRows);
       setCurrentSheetName(computedSheetName);
-      const fData = buildFortuneSheetData(fallbackRows, true, computedSheetName);
-      setSheetData(fData);
-      workbookDataRef.current = fData;
+      setSheetData(buildFortuneSheetData(fallbackRows, true, computedSheetName));
     } finally {
       setLoading(false);
     }
@@ -356,194 +286,43 @@ export default function SheetFlowPage() {
     const filtered = allRows.filter(r => matchesTrickFilter(r, newFilter));
     const computedSheetName = getSheetNameFromRows(filtered, allRows);
     setCurrentSheetName(computedSheetName);
-    const fData = buildFortuneSheetData(filtered, isAll, computedSheetName);
-    setSheetData(fData);
-    workbookDataRef.current = fData;
+    setSheetData(buildFortuneSheetData(filtered, isAll, computedSheetName));
   };
 
-  // Filtered rows for current selection
   const currentFilteredRows = useMemo(() => {
     return allRows.filter(r => matchesTrickFilter(r, selectedTrickFilter));
   }, [allRows, selectedTrickFilter]);
 
-  // Handle cell edits in FortuneSheet
-  const handleChange = useCallback((data: any[]) => {
-    workbookDataRef.current = data;
-    if (data && data[0]?.config?.columnlen) {
-      columnlenRef.current = { ...columnlenRef.current, ...data[0].config.columnlen };
-    }
-  }, []);
-
-  // Auto-fit a specific column by index based on maximum text content
-  const autoFitColumnByIndex = useCallback((colIndex: number) => {
-    try {
-      let maxText = "";
-      const currentWorkbook = workbookDataRef.current;
-      const currentSheet = currentWorkbook?.[0];
-
-      if (currentSheet) {
-        if (Array.isArray(currentSheet.data)) {
-          currentSheet.data.forEach((row: any[]) => {
-            const cell = row?.[colIndex];
-            const text = cell ? String(cell.m || cell.v || "") : "";
-            if (text.length > maxText.length) maxText = text;
-          });
-        } else if (Array.isArray(currentSheet.celldata)) {
-          currentSheet.celldata.forEach((c: any) => {
-            if (c.c === colIndex) {
-              const text = c.v ? String(c.v.m || c.v.v || "") : "";
-              if (text.length > maxText.length) maxText = text;
-            }
-          });
-        }
-      }
-
-      const headerNames = [
-        "Company Name", "Trick Name", "Symbol", "Signal Direction", 
-        "Price (₹)", "Date", "Time", "Details"
-      ];
-      if (headerNames[colIndex] && headerNames[colIndex].length > maxText.length) {
-        maxText = headerNames[colIndex];
-      }
-
-      // Measure text width using an offscreen canvas
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      let textWidth = 100;
-      if (ctx) {
-        ctx.font = "bold 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-        textWidth = ctx.measureText(maxText).width;
-      } else {
-        textWidth = maxText.length * 8.5;
-      }
-
-      const newWidth = Math.max(90, Math.min(850, Math.ceil(textWidth + 38)));
-      columnlenRef.current[colIndex] = newWidth;
-
-      if (workbookRef.current?.setColumnWidth) {
-        workbookRef.current.setColumnWidth({ [colIndex]: newWidth }, undefined, true);
-      } else {
-        setSheetData(prev => {
-          if (!prev || prev.length === 0) return prev;
-          const updated = [...prev];
-          const cfg = updated[0].config || {};
-          updated[0] = {
-            ...updated[0],
-            config: {
-              ...cfg,
-              columnlen: { ...cfg.columnlen, [colIndex]: newWidth },
-              customWidth: { ...cfg.customWidth, [colIndex]: 1 }
-            }
-          };
-          return updated;
-        });
-      }
-
-      const colLetter = String.fromCharCode(65 + colIndex);
-      setAutoFitStatus(`Auto-adjusted Column ${colLetter} to ${newWidth}px`);
-      setTimeout(() => setAutoFitStatus(null), 2500);
-    } catch (e) {
-      console.warn("autoFitColumnByIndex error:", e);
-    }
-  }, []);
-
-  // Auto-fit all columns at once
-  const handleAutoFitAll = useCallback(() => {
-    for (let c = 0; c < 8; c++) {
-      autoFitColumnByIndex(c);
-    }
-    setAutoFitStatus("Auto-adjusted all columns to fit content");
-    setTimeout(() => setAutoFitStatus(null), 2500);
-  }, [autoFitColumnByIndex]);
-
-  // Double-click between columns listener to auto-adjust column width
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleDblClick = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const clickY = e.clientY - rect.top;
-      const clickX = e.clientX - rect.left;
-
-      if (clickY > 45) return;
-
-      const rowHeaderWidth = 46;
-      let cumulativeX = rowHeaderWidth;
-
-      for (let i = 0; i < 8; i++) {
-        const colW = columnlenRef.current[i] || 120;
-        cumulativeX += colW;
-
-        if (Math.abs(clickX - cumulativeX) <= 16) {
-          autoFitColumnByIndex(i);
-          return;
-        }
-      }
-
-      const boundaryA = rowHeaderWidth + (columnlenRef.current[0] || 260);
-      if (clickX >= boundaryA - 20 && clickX <= boundaryA + 20) {
-        autoFitColumnByIndex(0);
-      }
-    };
-
-    container.addEventListener("dblclick", handleDblClick);
-    return () => container.removeEventListener("dblclick", handleDblClick);
-  }, [autoFitColumnByIndex]);
-
-  // Download edited/customized spreadsheet as .xlsx (sheet name is the date of data)
+  // Download spreadsheet as .xlsx
   const handleDownloadExcel = useCallback(() => {
     try {
       setIsExporting(true);
-      const currentWorkbook = workbookDataRef.current;
+      const rowsToExport = currentFilteredRows.map(r => ({
+        "Company Name": r["Company Name"] || "",
+        "Trick Name": r["Trick Name"] || "",
+        "Symbol": r["Symbol"] || "",
+        "Signal Direction": r["Signal Direction"] || "",
+        "Price (₹)": typeof r["Price"] === "number" ? r["Price"] : parseFloat(String(r["Price"] || 0)) || 0,
+        "Date": r["Date"] || "",
+        "Time": r["Time"] || "",
+        "Details": r["Details"] || ""
+      }));
+
       const wb = xlsx.utils.book_new();
+      const ws = xlsx.utils.json_to_sheet(rowsToExport.length > 0 ? rowsToExport : [{ "Status": "No data available" }]);
+      ws["!cols"] = [
+        { wch: 34 },
+        { wch: 34 },
+        { wch: 14 },
+        { wch: 18 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 18 },
+        { wch: 55 },
+      ];
 
-      if (Array.isArray(currentWorkbook) && currentWorkbook.length > 0) {
-        currentWorkbook.forEach((sheet: any) => {
-          const sheetName = sheet.name || currentSheetName;
-          let aoa: any[][] = [];
-
-          if (Array.isArray(sheet.data) && sheet.data.length > 0) {
-            aoa = sheet.data.map((row: any[]) => {
-              if (!Array.isArray(row)) return [];
-              return row.map((cell: any) => (cell ? (cell.v !== undefined ? cell.v : cell.m || "") : ""));
-            });
-          } else if (Array.isArray(sheet.celldata)) {
-            const maxR = Math.max(...sheet.celldata.map((c: any) => c.r), 0);
-            const maxC = Math.max(...sheet.celldata.map((c: any) => c.c), 0);
-            aoa = Array.from({ length: maxR + 1 }, () => Array(maxC + 1).fill(""));
-            sheet.celldata.forEach((c: any) => {
-              if (aoa[c.r] && c.v) {
-                aoa[c.r][c.c] = c.v.v !== undefined ? c.v.v : (c.v.m || "");
-              }
-            });
-          }
-
-          while (aoa.length > 0 && aoa[aoa.length - 1].every((cell: any) => cell === "" || cell === null || cell === undefined)) {
-            aoa.pop();
-          }
-
-          const ws = xlsx.utils.aoa_to_sheet(aoa);
-          ws['!cols'] = [
-            { wch: 34 }, // Col A: Company Name
-            { wch: 34 }, // Col B: Trick Name
-            { wch: 14 }, // Col C: Symbol
-            { wch: 18 }, // Col D: Signal Direction
-            { wch: 14 }, // Col E: Price
-            { wch: 14 }, // Col F: Date
-            { wch: 18 }, // Col G: Time
-            { wch: 55 }, // Col H: Details
-          ];
-
-          // Worksheet name is the date of data shown in that sheet
-          xlsx.utils.book_append_sheet(wb, ws, sheetName);
-        });
-      } else {
-        const ws = xlsx.utils.json_to_sheet([{ "Status": "No data available" }]);
-        xlsx.utils.book_append_sheet(wb, ws, currentSheetName);
-      }
-
-      const fileDateStr = currentSheetName.replace(/\./g, '-');
+      xlsx.utils.book_append_sheet(wb, ws, currentSheetName);
+      const fileDateStr = currentSheetName.replace(/\./g, "-");
       const suffix = selectedTrickFilter !== "ALL" ? `_${selectedTrickFilter}` : "";
       xlsx.writeFile(wb, `Tricks${suffix}_${fileDateStr}.xlsx`);
     } catch (e: any) {
@@ -552,56 +331,7 @@ export default function SheetFlowPage() {
     } finally {
       setIsExporting(false);
     }
-  }, [selectedTrickFilter, currentSheetName]);
-
-  // Lock window scroll so FortuneSheet handles internal scrolling
-  useEffect(() => {
-    const lock = () => { if (window.scrollY !== 0) window.scrollTo(0, 0); };
-    window.addEventListener("scroll", lock, { passive: true });
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("scroll", lock);
-      document.documentElement.style.overflow = "";
-      document.body.style.overflow = "";
-    };
-  }, []);
-
-  // Fix FortuneSheet wheel scroll freeze
-  useEffect(() => {
-    if (!mounted) return;
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      const scrollbarY = container.querySelector('.luckysheet-scrollbar-y') as HTMLElement;
-      const scrollbarX = container.querySelector('.luckysheet-scrollbar-x') as HTMLElement;
-
-      if (!scrollbarY && !scrollbarX) return;
-
-      e.stopPropagation();
-      e.preventDefault();
-
-      if (e.deltaY && scrollbarY) {
-        let dy = e.deltaY;
-        if (e.deltaMode === 1) dy *= 28;
-        else if (e.deltaMode === 2) dy *= container.clientHeight;
-        scrollbarY.scrollTop += dy;
-      }
-
-      if (e.deltaX && scrollbarX) {
-        let dx = e.deltaX;
-        if (e.deltaMode === 1) dx *= 28;
-        else if (e.deltaMode === 2) dx *= container.clientWidth;
-        scrollbarX.scrollLeft += dx;
-      }
-    };
-
-    container.addEventListener("wheel", handleWheel, { capture: true, passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel, { capture: true });
-    };
-  }, [mounted]);
+  }, [selectedTrickFilter, currentSheetName, currentFilteredRows]);
 
   return (
     <main style={{ height: "100vh", display: "flex", flexDirection: "column", background: "#FFFFFF", position: "relative", overflow: "hidden" }}>
@@ -638,7 +368,7 @@ export default function SheetFlowPage() {
             Sheet: &quot;{currentSheetName}&quot;
           </div>
 
-          {/* CUSTOM TRICK SELECTION OPTION FOR DATE SHEET */}
+          {/* Trick Selector Dropdown */}
           <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#FFFFFF", padding: "3px 8px", borderRadius: "8px", border: "1px solid #CBD5E1" }}>
             <span style={{ fontSize: "11px", fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>
               Trick Option:
@@ -676,65 +406,16 @@ export default function SheetFlowPage() {
             • Updated 4:00 PM IST
             {lastSyncTime ? ` (${lastSyncTime})` : ""}
           </span>
-
-          {autoFitStatus && (
-            <span style={{ fontSize: "11px", fontWeight: 700, color: "#2563EB", background: "rgba(37,99,235,0.1)", padding: "2px 8px", borderRadius: "4px" }}>
-              ✓ {autoFitStatus}
-            </span>
-          )}
         </div>
 
         {/* Right Action Buttons */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          {/* Double-click hint */}
-          <div style={{ fontSize: "11px", color: "#64748B", background: "#FFFFFF", border: "1px solid #E2E8F0", padding: "4px 8px", borderRadius: "6px", fontWeight: 600 }}>
-            💡 Double-click between Col A &amp; B to auto-fit
-          </div>
-
-          {/* Quick Auto-Fit Column A (Company Name) */}
-          <button
-            onClick={() => autoFitColumnByIndex(0)}
-            title="Auto-adjust Company Name column width"
-            style={{
-              padding: "6px 12px",
-              borderRadius: "8px",
-              background: "#FFFFFF",
-              border: "1px solid #CBD5E1",
-              color: "#0F2044",
-              fontSize: "12px",
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-            }}
-          >
-            Auto-Fit A
-          </button>
-
-          {/* Auto-Fit All Columns Button */}
-          <button
-            onClick={handleAutoFitAll}
-            title="Auto-adjust all columns to fit text"
-            style={{
-              padding: "6px 12px",
-              borderRadius: "8px",
-              background: "#FFFFFF",
-              border: "1px solid #CBD5E1",
-              color: "#0F2044",
-              fontSize: "12px",
-              fontWeight: 700,
-              cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
-            }}
-          >
-            Auto-Fit All
-          </button>
-
-          {/* Sync Latest Button */}
+          {/* Sync Button */}
           <button
             onClick={() => fetchTricksData(true)}
             disabled={loading}
             style={{
-              padding: "6px 12px",
+              padding: "6px 14px",
               borderRadius: "8px",
               background: "#FFFFFF",
               border: "1px solid #CBD5E1",
@@ -748,7 +429,7 @@ export default function SheetFlowPage() {
             {loading ? "Syncing..." : "Sync"}
           </button>
 
-          {/* Download Edited/Customized Excel (.xlsx) Button */}
+          {/* Download Excel (.xlsx) Button */}
           <button
             onClick={handleDownloadExcel}
             disabled={isExporting || loading}
@@ -774,8 +455,6 @@ export default function SheetFlowPage() {
 
       {/* Spreadsheet Container */}
       <div 
-        ref={containerRef}
-        className="excel-scroll-container"
         style={{ 
           flex: 1,
           margin: "12px 20px 16px", 
@@ -816,10 +495,8 @@ export default function SheetFlowPage() {
         {mounted && sheetData.length > 0 && (
           <div style={{ width: "100%", height: "100%", position: "relative" }}>
             <Workbook 
-              ref={workbookRef}
-              key={`workbook-${currentSheetName}-${selectedTrickFilter}-${sheetData.length}-${currentFilteredRows.length}`}
+              key={`workbook-${currentSheetName}-${selectedTrickFilter}-${sheetData.length}`}
               data={sheetData} 
-              onChange={handleChange}
             />
           </div>
         )}
@@ -827,43 +504,6 @@ export default function SheetFlowPage() {
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
-          }
-
-          /* 
-           * FortuneSheet scrollbar elements WebKit styling restoration
-           */
-          .luckysheet-scrollbar-ltr,
-          .luckysheet-scrollbars {
-            scrollbar-width: auto !important;
-            -ms-overflow-style: auto !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar,
-          .luckysheet-scrollbars::-webkit-scrollbar {
-            width: 10px !important;
-            height: 10px !important;
-            display: block !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar-track,
-          .luckysheet-scrollbars::-webkit-scrollbar-track {
-            background: #F1F5F9 !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar-thumb,
-          .luckysheet-scrollbars::-webkit-scrollbar-thumb {
-            background: #CBD5E1 !important;
-            border-radius: 8px !important;
-            border: 2px solid #F1F5F9 !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar-thumb:hover,
-          .luckysheet-scrollbars::-webkit-scrollbar-thumb:hover {
-            background: #94A3B8 !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar-corner,
-          .luckysheet-scrollbars::-webkit-scrollbar-corner {
-            background: #F1F5F9 !important;
-          }
-          .luckysheet-scrollbar-ltr::-webkit-scrollbar-button,
-          .luckysheet-scrollbars::-webkit-scrollbar-button {
-            display: none !important;
           }
         `}</style>
       </div>
