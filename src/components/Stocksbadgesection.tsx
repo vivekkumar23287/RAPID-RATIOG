@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { fetchBatchPricesCached, getFromCache } from "@/lib/data-cache";
 import { TrendUp, TrendDown } from "@phosphor-icons/react";
 
 const STOCKS = [
@@ -275,17 +276,21 @@ function StockBadge({
   );
 }
 
+const HOME_SYMBOLS = ["NIFTY50", "POLYCAB", "IFORGE", "IEX", "DEEPAKNI", "COCHINSHIP"];
+
 export default function StocksBadgeSection() {
   const headerRef = useRef<HTMLDivElement>(null);
-  const [liveData, setLiveData] = useState<Record<string, { currentPrice: number; change: number; changePercent: number }>>({});
+  const [liveData, setLiveData] = useState<Record<string, { currentPrice: number; change: number; changePercent: number }>>(() => {
+    const sorted = [...HOME_SYMBOLS].sort().join(",");
+    return getFromCache(`batch_prices_${sorted}`) || {};
+  });
 
   useEffect(() => {
     let isMounted = true;
     const fetchLive = async () => {
       try {
-        const res = await fetch("/api/batch-prices?symbols=NIFTY50,POLYCAB,IFORGE,IEX,DEEPAKNI,COCHINSHIP");
-        if (res.ok && isMounted) {
-          const data = await res.json();
+        const data = await fetchBatchPricesCached(HOME_SYMBOLS);
+        if (data && isMounted) {
           setLiveData(data);
         }
       } catch {}

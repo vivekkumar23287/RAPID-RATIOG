@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react";
 import { SignUpButton } from "@clerk/nextjs";
 
@@ -144,7 +145,7 @@ export default function ScrollCTA() {
               Get Started Free <ArrowRight size={18} weight="bold" />
             </button>
           </SignUpButton>
-          <a href="/prices" style={{
+          <Link href="/prices" prefetch={true} style={{
             display: "flex", alignItems: "center", gap: 8,
             background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.8)",
             border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
@@ -156,7 +157,7 @@ export default function ScrollCTA() {
             onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; e.currentTarget.style.color = "rgba(255,255,255,0.8)"; e.currentTarget.style.transform = "translateY(0)"; }}
           >
             Explore Prices
-          </a>
+          </Link>
         </div>
 
         

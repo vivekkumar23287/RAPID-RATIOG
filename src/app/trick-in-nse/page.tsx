@@ -8,6 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
+import { prefetchStockCandles } from "@/lib/data-cache";
 
 type SignalData = {
   id: number;
@@ -649,6 +650,7 @@ export default function TricksInNSE() {
               return (
                 <div
                   key={setup.id || `${setup.stock_symbol}-${setup.candle_time}`}
+                  onMouseEnter={() => prefetchStockCandles(setup.stock_symbol)}
                   onClick={() => {
                     localStorage.setItem("preferredTimeframe", JSON.stringify({ interval: "15m", range: "5d", label: "15M" }));
                     router.push(`/stock/${setup.stock_symbol}`);

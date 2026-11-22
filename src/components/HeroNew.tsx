@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowRight, TrendUp } from "@phosphor-icons/react";
 import { SignUpButton } from "@clerk/nextjs";
 import { TransparentCandle } from "@/components/TransparentImage";
@@ -211,9 +212,9 @@ export default function HeroNew() {
                 Start for free <ArrowRight size={17} weight="bold" />
               </button>
             </SignUpButton>
-            <a href="/prices" className="hn-b2" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", color: "#FFFFFF", border: "1.5px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "15px 30px", fontFamily: FONT, fontWeight: 500, fontSize: 15, cursor: "pointer", textDecoration: "none", backdropFilter: "blur(12px)", transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}>
+            <Link href="/prices" prefetch={true} className="hn-b2" style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(255,255,255,0.08)", color: "#FFFFFF", border: "1.5px solid rgba(255,255,255,0.15)", borderRadius: 14, padding: "15px 30px", fontFamily: FONT, fontWeight: 500, fontSize: 15, cursor: "pointer", textDecoration: "none", backdropFilter: "blur(12px)", transition: "all 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}>
               <TrendUp size={17} /> View live prices
-            </a>
+            </Link>
           </div>
 
           

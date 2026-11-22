@@ -1,21 +1,40 @@
 "use client";
 
+import { useEffect } from "react";
 import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import HeroNew from "@/components/HeroNew";
 import ScrollShowcase from "@/components/ScrollShowcase";
 import MarqueeSection from "@/components/MarqueeSection";
+import ServicesSection from "@/components/ServicesSection";
+import StocksBadgeSection from "@/components/Stocksbadgesection";
+import { LogosSection, FutureSection } from "@/components/Logosandfuture";
+import ScrollCTA from "@/components/ScrollCTA";
+import Footer from "@/components/Footer";
+import { fetchBatchPricesCached, markAppReady, prefetchAllNiftyPrices } from "@/lib/data-cache";
 
+// Canvas components that need browser window/document APIs
 const EquiductBackground = dynamic(() => import("@/components/EquiductBackground"), { ssr: false });
-const ServicesSection = dynamic(() => import("@/components/ServicesSection"));
 const InteractiveDemo = dynamic(() => import("@/components/InteractiveDemo"), { ssr: false });
-const StocksBadgeSection = dynamic(() => import("@/components/Stocksbadgesection"));
-const LogosSection = dynamic(() => import("@/components/Logosandfuture").then(mod => mod.LogosSection));
-const FutureSection = dynamic(() => import("@/components/Logosandfuture").then(mod => mod.FutureSection));
-const ScrollCTA = dynamic(() => import("@/components/ScrollCTA"));
-const Footer = dynamic(() => import("@/components/Footer"));
+
+const CRITICAL_HOME_SYMBOLS = ["NIFTY50", "POLYCAB", "IFORGE", "IEX", "DEEPAKNI", "COCHINSHIP"];
 
 export default function HomePage() {
+  useEffect(() => {
+    // 1. Fetch critical home badge data before marking ready
+    fetchBatchPricesCached(CRITICAL_HOME_SYMBOLS)
+      .finally(() => {
+        markAppReady();
+      });
+
+    // 2. Idle prefetch: pre-warm the full Nifty 50 dataset for instant navigation to Company page
+    const idleTimer = setTimeout(() => {
+      prefetchAllNiftyPrices();
+    }, 1500);
+
+    return () => clearTimeout(idleTimer);
+  }, []);
+
   return (
     <main className="noise-overlay" style={{ background: "transparent", minHeight: "100vh", position: "relative" }}>
       <EquiductBackground />

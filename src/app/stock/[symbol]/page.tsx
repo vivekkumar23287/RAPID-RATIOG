@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import { ChartLineUp } from "@phosphor-icons/react";
+import { fetchStockDataCached, getFromCache } from "@/lib/data-cache";
 
 const DISPLAY_NAMES: Record<string, string> = {
   // --- Nifty 50 Official Constituents ---
@@ -81,8 +82,13 @@ export default function StockChartPage() {
   const rawSymbol = rawSymbolInput.replace(/[^a-zA-Z0-9&\-]/g, "");
   const displayName = DISPLAY_NAMES[rawSymbol.toUpperCase()] || rawSymbol.toUpperCase();
 
-  const [stockData, setStockData] = useState<StockData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [stockData, setStockData] = useState<StockData | null>(() => {
+    return getFromCache<StockData>(`stock_data_${rawSymbol.toUpperCase()}_1y_1d_`, 60000);
+  });
+  const [loading, setLoading] = useState(() => {
+    const cached = getFromCache<StockData>(`stock_data_${rawSymbol.toUpperCase()}_1y_1d_`, 60000);
+    return !cached;
+  });
   const [error, setError] = useState<string | null>(null);
   const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
 
@@ -203,9 +209,6 @@ export default function StockChartPage() {
 
   useEffect(() => {
     const loadLayouts = async () => {
-      setLoading(true);
-
-
       const localData = localStorage.getItem(`layouts_${rawSymbol.toUpperCase()}`);
       if (localData) {
         try {
@@ -215,10 +218,9 @@ export default function StockChartPage() {
         } catch (e) { console.error("Local storage parse error", e); }
       }
 
-
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
 
         const response = await fetch(`/api/layouts?symbol=${encodeURIComponent(rawSymbol.toUpperCase())}`, {
           signal: controller.signal
@@ -233,7 +235,6 @@ export default function StockChartPage() {
             mergedLayouts = dbLayouts.map((l: any) => l.data);
           }
         }
-
 
         const migrated = mergedLayouts.map((l: any) => ({
           ...l,
@@ -252,8 +253,6 @@ export default function StockChartPage() {
         }
       } catch (error) {
         console.warn('DB Fetch failed or timed out, using local data:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -304,64 +303,73 @@ export default function StockChartPage() {
   }, [activeLayoutId, chartReady, layouts, selectedLineId]);
 
 
-  useEffect(() => {
-    let animationFrameId: number;
-    const updatePositions = () => {
-      try {
-        if (chartReady && chartRef.current && candleSeriesRef.current) {
-          const activeLayout = layouts.find(l => l.id === activeLayoutId);
-          if (activeLayout?.texts) {
-            activeLayout.texts.forEach(t => {
-              const div = textDivsRef.current[t.id];
-              const line = document.getElementById(`svg-line-${t.id}`);
-              const circle = document.getElementById(`svg-circle-${t.id}`);
+  const updatePositions = () => {
+    try {
+      if (chartReady && chartRef.current && candleSeriesRef.current) {
+        const activeLayout = layouts.find(l => l.id === activeLayoutId);
+        if (activeLayout?.texts) {
+          activeLayout.texts.forEach(t => {
+            const div = textDivsRef.current[t.id];
+            const line = document.getElementById(`svg-line-${t.id}`);
+            const circle = document.getElementById(`svg-circle-${t.id}`);
 
-              let currentOffsetX = t.offsetX ?? 0;
-              let currentOffsetY = t.offsetY ?? -60;
+            let currentOffsetX = t.offsetX ?? 0;
+            let currentOffsetY = t.offsetY ?? -60;
 
-              if (draggingRef.current?.id === t.id) {
-                currentOffsetX = draggingRef.current.offsetX;
-                currentOffsetY = draggingRef.current.offsetY;
-              }
+            if (draggingRef.current?.id === t.id) {
+              currentOffsetX = draggingRef.current.offsetX;
+              currentOffsetY = draggingRef.current.offsetY;
+            }
 
-              if (div) {
-                const timeScale = chartRef.current?.timeScale();
-                const ax = timeScale ? timeScale.timeToCoordinate(t.time as any) : null;
-                const ay = candleSeriesRef.current?.priceToCoordinate(t.price);
+            if (div) {
+              const timeScale = chartRef.current?.timeScale();
+              const ax = timeScale ? timeScale.timeToCoordinate(t.time as any) : null;
+              const ay = candleSeriesRef.current?.priceToCoordinate(t.price);
 
-                if (ax !== null && ay !== null && ax !== undefined && ay !== undefined) {
-                  const bx = ax + currentOffsetX;
-                  const by = ay + currentOffsetY;
+              if (ax !== null && ay !== null && ax !== undefined && ay !== undefined) {
+                const bx = ax + currentOffsetX;
+                const by = ay + currentOffsetY;
 
-                  div.style.left = `${bx}px`;
-                  div.style.top = `${by}px`;
-                  div.style.display = 'block';
+                div.style.left = `${bx}px`;
+                div.style.top = `${by}px`;
+                div.style.display = 'block';
 
-                  if (line && circle) {
-                    line.setAttribute("x1", ax.toString());
-                    line.setAttribute("y1", ay.toString());
-                    line.setAttribute("x2", bx.toString());
-                    line.setAttribute("y2", by.toString());
-                    line.setAttribute("style", "display: block;");
+                if (line && circle) {
+                  line.setAttribute("x1", ax.toString());
+                  line.setAttribute("y1", ay.toString());
+                  line.setAttribute("x2", bx.toString());
+                  line.setAttribute("y2", by.toString());
+                  line.setAttribute("style", "display: block;");
 
-                    circle.setAttribute("cx", ax.toString());
-                    circle.setAttribute("cy", ay.toString());
-                    circle.setAttribute("style", "display: block;");
-                  }
-                } else {
-                  div.style.display = 'none';
-                  if (line) line.setAttribute("style", "display: none;");
-                  if (circle) circle.setAttribute("style", "display: none;");
+                  circle.setAttribute("cx", ax.toString());
+                  circle.setAttribute("cy", ay.toString());
+                  circle.setAttribute("style", "display: block;");
                 }
+              } else {
+                div.style.display = 'none';
+                if (line) line.setAttribute("style", "display: none;");
+                if (circle) circle.setAttribute("style", "display: none;");
               }
-            });
-          }
+            }
+          });
         }
-      } catch (err) { }
-      animationFrameId = requestAnimationFrame(updatePositions);
-    };
+      }
+    } catch (err) { }
+  };
+
+  useEffect(() => {
     updatePositions();
-    return () => cancelAnimationFrame(animationFrameId);
+    const timeScale = chartRef.current?.timeScale();
+    if (timeScale) {
+      timeScale.subscribeVisibleLogicalRangeChange(updatePositions);
+      window.addEventListener("resize", updatePositions);
+    }
+    return () => {
+      if (timeScale) {
+        try { timeScale.unsubscribeVisibleLogicalRangeChange(updatePositions); } catch (_) {}
+      }
+      window.removeEventListener("resize", updatePositions);
+    };
   }, [layouts, activeLayoutId, chartReady]);
 
 
@@ -372,6 +380,7 @@ export default function StockChartPage() {
         const dy = e.clientY - draggingRef.current.startY;
         draggingRef.current.offsetX = draggingRef.current.initialOffsetX + dx;
         draggingRef.current.offsetY = draggingRef.current.initialOffsetY + dy;
+        updatePositions();
       }
     };
 
@@ -851,63 +860,66 @@ export default function StockChartPage() {
     let isMounted = true;
     let isFirstLoad = true;
 
-    setLoading(true);
+    const cacheKey = `stock_data_${rawSymbol.toUpperCase()}_${timeframe.range}_${timeframe.interval}_${selectedDate || ""}`;
+    const cached = getFromCache<any>(cacheKey, 60000);
+    
+    // Immediate display if cached data exists
+    if (cached) {
+      setStockData(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
-    const fetchData = () => {
+    const fetchData = async () => {
       if (!isFirstLoad && document.hidden) return;
-      const dateParam = selectedDate ? `&date=${selectedDate}` : "";
 
-      fetch(`/api/stock-data?symbol=${encodeURIComponent(rawSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}${dateParam}`, { cache: "no-store" })
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch data");
-          return res.json();
-        })
-        .then((data) => {
-          if (!isMounted) return;
-          if (data.error) throw new Error(data.error);
+      try {
+        const data = await fetchStockDataCached(rawSymbol, timeframe.range, timeframe.interval, selectedDate);
+        if (!isMounted) return;
+        if (!data) throw new Error("Failed to load stock data");
+        if (data.error) throw new Error(data.error);
 
-          setStockData(data);
+        setStockData(data);
 
-          if (candleSeriesRef.current && data.candles && data.candles.length > 0) {
-            const candles = data.candles as { time: UTCTimestamp; open: number; high: number; low: number; close: number }[];
-            const lastCandle = candles[candles.length - 1];
+        if (candleSeriesRef.current && data.candles && data.candles.length > 0) {
+          const candles = data.candles as { time: UTCTimestamp; open: number; high: number; low: number; close: number }[];
+          const lastCandle = candles[candles.length - 1];
 
-
-            if (liveCandleRef.current && liveCandleRef.current.time === lastCandle.time) {
-              lastCandle.high = Math.max(liveCandleRef.current.high, lastCandle.high);
-              lastCandle.low = Math.min(liveCandleRef.current.low, lastCandle.low);
-            }
-
-
-            liveCandleRef.current = { ...lastCandle };
-
-            candleSeriesRef.current.setData(candles);
-            if (isFirstLoad) {
-
-              const totalCandles = candles.length;
-              chartRef.current?.timeScale().setVisibleLogicalRange({
-                from: Math.max(0, totalCandles - 55),
-                to: totalCandles - 1,
-              });
-              isFirstLoad = false;
-            }
+          if (liveCandleRef.current && liveCandleRef.current.time === lastCandle.time) {
+            lastCandle.high = Math.max(liveCandleRef.current.high, lastCandle.high);
+            lastCandle.low = Math.min(liveCandleRef.current.low, lastCandle.low);
           }
-          setLoading(false);
-        })
-        .catch((err) => {
-          if (!isMounted) return;
-          setError(err.message);
-          setLoading(false);
-        });
-    };
 
+          liveCandleRef.current = { ...lastCandle };
+          candleSeriesRef.current.setData(candles);
+
+          if (isFirstLoad) {
+            const totalCandles = candles.length;
+            chartRef.current?.timeScale().setVisibleLogicalRange({
+              from: Math.max(0, totalCandles - 55),
+              to: totalCandles - 1,
+            });
+            isFirstLoad = false;
+          }
+        }
+        setLoading(false);
+      } catch (err: any) {
+        if (!isMounted) return;
+        // Don't flash error if we have cached data
+        if (!cached) {
+          setError(err.message);
+        }
+        setLoading(false);
+      }
+    };
 
     fetchData();
 
     let intervalId: NodeJS.Timeout;
     if (!selectedDate) {
-      intervalId = setInterval(fetchData, 5000);
+      intervalId = setInterval(fetchData, 8000);
     }
 
     return () => {

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Navbar from "@/components/Navbar";
 import "@fortune-sheet/react/dist/index.css";
 import * as xlsx from "xlsx";
+import { fetchTricksDataCached, getFromCache } from "@/lib/data-cache";
 
 // Dynamically import Workbook with ssr: false — FortuneSheet requires browser APIs
 const Workbook = dynamic(
@@ -219,22 +220,41 @@ function buildFortuneSheetData(rows: TrickRow[], isAllTricks: boolean = true, sh
 
 export default function SheetFlowPage() {
   const [mounted, setMounted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [allRows, setAllRows] = useState<TrickRow[]>([]);
+  
+  // Instant hydration from memory cache if available
+  const cachedInitial = useMemo(() => getFromCache<any>("tricks_export_data", 120000), []);
+  const initialRows: TrickRow[] = useMemo(() => {
+    if (cachedInitial?.data) {
+      return (cachedInitial.data as TrickRow[]).filter(r => r["Company Name"] || r["Trick Name"] || r["Symbol"]);
+    }
+    return [];
+  }, [cachedInitial]);
+
+  const [allRows, setAllRows] = useState<TrickRow[]>(initialRows);
   const [selectedTrickFilter, setSelectedTrickFilter] = useState<string>("ALL");
-  const [currentSheetName, setCurrentSheetName] = useState<string>(() => formatToSheetDate());
-  const [sheetData, setSheetData] = useState<any[]>([]);
+  const [currentSheetName, setCurrentSheetName] = useState<string>(() => {
+    if (cachedInitial?.sheetName) return formatToSheetDate(cachedInitial.sheetName);
+    if (initialRows.length > 0) return getSheetNameFromRows(initialRows);
+    return formatToSheetDate();
+  });
+  const [sheetData, setSheetData] = useState<any[]>(() => {
+    if (initialRows.length > 0) {
+      return buildFortuneSheetData(initialRows, true, currentSheetName);
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => initialRows.length === 0);
   const [lastSyncTime, setLastSyncTime] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
-  // Load tricks data from /api/export-tricks?format=json
+  // Load tricks data from cached API
   const fetchTricksData = useCallback(async (isManualSync: boolean = false) => {
-    setLoading(true);
+    if (allRows.length === 0 || isManualSync) {
+      setLoading(true);
+    }
     try {
-      const url = isManualSync ? "/api/export-tricks?format=json&sync=true" : "/api/export-tricks?format=json";
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("Failed to load tricks data");
-      const json = await res.json();
+      const json = await fetchTricksDataCached(isManualSync);
+      if (!json) throw new Error("No data returned");
       const rawRows: TrickRow[] = json.data || [];
       const cleanRows = rawRows.filter(r => r["Company Name"] || r["Trick Name"] || r["Symbol"]);
       setAllRows(cleanRows);
@@ -252,34 +272,36 @@ export default function SheetFlowPage() {
       setLastSyncTime(now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }));
     } catch (err) {
       console.warn("Could not load latest tricks data, using default:", err);
-      const todayFormatted = formatToSheetDate();
-      const fallbackRows: TrickRow[] = [
-        {
-          "Date": todayFormatted,
-          "Time": "16:00 IST",
-          "Company Name": "All NSE Stocks Monitored",
-          "Symbol": "MARKET",
-          "Trick Name": "Daily Tricks Scan",
-          "Signal Direction": "NEUTRAL",
-          "Price": 0,
-          "Details": "Auto-updated every working day at 4:00 PM IST"
-        }
-      ];
-      setAllRows(fallbackRows);
-      const computedSheetName = getSheetNameFromRows(fallbackRows);
-      setCurrentSheetName(computedSheetName);
-      setSheetData(buildFortuneSheetData(fallbackRows, true, computedSheetName));
+      if (allRows.length === 0) {
+        const todayFormatted = formatToSheetDate();
+        const fallbackRows: TrickRow[] = [
+          {
+            "Date": todayFormatted,
+            "Time": "16:00 IST",
+            "Company Name": "All NSE Stocks Monitored",
+            "Symbol": "MARKET",
+            "Trick Name": "Daily Tricks Scan",
+            "Signal Direction": "NEUTRAL",
+            "Price": 0,
+            "Details": "Auto-updated every working day at 4:00 PM IST"
+          }
+        ];
+        setAllRows(fallbackRows);
+        const computedSheetName = getSheetNameFromRows(fallbackRows);
+        setCurrentSheetName(computedSheetName);
+        setSheetData(buildFortuneSheetData(fallbackRows, true, computedSheetName));
+      }
     } finally {
       setLoading(false);
     }
-  }, [selectedTrickFilter]);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
     fetchTricksData();
   }, [fetchTricksData]);
 
-  // Handle changing the trick filter option
+  // Handle changing the trick filter option — purely in-memory, instant response!
   const handleFilterChange = (newFilter: string) => {
     setSelectedTrickFilter(newFilter);
     const isAll = newFilter === "ALL";

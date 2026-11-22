@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { List, X } from "@phosphor-icons/react";
+import { prefetchAllNiftyPrices, prefetchSheetTricks } from "@/lib/data-cache";
 
 const navLinks = [
   { label: "Home", href: "/" },
@@ -128,10 +129,13 @@ export default function Navbar() {
             <Link
               key={link.href}
               href={link.href}
+              prefetch={true}
               className="nav-link-item"
               data-nav-idx={i}
               onMouseEnter={(e) => {
                 setHoveredIdx(i);
+                if (link.href === "/prices") prefetchAllNiftyPrices();
+                if (link.href === "/sheetflow") prefetchSheetTricks();
                 const rect = e.currentTarget.getBoundingClientRect();
                 const parentRect = e.currentTarget.parentElement?.getBoundingClientRect();
                 if (parentRect) {
@@ -249,7 +253,7 @@ export default function Navbar() {
           display: "flex", flexDirection: "column", gap: "0.75rem",
         }}>
           {navLinks.map((link, i) => (
-            <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)} style={{
+            <Link key={link.href} href={link.href} prefetch={true} onClick={() => setMenuOpen(false)} style={{
               fontFamily: "Satoshi, sans-serif", fontWeight: 500, fontSize: "16px",
               color: pathname === link.href ? "#7CFFEF" : "rgba(255,255,255,0.75)",
               textDecoration: "none", padding: "10px 14px", borderRadius: "10px",

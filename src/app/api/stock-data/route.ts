@@ -81,6 +81,9 @@ async function get15mFromDB(
   return { candles: [], fromDB: false };
 }
 
+// In-memory server cache for stock candles (10s intraday, 60s daily)
+const serverStockDataCache = new Map<string, { data: any; timestamp: number }>();
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const symbol   = searchParams.get("symbol") || "RELIANCE";
@@ -102,8 +105,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
 
-  const yahooSymbol = getYahooSymbol(symbol);
   const isIntraday = ["1m", "5m", "15m", "30m", "60m"].includes(interval);
+  const cacheKey = `${symbol.toUpperCase()}_${range}_${interval}_${dateParam || ""}`;
+  const now = Date.now();
+  const cacheTtlMs = isIntraday ? 10000 : 60000;
+
+  // Serve from in-memory cache if fresh
+  const cached = serverStockDataCache.get(cacheKey);
+  if (cached && now - cached.timestamp < cacheTtlMs) {
+    return NextResponse.json(cached.data, {
+      headers: {
+        "Cache-Control": `public, s-maxage=${Math.round(cacheTtlMs / 1000)}, stale-while-revalidate=60`
+      }
+    });
+  }
+
+  const yahooSymbol = getYahooSymbol(symbol);
   const CACHE_DURATION_SECONDS = 7;
 
   // ── Historical date request (existing feature) ────────────────────────────
@@ -388,7 +405,7 @@ export async function GET(req: NextRequest) {
       })();
     }
 
-    return NextResponse.json({
+    const responsePayload = {
       symbol: symbol.toUpperCase(),
       name:          meta?.shortName || meta?.symbol || symbol,
       currency:      meta?.currency || "INR",
@@ -398,6 +415,14 @@ export async function GET(req: NextRequest) {
       changePercent: parseFloat(changePercent.toFixed(2)),
       candles,
       source: "yahoo_finance",
+    };
+
+    serverStockDataCache.set(cacheKey, { data: responsePayload, timestamp: now });
+
+    return NextResponse.json(responsePayload, {
+      headers: {
+        "Cache-Control": `public, s-maxage=${Math.round(cacheTtlMs / 1000)}, stale-while-revalidate=60`
+      }
     });
   } catch (err: any) {
     console.error("Stock data fetch error:", err);

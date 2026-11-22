@@ -69,6 +69,28 @@ function formatToSheetDate(dateVal?: any): string {
   return str.replace(/[\/\\:\*\?\[\]]/g, ".").slice(0, 31) || "Sheet1";
 }
 
+// Global in-memory cache for tricks sheet (2-minute TTL)
+let serverTricksCache: { allRows: any[]; sheetName: string; timestamp: number } | null = null;
+let isExportInProgress = false;
+const TRICKS_CACHE_TTL_MS = 120000;
+
+function getLatestAvailableExportFile(): string | null {
+  const exportsDir = path.join(process.cwd(), "public", "exports");
+  if (!fs.existsSync(exportsDir)) return null;
+
+  try {
+    const files = fs.readdirSync(exportsDir).filter(f => f.startsWith("Tricks_History") && f.endsWith(".xlsx"));
+    if (files.length === 0) return null;
+
+    // Prefer dated files sorted newest first, fallback to master
+    const datedFiles = files.filter(f => f !== "Tricks_History.xlsx").sort().reverse();
+    const chosen = datedFiles[0] || "Tricks_History.xlsx";
+    return path.join(exportsDir, chosen);
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const today = new Date();
@@ -87,34 +109,59 @@ export async function GET(req: NextRequest) {
 
     const format = req.nextUrl.searchParams.get("format");
     const trickFilter = req.nextUrl.searchParams.get("trick");
-
-    let allRows: any[] = [];
+    const forceSync = req.nextUrl.searchParams.get("sync") === "true";
 
     const publicDailyPath = path.join(process.cwd(), "public", "exports", `Tricks_History_${safeDateStr}.xlsx`);
     const publicExportPath = path.join(process.cwd(), "public", "exports", "Tricks_History.xlsx");
-    const forceSync = req.nextUrl.searchParams.get("sync") === "true";
 
-    // 1. If today's daily file doesn't exist yet or sync requested, run live market scan
-    if (!fs.existsSync(publicDailyPath) || forceSync) {
-      try {
-        const reqFunc = eval("require");
-        const { exportAllTricksToExcel } = reqFunc(path.join(process.cwd(), "express-backend", "tricks-exporter"));
-        await exportAllTricksToExcel(todayStr);
-      } catch (err: any) {
-        console.warn("Could not run on-demand exportAllTricksToExcel:", err.message);
+    // Serve from in-memory cache if available and not forced
+    const now = Date.now();
+    if (!forceSync && serverTricksCache && now - serverTricksCache.timestamp < TRICKS_CACHE_TTL_MS) {
+      const filtered = filterRowsByTrick(serverTricksCache.allRows, trickFilter);
+      if (format === "json") {
+        return NextResponse.json({
+          success: true,
+          date: todayStr,
+          sheetName: serverTricksCache.sheetName,
+          total: filtered.length,
+          data: filtered,
+        }, {
+          headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" }
+        });
       }
     }
 
-    // 2. Load today's live file if available, otherwise fallback to master workbook
+    // Trigger background export asynchronously if daily file is missing or forceSync requested
+    if ((!fs.existsSync(publicDailyPath) || forceSync) && !isExportInProgress) {
+      isExportInProgress = true;
+      setImmediate(async () => {
+        try {
+          const reqFunc = eval("require");
+          const { exportAllTricksToExcel } = reqFunc(path.join(process.cwd(), "express-backend", "tricks-exporter"));
+          await exportAllTricksToExcel(todayStr);
+          serverTricksCache = null; // Invalidate cache so fresh file is read next
+        } catch (err: any) {
+          console.warn("Background exportAllTricksToExcel notice:", err.message);
+        } finally {
+          isExportInProgress = false;
+        }
+      });
+    }
+
+    let allRows: any[] = [];
+    let detectedSheetName = "date";
+
+    // 2. Load today's live file if available, otherwise latest historical or master workbook
     const targetFilePath = fs.existsSync(publicDailyPath) 
       ? publicDailyPath 
-      : (fs.existsSync(publicExportPath) ? publicExportPath : null);
+      : (fs.existsSync(publicExportPath) ? publicExportPath : getLatestAvailableExportFile());
 
-    if (targetFilePath) {
+    if (targetFilePath && fs.existsSync(targetFilePath)) {
       const fileBuffer = fs.readFileSync(targetFilePath);
       const wb = xlsx.read(fileBuffer, { type: "buffer" });
-      const sheetName = wb.SheetNames[0] || "date";
-      allRows = xlsx.utils.sheet_to_json(wb.Sheets[sheetName]);
+      detectedSheetName = wb.SheetNames[0] || "date";
+      allRows = xlsx.utils.sheet_to_json(wb.Sheets[detectedSheetName]);
+      serverTricksCache = { allRows, sheetName: detectedSheetName, timestamp: now };
     } else {
       // 2. Fallback: Fetch recorded signals from PostgreSQL signals_history
       try {
@@ -174,6 +221,8 @@ export async function GET(req: NextRequest) {
         totalCount: allRows.length,
         filter: trickFilter || "ALL",
         data: filteredRows,
+      }, {
+        headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" }
       });
     }
 

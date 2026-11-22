@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
+import Link from "next/link";
 import { Sparkle, ArrowRight, Rocket, ChartLine, FileCsv } from "@phosphor-icons/react";
 
 const LOGOS = [
@@ -370,8 +371,9 @@ export function FutureSection() {
 
         
         <div style={{ display: "flex", justifyContent: "center" }}>
-          <a
+          <Link
             href="/prices"
+            prefetch={true}
             className="future-cta"
             style={{
               display: "inline-flex", alignItems: "center", gap: "10px",
@@ -394,7 +396,7 @@ export function FutureSection() {
           >
             Explore prices now
             <ArrowRight size={18} weight="bold" />
-          </a>
+          </Link>
         </div>
       </div>
     </section>

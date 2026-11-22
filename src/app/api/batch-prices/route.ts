@@ -101,6 +101,10 @@ async function fetchSpecialPrices(specialSymbols: string[]): Promise<Record<stri
   return result;
 }
 
+// Global in-memory server cache for live prices (10-second TTL)
+const serverPriceCache = new Map<string, { data: any; timestamp: number }>();
+const SERVER_CACHE_TTL_MS = 10000;
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbolsParam = searchParams.get("symbols");
@@ -117,11 +121,31 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "No valid symbols provided" }, { status: 400 });
   }
 
-  // Split: special symbols (indexes, crypto) go through v7/quote; NSE stocks use spark
-  const specialSymbols = validSymbols.filter(s => SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
-  const nseSymbols = validSymbols.filter(s => !SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
-
+  const now = Date.now();
   const result: Record<string, any> = {};
+  const symbolsToFetch: string[] = [];
+
+  // Check cache first
+  for (const sym of validSymbols) {
+    const upper = sym.toUpperCase();
+    const cached = serverPriceCache.get(upper);
+    if (cached && now - cached.timestamp < SERVER_CACHE_TTL_MS) {
+      result[sym] = cached.data;
+    } else {
+      symbolsToFetch.push(sym);
+    }
+  }
+
+  // If all requested symbols are fresh in cache, return immediately (<1ms)
+  if (symbolsToFetch.length === 0) {
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" }
+    });
+  }
+
+  // Split remaining symbols: special symbols (indexes, crypto) vs NSE stocks
+  const specialSymbols = symbolsToFetch.filter(s => SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
+  const nseSymbols = symbolsToFetch.filter(s => !SPECIAL_SYMBOL_MAP[s.toUpperCase()]);
 
   try {
     // Fetch special (indexes+crypto) and NSE in parallel
@@ -130,12 +154,33 @@ export async function GET(request: Request) {
       ...buildNseChunkPromises(nseSymbols),
     ]);
 
-    Object.assign(result, specialResult);
-    chunkResults.forEach(cr => Object.assign(result, cr));
+    const freshData: Record<string, any> = {};
+    Object.assign(freshData, specialResult);
+    chunkResults.forEach(cr => Object.assign(freshData, cr));
 
-    return NextResponse.json(result);
+    // Update in-memory cache
+    Object.entries(freshData).forEach(([sym, val]) => {
+      serverPriceCache.set(sym.toUpperCase(), { data: val, timestamp: now });
+      result[sym] = val;
+    });
+
+    // For any symbol that failed to fetch fresh, fallback to existing cached value if present
+    for (const sym of symbolsToFetch) {
+      if (!result[sym]) {
+        const cached = serverPriceCache.get(sym.toUpperCase());
+        if (cached) result[sym] = cached.data;
+      }
+    }
+
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" }
+    });
   } catch (error) {
     console.error("Critical Direct Fetch error:", error);
+    // Return whatever cached data we have instead of complete failure
+    if (Object.keys(result).length > 0) {
+      return NextResponse.json(result);
+    }
     return NextResponse.json({ error: "Failed to fetch prices" }, { status: 500 });
   }
 }

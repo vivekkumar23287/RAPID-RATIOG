@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { onAppReady } from "@/lib/data-cache";
 
 export default function LoadingScreen() {
   const [progress, setProgress] = useState(0);
@@ -19,6 +20,7 @@ export default function LoadingScreen() {
     const startTime = Date.now();
     let current = 0;
     let resourcesLoaded = false;
+    let appDataLoaded = false;
     let minTimePassed = false;
     let isCleanedUp = false;
 
@@ -41,57 +43,68 @@ export default function LoadingScreen() {
       return i;
     };
 
-    
-    safeSetTimeout(() => setPhase(1), 200);
-    safeSetTimeout(() => setPhase(2), 500);
-    safeSetTimeout(() => setPhase(3), 800);
+    safeSetTimeout(() => setPhase(1), 150);
+    safeSetTimeout(() => setPhase(2), 350);
+    safeSetTimeout(() => setPhase(3), 600);
 
     const checkComplete = () => {
-      if (resourcesLoaded && minTimePassed) {
-        setExiting(true);
-        safeSetTimeout(() => {
-          setVisible(false);
-          document.body.style.overflow = "";
-        }, 400);
+      // Complete only when critical page content/data is ready AND minimum time has elapsed
+      if (resourcesLoaded && appDataLoaded && minTimePassed) {
+        // Fast fill progress to 100%
+        const fill = safeSetInterval(() => {
+          current = Math.min(current + 15, 100);
+          setProgress(Math.round(current));
+          if (current >= 100) {
+            clearInterval(fill);
+            setExiting(true);
+            safeSetTimeout(() => {
+              setVisible(false);
+              document.body.style.overflow = "";
+            }, 350);
+          }
+        }, 12);
       }
     };
 
+    // Minimum display time for branding smoothness
     safeSetTimeout(() => {
       minTimePassed = true;
       checkComplete();
-    }, 800);
+    }, 600);
 
+    // Natural progress counter while waiting
     safeSetInterval(() => {
       const elapsed = Date.now() - startTime;
-      const t = Math.min(elapsed / 1000, 1);
-      const natural = (1 - Math.pow(1 - t, 3)) * 90;
+      const t = Math.min(elapsed / 1200, 1);
+      const natural = (1 - Math.pow(1 - t, 3)) * 88;
       current = Math.max(current, natural);
       setProgress(Math.round(current));
     }, 20);
 
     const onLoad = () => {
       resourcesLoaded = true;
-      const fill = safeSetInterval(() => {
-        current = Math.min(current + 10, 100);
-        setProgress(Math.round(current));
-        if (current >= 100) {
-          clearInterval(fill);
-          checkComplete();
-        }
-      }, 15);
+      checkComplete();
     };
 
     if (document.readyState === "complete") {
-      safeSetTimeout(onLoad, 100);
+      safeSetTimeout(onLoad, 50);
     } else {
       window.addEventListener("load", onLoad);
     }
 
+    // Subscribe to critical application & data readiness
+    const unregisterAppReady = onAppReady(() => {
+      appDataLoaded = true;
+      checkComplete();
+    });
+
+    // Safety timeout: never block the user longer than 2200ms regardless of slow third parties
     safeSetTimeout(() => {
       resourcesLoaded = true;
+      appDataLoaded = true;
       minTimePassed = true;
       const fill = safeSetInterval(() => {
-        current = Math.min(current + 10, 100);
+        current = Math.min(current + 20, 100);
         setProgress(Math.round(current));
         if (current >= 100) {
           clearInterval(fill);
@@ -99,13 +112,14 @@ export default function LoadingScreen() {
           safeSetTimeout(() => {
             setVisible(false);
             document.body.style.overflow = "";
-          }, 400);
+          }, 350);
         }
-      }, 15);
-    }, 2500);
+      }, 10);
+    }, 2200);
 
     return () => {
       isCleanedUp = true;
+      unregisterAppReady();
       timeouts.forEach(clearTimeout);
       intervals.forEach(clearInterval);
       window.removeEventListener("load", onLoad);

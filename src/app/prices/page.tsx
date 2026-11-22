@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, memo } from "react";
 import Navbar from "@/components/Navbar";
 import Link from "next/link";
 import { NIFTY_50_STOCKS as nifty50Stocks } from "@/lib/stocks";
+import { fetchBatchPricesCached, getFromCache, prefetchStockCandles } from "@/lib/data-cache";
 import {
   MagnifyingGlass,
   Funnel,
@@ -14,8 +15,14 @@ import {
 } from "@phosphor-icons/react";
 
 export default function PricesPage() {
-  const [livePrices, setLivePrices] = useState<Record<string, { currentPrice: number; change: number; changePercent: number }>>({});
-  const [isLoaded, setIsLoaded] = useState(false);
+  const allSymbols = useMemo(() => nifty50Stocks.map((s) => s.symbol), []);
+  
+  // Instant hydration from client memory cache if available
+  const [livePrices, setLivePrices] = useState<Record<string, { currentPrice: number; change: number; changePercent: number }>>(() => {
+    const sortedKey = `batch_prices_${[...nifty50Stocks.map(s => s.symbol)].sort().join(",")}`;
+    return getFromCache<Record<string, any>>(sortedKey, 60000) || {};
+  });
+  const [isLoaded, setIsLoaded] = useState(() => Object.keys(livePrices).length > 0);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSector, setSelectedSector] = useState("All");
   const [isWrapMode, setIsWrapMode] = useState(false);
@@ -25,15 +32,12 @@ export default function PricesPage() {
   const [showRightArrow, setShowRightArrow] = useState(true);
 
   useEffect(() => {
-    const allSymbols = nifty50Stocks.map((s) => s.symbol);
-
+    let isMounted = true;
     const fetchPrices = async () => {
       if (document.hidden) return;
       try {
-        const encodedSymbols = encodeURIComponent(allSymbols.join(","));
-        const response = await fetch(`/api/batch-prices?symbols=${encodedSymbols}`);
-        if (response.ok) {
-          const data = await response.json();
+        const data = await fetchBatchPricesCached(allSymbols);
+        if (data && isMounted) {
           setLivePrices(data);
           setIsLoaded(true);
         }
@@ -44,8 +48,11 @@ export default function PricesPage() {
 
     fetchPrices();
     const interval = setInterval(fetchPrices, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [allSymbols]);
 
   // Extract unique sectors
   const sectors = useMemo(() => {
@@ -486,7 +493,7 @@ export default function PricesPage() {
   );
 }
 
-function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; isLoaded: boolean }) {
+const StockCard = memo(function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; isLoaded: boolean }) {
   const currentPrice = liveData?.currentPrice || 0;
   const change = liveData?.change || 0;
   const changePercent = liveData?.changePercent || 0;
@@ -496,7 +503,12 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; 
   const currencySymbol = isCrypto ? "$" : "₹";
 
   return (
-    <Link href={`/stock/${stock.symbol}`} style={{ textDecoration: "none" }}>
+    <Link 
+      href={`/stock/${stock.symbol}`} 
+      prefetch={true}
+      style={{ textDecoration: "none" }}
+      onMouseEnter={() => prefetchStockCandles(stock.symbol)}
+    >
       <div
         className="stock-card"
         style={{
@@ -621,4 +633,4 @@ function StockCard({ stock, liveData, isLoaded }: { stock: any; liveData?: any; 
       `}</style>
     </Link>
   );
-}
+});
