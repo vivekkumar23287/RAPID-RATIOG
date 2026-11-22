@@ -979,19 +979,13 @@ export default function TricksInNSE() {
           </div>
         </div>
 
-        {/* 5. RSI 60 BULLISH BREAKOUT SCANNER (YELLOW CROSSES 60) */}
+        {/* 5. RSI 60 BULLISH BREAKOUT SCANNER */}
         <div style={{ marginTop: "60px", marginBottom: "20px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px", marginBottom: "16px" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
               <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
-                5. RSI 60 Bullish Breakout Scanner (Yellow Crosses 60)
+                5. RSI 60 Bullish Breakout Scanner
               </h2>
-              <div style={{ background: "rgba(234,179,8,0.15)", color: "#854D0E", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(234,179,8,0.3)" }}>
-                RSI(23) YELLOW &gt; 60
-              </div>
-              <div style={{ background: "rgba(34,197,94,0.15)", color: "#166534", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(34,197,94,0.3)" }}>
-                MA(14) GREEN
-              </div>
               <div style={{ background: "rgba(59,130,246,0.12)", color: "#1E40AF", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 800, border: "1px solid rgba(59,130,246,0.25)" }}>
                 1H CONFIRMED
               </div>
@@ -1030,7 +1024,7 @@ export default function TricksInNSE() {
           </div>
 
           <p style={{ color: "#64748B", fontSize: "13px", margin: "0 0 16px 0", maxWidth: "860px", lineHeight: "1.5" }}>
-            TradingView Strategy: <strong>Yellow Line</strong> (RSI Length: 23) crossing above <strong>60</strong> and above the <strong>Green Line</strong> (RSI-based MA: 14). When Yellow crosses 60 on intraday charts (15M), upward momentum is triggered. When the <strong>1-Hour (1H)</strong> RSI is also above 60, higher-timeframe continuation confirms the move will definitely keep surging upward.
+            TradingView Strategy: RSI (Length: 23) crossing above <strong>60</strong> and above RSI-based MA (14). When RSI crosses 60 on intraday charts (15M), upward momentum is triggered. When the <strong>1-Hour (1H)</strong> RSI is also above 60, higher-timeframe continuation confirms the move will definitely keep surging upward.
           </p>
 
           {/* Metric Overview Badges & Search */}
@@ -1095,7 +1089,7 @@ export default function TricksInNSE() {
                 {rsiFilter === "1H_CONFIRMED" ? "No 1H Confirmed RSI > 60 Setups Right Now" : "No RSI 60 Breakout Setups Active"}
               </div>
               <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "460px", lineHeight: "1.5" }}>
-                No stocks currently have Yellow RSI(23) crossing above 60. Scanner continuously checks on each 15-minute candle.
+                No stocks currently have RSI(23) crossing above 60. Scanner continuously checks on each 15-minute candle.
               </div>
             </div>
           ) : (
@@ -1202,22 +1196,8 @@ export default function TricksInNSE() {
                         </div>
                       </div>
 
-                      {/* RSI Indicator Indicators (Yellow Line & Green Line) */}
+                      {/* 1H RSI Confirmation */}
                       <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", margin: "10px 0 12px 0" }}>
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#FEF9C3", border: "1px solid #FACC15", padding: "3px 8px", borderRadius: "6px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#EAB308", display: "inline-block" }}></span>
-                          <span style={{ fontSize: "11px", fontWeight: 800, color: "#854D0E" }}>
-                            Yellow RSI(23): <strong>{item.rsi.toFixed(1)}</strong>
-                          </span>
-                        </div>
-
-                        <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "#DCFCE7", border: "1px solid #4ADE80", padding: "3px 8px", borderRadius: "6px" }}>
-                          <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#22C55E", display: "inline-block" }}></span>
-                          <span style={{ fontSize: "11px", fontWeight: 800, color: "#166534" }}>
-                            Green MA(14): <strong>{item.ma.toFixed(1)}</strong>
-                          </span>
-                        </div>
-
                         <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: is1H ? "#DBEAFE" : "#F1F5F9", border: is1H ? "1px solid #60A5FA" : "1px solid #E2E8F0", padding: "3px 8px", borderRadius: "6px" }}>
                           <span style={{ fontSize: "11px", fontWeight: 800, color: is1H ? "#1E40AF" : "#64748B" }}>
                             1H RSI: <strong>{item.rsi1h.toFixed(1)}</strong> {is1H ? "✓ (Aligned)" : "(Watching)"}
@@ -1255,7 +1235,7 @@ export default function TricksInNSE() {
                     {/* Action link */}
                     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", paddingTop: "12px", marginTop: "10px", borderTop: "1px solid #F1F5F9" }}>
                       <span style={{ fontSize: "12px", fontWeight: 800, color: is1H ? "#854D0E" : "#166534", display: "flex", alignItems: "center", gap: "4px" }}>
-                        Open 15M Chart (Yellow &amp; Green RSI) ➔
+                        Open 15M Chart ➔
                       </span>
                     </div>
                   </div>
