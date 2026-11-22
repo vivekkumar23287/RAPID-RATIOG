@@ -6,10 +6,34 @@ import { sql } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
+const TRICK_4_ALLOWED_SET = new Set([
+  "APOLLOHOSP",
+  "BAJAJ-AUTO",
+  "EICHERMOT",
+  "MARUTI",
+  "ULTRACEMCO",
+  "NIFTY50",
+  "NIFTY",
+  "^NSEI",
+  "BTC",
+  "BTC-USD"
+]);
+
 function filterRowsByTrick(rows: any[], filter: string | null) {
-  if (!filter || filter === "ALL") return rows;
+  // Always restrict Trick 4 rows strictly to the 7 target assets
+  const sanitizedRows = rows.filter((r: any) => {
+    const t = String(r["Trick Name"] || "").toLowerCase();
+    const isTrick4 = t.includes("trick 4") || t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
+    if (isTrick4) {
+      const sym = String(r["Symbol"] || "").toUpperCase();
+      return TRICK_4_ALLOWED_SET.has(sym);
+    }
+    return true;
+  });
+
+  if (!filter || filter === "ALL") return sanitizedRows;
   const f = filter.toLowerCase();
-  return rows.filter((r: any) => {
+  return sanitizedRows.filter((r: any) => {
     const t = String(r["Trick Name"] || "").toLowerCase();
     if (f === "trick_1" || f === "1") return t.includes("trick 1") || t.includes("gap");
     if (f === "trick_2" || f === "2") return t.includes("trick 2") || t.includes("mother");
@@ -182,6 +206,8 @@ export async function GET(req: NextRequest) {
             candle_time as "Time",
             CONCAT('Signal Type: ', signal_type, ' (', timeframe, ')') as "Details"
           FROM signals_history
+          WHERE (signal_type LIKE '%3-CANDLE%')
+             OR (signal_type LIKE 'OPEN = %' AND UPPER(stock_symbol) IN ('APOLLOHOSP', 'BAJAJ-AUTO', 'EICHERMOT', 'MARUTI', 'ULTRACEMCO', 'NIFTY50', 'NIFTY', '^NSEI', 'BTC', 'BTC-USD'))
           ORDER BY id DESC
           LIMIT 500
         `;

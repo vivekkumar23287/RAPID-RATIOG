@@ -36,9 +36,28 @@ const TRICK_OPTIONS = [
   { id: "TRICK_5_RSI", label: "Trick 5: RSI 60 Bullish Breakout" },
 ];
 
+const TRICK_4_ALLOWED_SET = new Set([
+  "APOLLOHOSP",
+  "BAJAJ-AUTO",
+  "EICHERMOT",
+  "MARUTI",
+  "ULTRACEMCO",
+  "NIFTY50",
+  "NIFTY",
+  "^NSEI",
+  "BTC",
+  "BTC-USD"
+]);
+
 function matchesTrickFilter(row: TrickRow, filter: string): boolean {
-  if (!filter || filter === "ALL") return true;
   const t = String(row["Trick Name"] || "").toLowerCase();
+  const isTrick4 = t.includes("trick 4") || t.includes("open=high") || t.includes("open = high") || t.includes("open=low") || t.includes("open = low");
+  if (isTrick4) {
+    const sym = String(row["Symbol"] || "").toUpperCase();
+    if (!TRICK_4_ALLOWED_SET.has(sym)) return false;
+  }
+
+  if (!filter || filter === "ALL") return true;
   if (filter === "TRICK_1") return t.includes("trick 1") || t.includes("gap");
   if (filter === "TRICK_2") return t.includes("trick 2") || t.includes("mother");
   if (filter === "TRICK_3") return t.includes("trick 3") || t.includes("3-candle") || t.includes("breakout");

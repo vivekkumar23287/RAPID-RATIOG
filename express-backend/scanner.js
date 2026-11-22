@@ -129,12 +129,27 @@ async function scanStocks(importedCandles) {
 
   // =========================================================================
   // 2. Scan stocks for 15-Min Open = High / Open = Low Signals (Trick 4)
+  // Trick 4 is strictly implemented for only 7 assets:
+  // Apollo Hospitals, Bajaj Auto, Eicher Motors, Maruti Suzuki, UltraTech Cement, Nifty 50, BTC
   // =========================================================================
-  console.log('[SCANNER] Scanning stocks for O=H / O=L signals...');
+  console.log('[SCANNER] Scanning stocks for O=H / O=L signals (Trick 4 - 7 target assets)...');
   let signalCount = 0;
 
+  const TRICK_4_SYMBOLS_SET = new Set([
+    'APOLLOHOSP',
+    'BAJAJ-AUTO',
+    'EICHERMOT',
+    'MARUTI',
+    'ULTRACEMCO',
+    'NIFTY50',
+    'NIFTY',
+    '^NSEI',
+    'BTC',
+    'BTC-USD'
+  ]);
+
   for (const [symbol, data] of Object.entries(importedCandles)) {
-    if (symbol === 'NIFTY50') continue;
+    if (!TRICK_4_SYMBOLS_SET.has(symbol.toUpperCase())) continue;
 
     try {
       const { quotes, name } = data;

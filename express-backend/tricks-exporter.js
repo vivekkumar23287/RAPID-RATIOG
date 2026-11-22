@@ -234,14 +234,30 @@ function scanTrick3Breakouts(allCandles, todayStr) {
   return breakoutResults;
 }
 
+// Trick 4 is strictly implemented for only these 7 selected assets:
+const TRICK_4_ALLOWED = new Set([
+  'APOLLOHOSP',
+  'BAJAJ-AUTO',
+  'EICHERMOT',
+  'MARUTI',
+  'ULTRACEMCO',
+  'NIFTY50',
+  'NIFTY',
+  '^NSEI',
+  'BTC',
+  'BTC-USD'
+]);
+
 /**
  * Scan for Trick 4: Live 15-Min Open=High & Open=Low Signals
+ * Strictly for the 7 target assets:
+ * Apollo Hospitals, Bajaj Auto, Eicher Motors, Maruti Suzuki, UltraTech Cement, Nifty 50, Bitcoin
  */
 function scanTrick4OpenHighLow(allCandles, todayStr) {
   const ohlResults = [];
 
   for (const [symbol, data] of Object.entries(allCandles)) {
-    if (symbol === 'NIFTY50') continue;
+    if (!TRICK_4_ALLOWED.has(symbol.toUpperCase())) continue;
     try {
       const quotes = data.quotes || [];
       let latestOH = null;
@@ -450,7 +466,15 @@ async function getDBSignalsToday(todayStr) {
     );
     if (!rows || rows.length === 0) return [];
 
-    return rows.map(r => ({
+    return rows
+      .filter(r => {
+        const isTrick4 = !r.signal_type.includes('3-CANDLE');
+        if (isTrick4 && !TRICK_4_ALLOWED.has(String(r.stock_symbol).toUpperCase())) {
+          return false;
+        }
+        return true;
+      })
+      .map(r => ({
       "Date": r.candle_date,
       "Time": r.candle_time,
       "Company Name": r.stock_name,

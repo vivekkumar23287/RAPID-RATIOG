@@ -8,7 +8,7 @@ import {
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
 import { io, Socket } from "socket.io-client";
-import { prefetchStockCandles, getCachedTricksPage, fetchTricksPageCached } from "@/lib/data-cache";
+import { prefetchStockCandles } from "@/lib/data-cache";
 
 type SignalData = {
   id: number;
@@ -36,73 +36,36 @@ type LiveStockData = {
 export default function TricksInNSE() {
   const router = useRouter();
   
-  const initialCache = typeof window !== "undefined" ? getCachedTricksPage() : null;
+  const [loadingGaps, setLoadingGaps] = useState(true);
+  const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
+  const [gapDowns, setGapDowns] = useState<LiveStockData[]>([]);
 
-  const [loadingGaps, setLoadingGaps] = useState(!initialCache?.gaps);
-  const [gapUps, setGapUps] = useState<LiveStockData[]>(initialCache?.gaps?.gapUps || []);
-  const [gapDowns, setGapDowns] = useState<LiveStockData[]>(initialCache?.gaps?.gapDowns || []);
+  const [loadingMother, setLoadingMother] = useState(true);
+  const [motherMatches, setMotherMatches] = useState<any[]>([]);
 
-  const [loadingMother, setLoadingMother] = useState(!initialCache?.motherRange);
-  const [motherMatches, setMotherMatches] = useState<any[]>(initialCache?.motherRange?.matches || []);
+  const [breakoutMatches, setBreakoutMatches] = useState<any[]>([]);
 
-  const [breakoutMatches, setBreakoutMatches] = useState<any[]>(initialCache?.breakouts?.matches || []);
-
-  const [signals, setSignals] = useState<SignalData[]>(initialCache?.signals || []);
-  const [loadingSignals, setLoadingSignals] = useState(!initialCache?.signals || initialCache.signals.length === 0);
+  
+  const [signals, setSignals] = useState<SignalData[]>([]);
+  const [loadingSignals, setLoadingSignals] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"ALL" | "UP" | "DOWN">("ALL");
   const [specialFilter, setSpecialFilter] = useState<"ALL" | "NIFTY">("ALL");
   const [specialSearch, setSpecialSearch] = useState("");
-  const [lastUpdated, setLastUpdated] = useState<string>(initialCache?.lastUpdated || "");
+  const [lastUpdated, setLastUpdated] = useState<string>("");
 
   // Trick 5: RSI 60 Bullish Breakout Scanner (Yellow crosses 60 with 1H confirmation)
-  const [rsiMatches, setRsiMatches] = useState<any[]>(initialCache?.rsi?.matches || []);
-  const [rsi1hConfirmed, setRsi1hConfirmed] = useState<any[]>(initialCache?.rsi?.confirmed1H || []);
-  const [rsi15mBreakouts, setRsi15mBreakouts] = useState<any[]>(initialCache?.rsi?.breakouts15M || []);
-  const [loadingRsi, setLoadingRsi] = useState(!initialCache?.rsi);
+  const [rsiMatches, setRsiMatches] = useState<any[]>([]);
+  const [rsi1hConfirmed, setRsi1hConfirmed] = useState<any[]>([]);
+  const [rsi15mBreakouts, setRsi15mBreakouts] = useState<any[]>([]);
+  const [loadingRsi, setLoadingRsi] = useState(true);
   const [rsiFilter, setRsiFilter] = useState<"ALL" | "1H_CONFIRMED" | "15M_BREAKOUT">("ALL");
   const [rsiSearch, setRsiSearch] = useState("");
-
-  const loadAllTricks = async (forceFresh = false) => {
-    try {
-      const data = await fetchTricksPageCached(forceFresh);
-      if (data) {
-        if (data.gaps) {
-          setGapUps(data.gaps.gapUps || []);
-          setGapDowns(data.gaps.gapDowns || []);
-        }
-        if (data.motherRange) {
-          setMotherMatches(data.motherRange.matches || []);
-        }
-        if (data.breakouts) {
-          setBreakoutMatches(data.breakouts.matches || []);
-        }
-        if (data.rsi) {
-          setRsiMatches(data.rsi.matches || []);
-          setRsi1hConfirmed(data.rsi.confirmed1H || []);
-          setRsi15mBreakouts(data.rsi.breakouts15M || []);
-        }
-        if (data.signals && data.signals.length > 0) {
-          setSignals(data.signals);
-        }
-        if (data.lastUpdated) {
-          setLastUpdated(data.lastUpdated);
-        }
-      }
-    } catch (e) {
-      console.warn("Unified tricks load error:", e);
-    } finally {
-      setLoadingGaps(false);
-      setLoadingMother(false);
-      setLoadingRsi(false);
-      setLoadingSignals(false);
-    }
-  };
 
   const fetchGaps = async () => {
     setLoadingGaps(true);
     try {
-      const response = await fetch("/api/nse-gaps");
+      const response = await fetch("/api/nse-gaps", { cache: "no-store" });
       if (!response.ok) throw new Error("Failed to scan live gaps");
       const data = await response.json();
       setGapUps(data.gapUps || []);
@@ -119,7 +82,7 @@ export default function TricksInNSE() {
   const fetchMotherRange = async () => {
     setLoadingMother(true);
     try {
-      const res = await fetch("/api/scanner-5c");
+      const res = await fetch("/api/scanner-5c", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to scan 5-candle");
       const data = await res.json();
       if (data.success) {
@@ -135,7 +98,7 @@ export default function TricksInNSE() {
 
   const fetchBreakoutSetups = async () => {
     try {
-      const res = await fetch("/api/scanner-3c");
+      const res = await fetch("/api/scanner-3c", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to scan 3-candle breakout");
       const data = await res.json();
       if (data.success) {
@@ -150,7 +113,7 @@ export default function TricksInNSE() {
   const fetchRsi = async () => {
     setLoadingRsi(true);
     try {
-      const res = await fetch("/api/scanner-rsi");
+      const res = await fetch("/api/scanner-rsi", { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to scan RSI");
       const data = await res.json();
       if (data.success) {
@@ -169,7 +132,10 @@ export default function TricksInNSE() {
   };
 
   useEffect(() => {
-    loadAllTricks();
+    fetchGaps();
+    fetchMotherRange();
+    fetchBreakoutSetups();
+    fetchRsi();
   }, []);
 
   useEffect(() => {
@@ -345,13 +311,27 @@ export default function TricksInNSE() {
     });
   }, [rsiMatches, rsi1hConfirmed, rsi15mBreakouts, rsiFilter, rsiSearch]);
 
+  const TRICK_4_ALLOWED_SET = useMemo(() => new Set([
+    "APOLLOHOSP",
+    "BAJAJ-AUTO",
+    "EICHERMOT",
+    "MARUTI",
+    "ULTRACEMCO",
+    "NIFTY50",
+    "NIFTY",
+    "^NSEI",
+    "BTC",
+    "BTC-USD"
+  ]), []);
+
   const ohlSignals = useMemo(() => {
     return signals.filter(sig => 
-      sig.signal_type.includes("OPEN =") || 
+      (sig.signal_type.includes("OPEN =") || 
       sig.signal_type.includes("O=H") || 
-      sig.signal_type.includes("O=L")
+      sig.signal_type.includes("O=L")) &&
+      TRICK_4_ALLOWED_SET.has((sig.stock_symbol || "").toUpperCase())
     );
-  }, [signals]);
+  }, [signals, TRICK_4_ALLOWED_SET]);
 
   const filteredSignals = useMemo(() => {
     return ohlSignals.filter(sig => {
@@ -808,11 +788,63 @@ export default function TricksInNSE() {
         `}</style>
 
         
-        <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
-          <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>4. Live 15-Min Open=High & Open=Low Signals</h2>
-          <div style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(59,130,246,0.2)" }}>
-            <span style={{ width: "6px", height: "6px", background: "#3B82F6", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
-            LIVE
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px", flexWrap: "wrap" }}>
+            <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>4. Live 15-Min Open=High & Open=Low Signals</h2>
+            <div style={{ background: "rgba(59,130,246,0.15)", color: "#3B82F6", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px", border: "1px solid rgba(59,130,246,0.2)" }}>
+              <span style={{ width: "6px", height: "6px", background: "#3B82F6", borderRadius: "50%", display: "inline-block" }} className="pulse"></span>
+              LIVE
+            </div>
+            <span style={{ fontSize: "12px", fontWeight: 700, color: "#64748B", background: "#F1F5F9", padding: "3px 8px", borderRadius: "6px" }}>
+              7 Assets Monitored
+            </span>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "6px", marginBottom: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#64748B", fontWeight: 600 }}>Monitored:</span>
+            {[
+              { sym: "APOLLOHOSP", name: "Apollo Hospitals" },
+              { sym: "BAJAJ-AUTO", name: "Bajaj Auto" },
+              { sym: "EICHERMOT", name: "Eicher Motors" },
+              { sym: "MARUTI", name: "Maruti Suzuki" },
+              { sym: "ULTRACEMCO", name: "UltraTech Cement" },
+              { sym: "NIFTY50", name: "Nifty 50" },
+              { sym: "BTC", name: "Bitcoin" },
+            ].map(m => (
+              <span
+                key={m.sym}
+                onClick={() => setSearch(m.sym === search ? "" : m.sym)}
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: search === m.sym ? "#1D4ED8" : "#0F2044",
+                  background: search === m.sym ? "rgba(59,130,246,0.15)" : "#F8FAFC",
+                  border: `1px solid ${search === m.sym ? "#3B82F6" : "#E2E8F0"}`,
+                  padding: "3px 8px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                {m.name}
+              </span>
+            ))}
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#DC2626",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "2px 6px"
+                }}
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
@@ -905,6 +937,8 @@ export default function TricksInNSE() {
                     const rowBg = isUp ? "rgba(69,225,128,0.08)" : "rgba(255,107,122,0.08)";
                     const textColor = isUp ? "#16A34A" : "#DC2626";
                     const Icon = isUp ? CaretUp : CaretDown;
+                    const isBtc = (sig.stock_symbol || "").toUpperCase().startsWith("BTC");
+                    const curr = isBtc ? "$" : "₹";
 
                     return (
                       <tr 
@@ -925,16 +959,16 @@ export default function TricksInNSE() {
                           </div>
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: isUp ? 600 : 900, color: isUp ? "#64748B" : textColor, fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{Number(sig.open_price).toFixed(2)}
+                          {curr}{Number(sig.open_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: !isUp ? 600 : 900, color: !isUp ? "#64748B" : textColor, fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{Number(sig.high_price).toFixed(2)}
+                          {curr}{Number(sig.high_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: 600, color: "#64748B", fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{Number(sig.low_price).toFixed(2)}
+                          {curr}{Number(sig.low_price).toFixed(2)}
                         </td>
                         <td style={{ padding: "16px 24px", textAlign: "right", fontWeight: 800, color: "#0F2044", fontFamily: "monospace", fontSize: "15px" }}>
-                          ₹{Number(sig.close_price).toFixed(2)}
+                          {curr}{Number(sig.close_price).toFixed(2)}
                         </td>
                       </tr>
                     );

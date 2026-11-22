@@ -49,13 +49,17 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const singleSymbol = searchParams.get("symbol");
-    const forceSync = searchParams.get("sync") === "true";
 
-    // Read pre-calculated results from DB cache immediately
-    if (!singleSymbol && !forceSync) {
+    // Only serve from static DB cache if market is completely closed (after 3:35 PM IST or weekends)
+    const isMarketOpen = 
+      nowIST.getDay() >= 1 && 
+      nowIST.getDay() <= 5 && 
+      ((nowIST.getHours() === 9 && nowIST.getMinutes() >= 15) || (nowIST.getHours() > 9 && nowIST.getHours() < 15) || (nowIST.getHours() === 15 && nowIST.getMinutes() <= 35));
+
+    if (!singleSymbol && !isMarketOpen) {
       try {
-        const cached = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'scanner-3c' ORDER BY id DESC LIMIT 1`;
-        if (cached.length > 0 && cached[0].results) {
+        const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'scanner-3c'`;
+        if (cached.length > 0) {
           return NextResponse.json(cached[0].results);
         }
       } catch {}

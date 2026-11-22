@@ -1,11 +1,38 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
-import { NIFTY_50_STOCKS as RAW_SYMBOLS } from "@/lib/stocks";
 
 export const dynamic = "force-dynamic";
 
-// Filter out BTC so scanner strictly scans NSE Nifty 50 stocks
-const SCAN_SYMBOLS = RAW_SYMBOLS.filter(s => s.symbol.toUpperCase() !== "BTC");
+// Trick 4 is strictly implemented for only these 7 selected assets:
+// 1. Apollo Hospitals Enterprise Ltd.
+// 2. Bajaj Auto Ltd.
+// 3. Eicher Motors Ltd.
+// 4. Maruti Suzuki India Ltd.
+// 5. UltraTech Cement Ltd.
+// 6. Nifty 50 Index
+// 7. Bitcoin (BTC)
+const TRICK_4_SYMBOLS = [
+  { symbol: "APOLLOHOSP", name: "Apollo Hospitals Enterprise Ltd." },
+  { symbol: "BAJAJ-AUTO",  name: "Bajaj Auto Ltd." },
+  { symbol: "EICHERMOT",   name: "Eicher Motors Ltd." },
+  { symbol: "MARUTI",      name: "Maruti Suzuki India Ltd." },
+  { symbol: "ULTRACEMCO",  name: "UltraTech Cement Ltd." },
+  { symbol: "NIFTY50",     name: "Nifty 50 Index" },
+  { symbol: "BTC",         name: "Bitcoin" },
+];
+
+const TRICK_4_SYMBOLS_SET = new Set([
+  "APOLLOHOSP",
+  "BAJAJ-AUTO",
+  "EICHERMOT",
+  "MARUTI",
+  "ULTRACEMCO",
+  "NIFTY50",
+  "NIFTY",
+  "^NSEI",
+  "BTC",
+  "BTC-USD",
+]);
 
 interface LiveSignal {
   id?: number | string;
@@ -72,7 +99,12 @@ function getISTTimeString(unixSeconds: number): string {
 
 const fetchYahoo15mChart = async (symbol: string) => {
   const upper = symbol.toUpperCase();
-  const yahooSymbol = upper === "NIFTY50" || upper === "NIFTY" ? "^NSEI" : `${symbol}.NS`;
+  let yahooSymbol = `${symbol}.NS`;
+  if (upper === "NIFTY50" || upper === "NIFTY" || upper === "^NSEI") {
+    yahooSymbol = "^NSEI";
+  } else if (upper === "BTC" || upper === "BTC-USD") {
+    yahooSymbol = "BTC-USD";
+  }
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=2d&interval=15m&includePrePost=false`;
   try {
     const res = await fetch(url, {
@@ -91,125 +123,120 @@ const fetchYahoo15mChart = async (symbol: string) => {
 
 async function scanLiveOpenHighLow(): Promise<LiveSignal[]> {
   const scannedSignals: LiveSignal[] = [];
-  const chunkSize = 15;
 
-  for (let i = 0; i < SCAN_SYMBOLS.length; i += chunkSize) {
-    const chunk = SCAN_SYMBOLS.slice(i, i + chunkSize);
-    const results = await Promise.all(
-      chunk.map(async (item) => {
-        try {
-          const raw = await fetchYahoo15mChart(item.symbol);
-          const result = raw?.chart?.result?.[0];
-          if (!result || !result.timestamp || result.timestamp.length === 0) return [];
+  // Parallel scan strictly for the 7 target Trick 4 assets
+  const results = await Promise.all(
+    TRICK_4_SYMBOLS.map(async (item) => {
+      try {
+        const raw = await fetchYahoo15mChart(item.symbol);
+        const result = raw?.chart?.result?.[0];
+        if (!result || !result.timestamp || result.timestamp.length === 0) return [];
 
-          const timestamps: number[] = result.timestamp;
-          const quote = result.indicators?.quote?.[0];
-          if (!quote) return [];
+        const timestamps: number[] = result.timestamp;
+        const quote = result.indicators?.quote?.[0];
+        if (!quote) return [];
 
-          // Group valid completed and current candles that fall within market hours
-          const validCandles: {
-            timestamp: number;
-            dateStr: string;
-            timeStr: string;
-            open: number;
-            high: number;
-            low: number;
-            close: number;
-          }[] = [];
+        // Group valid completed and current candles that fall within market hours
+        const validCandles: {
+          timestamp: number;
+          dateStr: string;
+          timeStr: string;
+          open: number;
+          high: number;
+          low: number;
+          close: number;
+        }[] = [];
 
-          for (let idx = 0; idx < timestamps.length; idx++) {
-            const ts = timestamps[idx];
-            const o = quote.open?.[idx];
-            const h = quote.high?.[idx];
-            const l = quote.low?.[idx];
-            const c = quote.close?.[idx];
+        for (let idx = 0; idx < timestamps.length; idx++) {
+          const ts = timestamps[idx];
+          const o = quote.open?.[idx];
+          const h = quote.high?.[idx];
+          const l = quote.low?.[idx];
+          const c = quote.close?.[idx];
 
-            if (o == null || h == null || l == null || c == null) continue;
+          if (o == null || h == null || l == null || c == null) continue;
 
-            const ist = getISTParts(ts);
-            // Must fall strictly between 09:15 AM and 03:30 PM IST
-            if (!ist.isMarketHours) continue;
+          const ist = getISTParts(ts);
+          // Must fall strictly between 09:15 AM and 03:30 PM IST
+          if (!ist.isMarketHours) continue;
 
-            validCandles.push({
-              timestamp: ts,
-              dateStr: ist.dateStr,
-              timeStr: ist.timeStr,
-              open: Number(o.toFixed(2)),
-              high: Number(h.toFixed(2)),
-              low: Number(l.toFixed(2)),
-              close: Number(c.toFixed(2)),
+          validCandles.push({
+            timestamp: ts,
+            dateStr: ist.dateStr,
+            timeStr: ist.timeStr,
+            open: Number(o.toFixed(2)),
+            high: Number(h.toFixed(2)),
+            low: Number(l.toFixed(2)),
+            close: Number(c.toFixed(2)),
+          });
+        }
+
+        if (validCandles.length === 0) return [];
+
+        // Identify the most recent active trading date
+        const latestDate = validCandles[validCandles.length - 1].dateStr;
+        const sessionCandles = validCandles.filter(c => c.dateStr === latestDate);
+
+        const stockSignals: LiveSignal[] = [];
+
+        for (const candle of sessionCandles) {
+          let signalType: "OPEN = HIGH ↓" | "OPEN = LOW ↑" | null = null;
+          let direction: "UP" | "DOWN" | null = null;
+
+          // RULE 1: Candle High == Open (within 2 paise / 0.05 tolerance)
+          if (Math.abs(candle.high - candle.open) <= 0.05) {
+            signalType = "OPEN = HIGH ↓";
+            direction = "DOWN";
+          }
+          // RULE 2: Candle Low == Open (within 2 paise / 0.05 tolerance)
+          else if (Math.abs(candle.low - candle.open) <= 0.05) {
+            signalType = "OPEN = LOW ↑";
+            direction = "UP";
+          }
+
+          if (signalType && direction) {
+            const candleEndTs = candle.timestamp + 15 * 60;
+            const candleTimeEnd = getISTTimeString(candleEndTs);
+            const candleTime = `${candle.timeStr} - ${candleTimeEnd}`;
+
+            stockSignals.push({
+              stock_symbol: item.symbol,
+              stock_name: item.name,
+              signal_type: signalType,
+              direction: direction,
+              timeframe: "15m",
+              open_price: candle.open,
+              high_price: candle.high,
+              low_price: candle.low,
+              close_price: candle.close,
+              candle_time: candleTime,
+              candle_date: candle.dateStr,
+              created_at: new Date().toISOString(),
             });
           }
-
-          if (validCandles.length === 0) return [];
-
-          // Identify the most recent active trading date
-          const latestDate = validCandles[validCandles.length - 1].dateStr;
-          const sessionCandles = validCandles.filter(c => c.dateStr === latestDate);
-
-          const stockSignals: LiveSignal[] = [];
-
-          for (const candle of sessionCandles) {
-            let signalType: "OPEN = HIGH ↓" | "OPEN = LOW ↑" | null = null;
-            let direction: "UP" | "DOWN" | null = null;
-
-            // RULE 1: Candle High == Open (within 2 paise tolerance for decimal pricing)
-            if (Math.abs(candle.high - candle.open) < 0.02) {
-              signalType = "OPEN = HIGH ↓";
-              direction = "DOWN";
-            }
-            // RULE 2: Candle Low == Open (within 2 paise tolerance)
-            else if (Math.abs(candle.low - candle.open) < 0.02) {
-              signalType = "OPEN = LOW ↑";
-              direction = "UP";
-            }
-
-            if (signalType && direction) {
-              const candleEndTs = candle.timestamp + 15 * 60;
-              const candleTimeEnd = getISTTimeString(candleEndTs);
-              const candleTime = `${candle.timeStr} - ${candleTimeEnd}`;
-
-              stockSignals.push({
-                stock_symbol: item.symbol,
-                stock_name: item.name,
-                signal_type: signalType,
-                direction: direction,
-                timeframe: "15m",
-                open_price: candle.open,
-                high_price: candle.high,
-                low_price: candle.low,
-                close_price: candle.close,
-                candle_time: candleTime,
-                candle_date: candle.dateStr,
-                created_at: new Date().toISOString(),
-              });
-            }
-          }
-
-          return stockSignals;
-        } catch {
-          return [];
         }
-      })
-    );
 
-    for (const group of results) {
-      if (group && group.length > 0) {
-        scannedSignals.push(...group);
+        return stockSignals;
+      } catch {
+        return [];
       }
+    })
+  );
+
+  for (const group of results) {
+    if (group && group.length > 0) {
+      scannedSignals.push(...group);
     }
   }
 
   return scannedSignals;
 }
 
-export async function GET(req: Request) {
+export async function GET() {
   const now = Date.now();
-  const url = new URL(req.url);
-  const forceSync = url.searchParams.get("sync") === "true";
 
   // Return cached result if fresh
-  if (!forceSync && cachedSignals.length > 0 && now - lastCacheTime < CACHE_TTL_MS) {
+  if (cachedSignals.length > 0 && now - lastCacheTime < CACHE_TTL_MS) {
     return NextResponse.json({
       success: true,
       data: cachedSignals,
@@ -219,7 +246,7 @@ export async function GET(req: Request) {
     });
   }
 
-  // 1. Fetch any stored signals from DB
+  // 1. Fetch any stored signals from DB strictly for the 7 target Trick 4 assets
   let dbSignals: any[] = [];
   try {
     const rows = await sql`
@@ -239,6 +266,7 @@ export async function GET(req: Request) {
         created_at
       FROM signals_history
       WHERE signal_type LIKE 'OPEN = %'
+        AND UPPER(stock_symbol) IN ('APOLLOHOSP', 'BAJAJ-AUTO', 'EICHERMOT', 'MARUTI', 'ULTRACEMCO', 'NIFTY50', 'NIFTY', '^NSEI', 'BTC', 'BTC-USD')
       ORDER BY id DESC
       LIMIT 200
     `;
@@ -247,34 +275,6 @@ export async function GET(req: Request) {
     }
   } catch (error: any) {
     console.warn("Signals DB read warning:", error?.message);
-  }
-
-  // If DB signals exist and not forcing a live scan, return immediately (< 30ms)
-  if (dbSignals.length > 0 && !forceSync) {
-    const mapped = dbSignals.map((r: any) => ({
-      id: r.id,
-      stock_symbol: r.stock_symbol,
-      stock_name: r.stock_name,
-      signal_type: r.signal_type,
-      direction: r.direction,
-      timeframe: r.timeframe || "15m",
-      open_price: Number(r.open_price),
-      high_price: Number(r.high_price),
-      low_price: Number(r.low_price),
-      close_price: Number(r.close_price),
-      candle_time: r.candle_time,
-      candle_date: r.candle_date,
-      created_at: r.created_at ? new Date(r.created_at).toISOString() : new Date().toISOString(),
-    }));
-    cachedSignals = mapped;
-    lastCacheTime = now;
-    return NextResponse.json({
-      success: true,
-      data: mapped,
-      count: mapped.length,
-      timestamp: new Date().toISOString(),
-      source: "neon_db",
-    });
   }
 
   // 2. Scan live candles from Yahoo Finance across 09:15 AM to 03:30 PM IST
@@ -291,6 +291,7 @@ export async function GET(req: Request) {
 
   // Add live signals first (latest real-time data)
   for (const s of liveSignals) {
+    if (!TRICK_4_SYMBOLS_SET.has(s.stock_symbol.toUpperCase())) continue;
     const key = `${s.stock_symbol}_${s.candle_date}_${s.candle_time}_${s.signal_type}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);
@@ -300,6 +301,7 @@ export async function GET(req: Request) {
 
   // Add stored DB signals
   for (const r of dbSignals) {
+    if (!TRICK_4_SYMBOLS_SET.has(String(r.stock_symbol).toUpperCase())) continue;
     const key = `${r.stock_symbol}_${r.candle_date}_${r.candle_time}_${r.signal_type}`;
     if (!seenKeys.has(key)) {
       seenKeys.add(key);

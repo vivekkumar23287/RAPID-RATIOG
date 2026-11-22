@@ -36,17 +36,25 @@ export async function GET(req: NextRequest) {
     
     const { searchParams } = new URL(req.url);
     const singleSymbol = searchParams.get("symbol");
-    const forceSync = searchParams.get("sync") === "true";
     
-    if (!singleSymbol && !forceSync) {
-      const cached = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'scanner-5c' ORDER BY id DESC LIMIT 1`;
-      if (cached.length > 0 && cached[0].results) {
+    
+    if (!singleSymbol) {
+      const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'scanner-5c'`;
+      if (cached.length > 0) {
          return NextResponse.json(cached[0].results);
       }
+      
+      
+      
       
       const isMarketOpenAndCandleClosed = nowIST.getHours() > 10 || (nowIST.getHours() === 10 && nowIST.getMinutes() >= 1);
       
       if (!isMarketOpenAndCandleClosed) {
+        
+        const latest = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'scanner-5c' ORDER BY date_str DESC LIMIT 1`;
+        if (latest.length > 0) {
+           return NextResponse.json(latest[0].results);
+        }
         return NextResponse.json({ success: true, matchesCount: 0, matches: [], scannedCount: 0, timestamp: new Date().toISOString() });
       }
     }

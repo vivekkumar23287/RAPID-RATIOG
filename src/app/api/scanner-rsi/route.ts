@@ -150,11 +150,16 @@ export async function GET(req: NextRequest) {
     const singleSymbol = searchParams.get("symbol");
     const forceSync = searchParams.get("sync") === "true";
 
-    // Check DB cache first to avoid heavy scanning on user request
-    if (!singleSymbol && !forceSync) {
+    const isMarketOpen =
+      nowIST.getDay() >= 1 &&
+      nowIST.getDay() <= 5 &&
+      ((nowIST.getHours() === 9 && nowIST.getMinutes() >= 15) || (nowIST.getHours() > 9 && nowIST.getHours() < 15) || (nowIST.getHours() === 15 && nowIST.getMinutes() <= 35));
+
+    // Check DB cache if not market open and not force sync
+    if (!singleSymbol && !isMarketOpen && !forceSync) {
       try {
-        const cached = await sql`SELECT results FROM scanner_cache WHERE scanner_type = 'scanner-rsi' ORDER BY id DESC LIMIT 1`;
-        if (cached.length > 0 && cached[0].results) {
+        const cached = await sql`SELECT results FROM scanner_cache WHERE date_str = ${dateStr} AND scanner_type = 'scanner-rsi'`;
+        if (cached.length > 0) {
           return NextResponse.json(cached[0].results);
         }
       } catch {}
@@ -359,8 +364,8 @@ export async function GET(req: NextRequest) {
       durationMs: Date.now() - startTime
     };
 
-    // Cache results in DB if scanning full list
-    if (!singleSymbol) {
+    // Cache results in DB if market is closed or on weekend
+    if (!singleSymbol && !isMarketOpen) {
       try {
         await sql`
           INSERT INTO scanner_cache (date_str, scanner_type, results)
