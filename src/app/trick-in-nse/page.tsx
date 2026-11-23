@@ -3,11 +3,11 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@clerk/nextjs";
 import { 
   MagnifyingGlass, Clock, CaretUp, CaretDown, 
   ArrowUpRight, ArrowDownRight, CaretRight, Crosshair, Info, ChartLineUp 
 } from "@phosphor-icons/react";
-import { io, Socket } from "socket.io-client";
 import { 
   prefetchStockCandles, 
   fetchNseGapsCached, 
@@ -42,6 +42,14 @@ type LiveStockData = {
 
 export default function TricksInNSE() {
   const router = useRouter();
+  const { isLoaded, isSignedIn } = useAuth();
+
+  // Enforce authentication: only signed-in users can access the Tricks page
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in?redirect_url=" + encodeURIComponent("/trick-in-nse"));
+    }
+  }, [isLoaded, isSignedIn, router]);
   
   const [loadingGaps, setLoadingGaps] = useState(true);
   const [gapUps, setGapUps] = useState<LiveStockData[]>([]);
@@ -178,36 +186,15 @@ export default function TricksInNSE() {
 
     updateAllTricks();
 
-    let socket: Socket | null = null;
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    if (signalsUrl) {
-      try {
-        socket = io(signalsUrl);
-        socket.on("connect", () => {
-          console.log("Connected to live signals stream");
-        });
-
-        socket.on("new_signals", (newSignals: SignalData[]) => {
-          updateAllTricks();
-
-          setSignals(prev => {
-            const existingIds = new Set(prev.map(s => s.id || `${s.stock_symbol}-${s.candle_time}`));
-            const toAdd = newSignals.filter(s => !existingIds.has(s.id || `${s.stock_symbol}-${s.candle_time}`));
-            return [...toAdd, ...prev];
-          });
-        });
-      } catch (e) {
-        console.warn("Socket init failed, falling back to polling:", e);
-        pollInterval = setInterval(updateAllTricks, 12000);
+    // Clean background refresh interval (45s) when window is active, serving from fast DB cache
+    const refreshInterval = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        updateAllTricks();
       }
-    } else {
-      pollInterval = setInterval(updateAllTricks, 12000);
-    }
+    }, 45000);
 
     return () => {
-      if (socket) socket.disconnect();
-      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(refreshInterval);
     };
   }, []);
 
@@ -357,6 +344,50 @@ export default function TricksInNSE() {
 
   const bullishCount = ohlSignals.filter(s => s.direction === "UP").length;
   const bearishCount = ohlSignals.filter(s => s.direction === "DOWN").length;
+
+  if (isLoaded && !isSignedIn) {
+    return (
+      <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "#F8FAFC" }}>
+        <Navbar />
+        <div style={{ textAlign: "center", padding: "40px", maxWidth: "480px" }}>
+          <div style={{
+            width: "56px",
+            height: "56px",
+            borderRadius: "16px",
+            background: "rgba(37,99,235,0.1)",
+            color: "#2563EB",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px"
+          }}>
+            <Crosshair size={28} weight="bold" />
+          </div>
+          <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", marginBottom: "8px" }}>
+            Sign In Required
+          </h2>
+          <p style={{ color: "#64748B", fontSize: "14px", lineHeight: "1.5", marginBottom: "24px" }}>
+            The Tricks Scanner is accessible exclusively to registered members. Redirecting to sign in...
+          </p>
+          <button
+            onClick={() => router.push("/sign-in?redirect_url=" + encodeURIComponent("/trick-in-nse"))}
+            style={{
+              padding: "10px 24px",
+              borderRadius: "10px",
+              background: "#0F2044",
+              color: "#FFFFFF",
+              border: "none",
+              fontWeight: 700,
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
+            Sign In to Access Tricks
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main style={{ background: "#FFFFFF", minHeight: "100vh", paddingBottom: "100px", position: "relative" }}>
