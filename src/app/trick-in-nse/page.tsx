@@ -394,31 +394,6 @@ export default function TricksInNSE() {
       <Navbar />
       
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "90px 2rem 0px", position: "relative", zIndex: 1 }}>
-        
-        
-        <div style={{ marginBottom: "50px" }}>
-          <h1 style={{ 
-            fontSize: "clamp(32px, 5vw, 44px)", 
-            fontWeight: 900, 
-            color: "#0F2044", 
-            marginBottom: "12px",
-            letterSpacing: "-1px",
-            lineHeight: 1.1
-          }}>
-            Tricks
-          </h1>
-          <p style={{ 
-            color: "#64748B", 
-            fontSize: "15px", 
-            maxWidth: "680px", 
-            margin: "0",
-            lineHeight: 1.6
-          }}>
-            Track overnight opening gaps, 5-Candle Mother Range breakouts, 15-Minute 3-Candle Gap Strategy (Bullish & Bearish), Live 15-Min Open=High & Open=Low Signals, and 14-Period RSI Overbought & Oversold reversals.
-          </p>
-        </div>
-
-        
         <div style={{ marginBottom: "24px", display: "flex", alignItems: "center", gap: "10px" }}>
           <h2 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0 }}>1. True Gap Scanner</h2>
           <div style={{ background: "#F1F5F9", color: "#64748B", padding: "4px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: 700, border: "1px solid #E2E8F0" }}>
