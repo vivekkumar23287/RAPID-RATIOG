@@ -2,6 +2,60 @@
   {
     "scan_type": "GAP_UP_DOWN_FUTURES",
     "trading_date": "2026-11-26",
+    "status": "SUCCESS",
+    "gap_up_count": 4,
+    "gap_down_count": 1,
+    "data_source": "Chartink Futures",
+    "error_message": null,
+    "details": {
+      "segment": "Futures (33489)",
+      "isScheduled": false,
+      "rawUpCount": 4,
+      "rawDownCount": 1,
+      "gapUpSymbols": [
+        "HEROMOTOCO",
+        "TORNTPHARM",
+        "ENRIN",
+        "HINDZINC"
+      ],
+      "gapDownSymbols": [
+        "SHRIRAMFIN"
+      ],
+      "upHttpStatus": 200,
+      "downHttpStatus": 200
+    },
+    "scan_time": "2026-11-26T17:17:38.722Z"
+  },
+  {
+    "scan_type": "GAP_UP_DOWN_FUTURES",
+    "trading_date": "2026-11-26",
+    "status": "SUCCESS",
+    "gap_up_count": 4,
+    "gap_down_count": 1,
+    "data_source": "Chartink Futures",
+    "error_message": null,
+    "details": {
+      "segment": "Futures (33489)",
+      "isScheduled": false,
+      "rawUpCount": 4,
+      "rawDownCount": 1,
+      "gapUpSymbols": [
+        "HEROMOTOCO",
+        "TORNTPHARM",
+        "ENRIN",
+        "HINDZINC"
+      ],
+      "gapDownSymbols": [
+        "SHRIRAMFIN"
+      ],
+      "upHttpStatus": 200,
+      "downHttpStatus": 200
+    },
+    "scan_time": "2026-11-26T17:14:50.830Z"
+  },
+  {
+    "scan_type": "GAP_UP_DOWN_FUTURES",
+    "trading_date": "2026-11-26",
     "scan_time": "2026-11-26T17:01:10.000Z",
     "status": "SUCCESS",
     "gap_up_count": 4,
@@ -10,8 +64,15 @@
     "error_message": null,
     "details": {
       "segment": "Futures (33489)",
-      "gapUps": ["HEROMOTOCO", "TORNTPHARM", "ENRIN", "HINDZINC"],
-      "gapDowns": ["SHRIRAMFIN"]
+      "gapUps": [
+        "HEROMOTOCO",
+        "TORNTPHARM",
+        "ENRIN",
+        "HINDZINC"
+      ],
+      "gapDowns": [
+        "SHRIRAMFIN"
+      ]
     }
   }
 ]

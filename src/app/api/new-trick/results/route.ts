@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGapSignals, getAvailableTradingDates } from "@/lib/new-trick-db";
+import { getGapSignals } from "@/lib/new-trick-db";
 
 export const dynamic = "force-dynamic";
 
@@ -7,22 +7,31 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const date = searchParams.get("date") || undefined;
-    const signalType = (searchParams.get("signal_type") as any) || "ALL";
-    const search = searchParams.get("search") || undefined;
 
-    const [results, availableDates] = await Promise.all([
-      getGapSignals({ date, signalType, search }),
-      getAvailableTradingDates(),
-    ]);
+    const results = await getGapSignals({ date });
+
+    // Format timestamp in IST
+    const nowIST = new Date().toLocaleTimeString("en-US", {
+      timeZone: "Asia/Kolkata",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
 
     return NextResponse.json({
       success: true,
       date: results.date,
-      gapUps: results.gapUps,
-      gapDowns: results.gapDowns,
+      gapUps: results.gapUps.map((s) => ({
+        nse_symbol: s.nse_symbol,
+        company_name: s.company_name,
+      })),
+      gapDowns: results.gapDowns.map((s) => ({
+        nse_symbol: s.nse_symbol,
+        company_name: s.company_name,
+      })),
       totalUp: results.totalUp,
       totalDown: results.totalDown,
-      availableDates,
+      lastRefreshedAt: nowIST,
     });
   } catch (error: any) {
     console.error("[API] /api/new-trick/results error:", error);
@@ -34,7 +43,6 @@ export async function GET(req: NextRequest) {
         gapDowns: [],
         totalUp: 0,
         totalDown: 0,
-        availableDates: [],
       },
       { status: 500 }
     );

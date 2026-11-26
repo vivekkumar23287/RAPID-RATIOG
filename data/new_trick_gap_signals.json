@@ -8,8 +8,7 @@
     "status": "CONFIRMED",
     "data_source": "Chartink Futures",
     "price": 5789,
-    "change_percent": null,
-    "scan_time": "2026-11-26T17:01:10.000Z"
+    "change_percent": 0.65
   },
   {
     "company_name": "Torrent Pharmaceuticals Limited",
@@ -20,8 +19,7 @@
     "status": "CONFIRMED",
     "data_source": "Chartink Futures",
     "price": 5019.1,
-    "change_percent": null,
-    "scan_time": "2026-11-26T17:01:10.000Z"
+    "change_percent": 2.52
   },
   {
     "company_name": "Siemens Energy India Ltd",
@@ -32,8 +30,7 @@
     "status": "CONFIRMED",
     "data_source": "Chartink Futures",
     "price": 3058,
-    "change_percent": null,
-    "scan_time": "2026-11-26T17:01:10.000Z"
+    "change_percent": 2.96
   },
   {
     "company_name": "Hindustan Zinc Limited",
@@ -44,8 +41,7 @@
     "status": "CONFIRMED",
     "data_source": "Chartink Futures",
     "price": 526.6,
-    "change_percent": null,
-    "scan_time": "2026-11-26T17:01:10.000Z"
+    "change_percent": 1.33
   },
   {
     "company_name": "Shriram Finance Ltd",
@@ -56,7 +52,6 @@
     "status": "CONFIRMED",
     "data_source": "Chartink Futures",
     "price": 961.85,
-    "change_percent": null,
-    "scan_time": "2026-11-26T17:01:10.000Z"
+    "change_percent": -2.84
   }
 ]
