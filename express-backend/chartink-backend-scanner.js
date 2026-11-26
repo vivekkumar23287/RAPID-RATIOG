@@ -1,9 +1,10 @@
 /**
  * chartink-backend-scanner.js
  * 
- * Automated Chartink Gap Up and Gap Down Scanner for express-backend.
+ * Automated Chartink Gap Up and Gap Down Scanner (FUTURES Segment).
  * Runs on cron at 9:31 AM IST (with retries at 9:35, 9:40, 9:45 AM).
- * Saves verified Nifty 50 gap results to Neon PostgreSQL.
+ * Dynamically covers all stocks available in Chartink's Futures segment.
+ * Saves verified gap results to Neon PostgreSQL.
  */
 
 'use strict';
@@ -11,25 +12,9 @@
 require('dotenv').config({ path: '../.env.local' });
 const { pool } = require('./scanner');
 
-const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
-const CHARTINK_CLAUSE_GAP_UP_ALT = "( [=1] 15 minute low > 1 day ago high )";
-
-const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
-const CHARTINK_CLAUSE_GAP_DOWN_ALT = "( [=1] 15 minute high < 1 day ago low )";
-
-// Official Nifty 50 symbol set
-const NIFTY_50_SYMBOLS = new Set([
-  'ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK',
-  'BAJAJ-AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BEL', 'BHARTIARTL',
-  'BPCL', 'BRITANNIA', 'CIPLA', 'COALINDIA', 'DRREDDY',
-  'EICHERMOT', 'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE',
-  'HEROMOTOCO', 'HINDALCO', 'HINDUNILVR', 'ICICIBANK', 'INDUSINDBK',
-  'INFY', 'ITC', 'JSWSTEEL', 'KOTAKBANK', 'LT',
-  'M&M', 'MARUTI', 'NESTLEIND', 'NTPC', 'ONGC',
-  'POWERGRID', 'RELIANCE', 'SBILIFE', 'SBIN', 'SHRIRAMFIN',
-  'SUNPHARMA', 'TATAMOTORS', 'TCS', 'TATACONSUM', 'TATASTEEL',
-  'TECHM', 'TITAN', 'TRENT', 'ULTRACEMCO', 'WIPRO'
-]);
+// Chartink Futures segment clauses
+const CHARTINK_CLAUSE_GAP_UP = "( {futures} ( [=1] 15 minute low > 1 day ago high ) )";
+const CHARTINK_CLAUSE_GAP_DOWN = "( {futures} ( [=1] 15 minute high < 1 day ago low ) )";
 
 // Official NSE Holidays (YYYY-MM-DD)
 const NSE_HOLIDAYS = new Set([
@@ -119,11 +104,11 @@ async function queryScreener(clause, session) {
 }
 
 /**
- * Main function executed by cron
+ * Main function executed by cron for Futures segment
  */
 async function runChartinkBackendScan() {
   const ist = getISTDateParts();
-  console.log(`\n[CHARTINK CRON] ⏰ Scheduled scan triggered at ${ist.dateStr} ${ist.timeStr} IST`);
+  console.log(`\n[CHARTINK CRON] ⏰ Scheduled Futures scan triggered at ${ist.dateStr} ${ist.timeStr} IST`);
 
   if (!ist.isTradingDay) {
     console.log(`[CHARTINK CRON] ⏸️ Skipped: Market is closed today (${ist.weekday}, Holiday: ${ist.isHoliday})`);
@@ -142,7 +127,7 @@ async function runChartinkBackendScan() {
       return;
     }
   } catch (err) {
-    // If table doesn't exist yet, it will be created below
+    // If table doesn't exist yet, continue
   }
 
   const session = await getChartinkSession();
@@ -151,28 +136,22 @@ async function runChartinkBackendScan() {
     return;
   }
 
-  // 1. Scan GAP UP
-  console.log('[CHARTINK CRON] Running GAP UP scan...');
-  let upData = await queryScreener(CHARTINK_CLAUSE_GAP_UP, session);
-  if (upData === null) {
-    upData = await queryScreener(CHARTINK_CLAUSE_GAP_UP_ALT, session);
-  }
+  // 1. Scan GAP UP (Futures)
+  console.log('[CHARTINK CRON] Running GAP UP scan for Futures segment...');
+  const upData = await queryScreener(CHARTINK_CLAUSE_GAP_UP, session);
 
-  // 2. Scan GAP DOWN
-  console.log('[CHARTINK CRON] Running GAP DOWN scan...');
-  let downData = await queryScreener(CHARTINK_CLAUSE_GAP_DOWN, session);
-  if (downData === null) {
-    downData = await queryScreener(CHARTINK_CLAUSE_GAP_DOWN_ALT, session);
-  }
+  // 2. Scan GAP DOWN (Futures)
+  console.log('[CHARTINK CRON] Running GAP DOWN scan for Futures segment...');
+  const downData = await queryScreener(CHARTINK_CLAUSE_GAP_DOWN, session);
 
   if (upData === null || downData === null) {
     console.warn('[CHARTINK CRON] ❌ Chartink query failed. Will retry on next schedule.');
     return;
   }
 
-  // Filter to Nifty 50
+  // Include all stocks in the Futures segment without hardcoding
   const gapUps = (upData || [])
-    .filter(item => NIFTY_50_SYMBOLS.has((item.nsecode || '').toUpperCase().trim()))
+    .filter(item => Boolean(item.nsecode))
     .map(item => ({
       symbol: item.nsecode.toUpperCase().trim(),
       name: item.name || item.nsecode,
@@ -180,14 +159,14 @@ async function runChartinkBackendScan() {
     }));
 
   const gapDowns = (downData || [])
-    .filter(item => NIFTY_50_SYMBOLS.has((item.nsecode || '').toUpperCase().trim()))
+    .filter(item => Boolean(item.nsecode))
     .map(item => ({
       symbol: item.nsecode.toUpperCase().trim(),
       name: item.name || item.nsecode,
       type: 'GAP_DOWN'
     }));
 
-  console.log(`[CHARTINK CRON] ✅ Found ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs in NIFTY 50.`);
+  console.log(`[CHARTINK CRON] ✅ Found ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs in Futures Segment.`);
 
   // Save to DB
   try {
@@ -195,7 +174,7 @@ async function runChartinkBackendScan() {
       await pool.query(
         `INSERT INTO new_trick_gap_signals (
           company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source
-        ) VALUES ($1, $2, 'GAP_UP', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink')
+        ) VALUES ($1, $2, 'GAP_UP', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures')
         ON CONFLICT (nse_symbol, signal_type, trading_date)
         DO UPDATE SET company_name = EXCLUDED.company_name, scan_time = CURRENT_TIMESTAMP`,
         [item.name, item.symbol, ist.dateStr]
@@ -206,7 +185,7 @@ async function runChartinkBackendScan() {
       await pool.query(
         `INSERT INTO new_trick_gap_signals (
           company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source
-        ) VALUES ($1, $2, 'GAP_DOWN', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink')
+        ) VALUES ($1, $2, 'GAP_DOWN', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures')
         ON CONFLICT (nse_symbol, signal_type, trading_date)
         DO UPDATE SET company_name = EXCLUDED.company_name, scan_time = CURRENT_TIMESTAMP`,
         [item.name, item.symbol, ist.dateStr]
@@ -216,14 +195,15 @@ async function runChartinkBackendScan() {
     await pool.query(
       `INSERT INTO new_trick_scan_logs (
         scan_type, trading_date, status, gap_up_count, gap_down_count, data_source, details
-      ) VALUES ('GAP_UP_DOWN_CHARTINK', $1, 'SUCCESS', $2, $3, 'Chartink', $4)`,
+      ) VALUES ('GAP_UP_DOWN_FUTURES', $1, 'SUCCESS', $2, $3, 'Chartink Futures', $4)`,
       [ist.dateStr, gapUps.length, gapDowns.length, JSON.stringify({
+        segment: 'Futures',
         gapUps: gapUps.map(g => g.symbol),
         gapDowns: gapDowns.map(g => g.symbol)
       })]
     );
 
-    console.log('[CHARTINK CRON] 💾 Successfully saved signals and scan log to Neon DB.');
+    console.log('[CHARTINK CRON] 💾 Successfully saved Futures signals and scan log to Neon DB.');
   } catch (err) {
     console.error('[CHARTINK CRON] Error saving signals to DB:', err.message);
   }

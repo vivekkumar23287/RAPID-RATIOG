@@ -15,9 +15,9 @@ import {
   Hourglass,
   TrendUp,
   TrendDown,
-  CaretRight,
   ShieldCheck,
   Lightning,
+  Pulse,
 } from "@phosphor-icons/react";
 import * as XLSX from "xlsx";
 
@@ -113,7 +113,7 @@ export default function NewTrickPage() {
   // Handle manual scan trigger
   const handleManualScan = async () => {
     setScanning(true);
-    setScanMessage({ type: "info", text: "Connecting to Chartink screener..." });
+    setScanMessage({ type: "info", text: "Scanning Chartink Futures segment..." });
     try {
       const res = await fetch("/api/new-trick/manual-scan", { method: "POST" });
       const data = await res.json();
@@ -125,15 +125,14 @@ export default function NewTrickPage() {
         setSelectedDate(data.tradingDate);
         setScanMessage({
           type: "success",
-          text: `Scan finished successfully! Found ${data.totalUp} Gap Up & ${data.totalDown} Gap Down stocks.`,
+          text: `Futures scan completed! Found ${data.totalUp} Gap Up & ${data.totalDown} Gap Down stocks.`,
         });
       } else {
         setScanMessage({
           type: "error",
-          text: data.error || "Chartink scan could not complete. Retrying automatically on next schedule.",
+          text: data.error || "Chartink scan could not complete. Retrying automatically at 9:35 / 9:40 / 9:45 AM.",
         });
       }
-      // Refresh status summary
       loadData(data.tradingDate || selectedDate);
     } catch (err: any) {
       setScanMessage({
@@ -172,11 +171,13 @@ export default function NewTrickPage() {
         "Sr No": idx + 1,
         "Company Name": s.company_name,
         "NSE Symbol": s.nse_symbol,
+        "Segment": "Futures (F&O)",
         "Signal": "GAP UP (Bullish)",
         "Condition": "15-min Low > Prev Day High",
         "Trading Date": s.trading_date,
         "Candle Time": s.candle_time || "09:15 - 09:30 AM",
-        "Data Source": s.data_source || "Chartink",
+        "Detected At": s.scan_time ? new Date(s.scan_time).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) : "09:31 AM IST",
+        "Data Source": s.data_source || "Chartink Futures",
         "Status": s.status || "CONFIRMED",
       }));
 
@@ -184,11 +185,13 @@ export default function NewTrickPage() {
         "Sr No": idx + 1,
         "Company Name": s.company_name,
         "NSE Symbol": s.nse_symbol,
+        "Segment": "Futures (F&O)",
         "Signal": "GAP DOWN (Bearish)",
         "Condition": "15-min High < Prev Day Low",
         "Trading Date": s.trading_date,
         "Candle Time": s.candle_time || "09:15 - 09:30 AM",
-        "Data Source": s.data_source || "Chartink",
+        "Detected At": s.scan_time ? new Date(s.scan_time).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata" }) : "09:31 AM IST",
+        "Data Source": s.data_source || "Chartink Futures",
         "Status": s.status || "CONFIRMED",
       }));
 
@@ -198,7 +201,7 @@ export default function NewTrickPage() {
       XLSX.utils.book_append_sheet(wb, wsUp, "Gap Ups (Bullish)");
       XLSX.utils.book_append_sheet(wb, wsDown, "Gap Downs (Bearish)");
 
-      const filename = `Chartink_Gaps_${selectedDate || "Report"}.xlsx`;
+      const filename = `Chartink_Futures_Gaps_${selectedDate || "Report"}.xlsx`;
       XLSX.writeFile(wb, filename);
     } catch (err: any) {
       alert("Failed to export Excel file: " + err.message);
@@ -207,6 +210,21 @@ export default function NewTrickPage() {
 
   const handleStockClick = (symbol: string) => {
     router.push(`/stock/${symbol}`);
+  };
+
+  const formatDetectedAt = (timeStr?: string) => {
+    if (!timeStr) return "09:31 AM IST";
+    try {
+      return new Date(timeStr).toLocaleTimeString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+      });
+    } catch {
+      return timeStr;
+    }
   };
 
   return (
@@ -233,14 +251,18 @@ export default function NewTrickPage() {
               Automated Chartink Scanner
             </span>
             <span style={{
-              background: "#E2E8F0",
-              color: "#475569",
+              background: "rgba(14, 165, 233, 0.15)",
+              color: "#0284C7",
               fontSize: "12px",
-              fontWeight: 700,
+              fontWeight: 800,
               padding: "4px 10px",
-              borderRadius: "8px"
+              borderRadius: "8px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px"
             }}>
-              NIFTY 50 Universe
+              <Pulse size={14} weight="bold" />
+              Futures Segment (F&amp;O)
             </span>
           </div>
 
@@ -251,11 +273,19 @@ export default function NewTrickPage() {
             letterSpacing: "-1px",
             margin: "0 0 8px 0"
           }}>
-            New Trick: Gap Up &amp; Gap Down
+            New Trick
           </h1>
-          <p style={{ fontSize: "15px", color: "#64748B", margin: 0, maxWidth: "780px", lineHeight: "1.5" }}>
-            Automated server-side scanner running dual independent Chartink conditions at <strong>9:31 AM IST</strong>. 
-            Detects full 15-minute opening candle gaps above the previous day&apos;s high or below yesterday&apos;s low.
+          <h2 style={{
+            fontSize: "20px",
+            fontWeight: 800,
+            color: "#334155",
+            margin: "0 0 8px 0"
+          }}>
+            Trick 1 — Gap Up and Gap Down
+          </h2>
+          <p style={{ fontSize: "15px", color: "#64748B", margin: 0, maxWidth: "820px", lineHeight: "1.5" }}>
+            Automated server-side scanner running dual independent Chartink conditions across all stocks in the <strong>Futures segment</strong> at <strong>9:31 AM IST</strong>. 
+            Identifies companies whose entire first completed 15-minute candle holds above yesterday&apos;s high or below yesterday&apos;s low.
           </p>
         </div>
 
@@ -291,7 +321,7 @@ export default function NewTrickPage() {
         {/* KPI Summary Cards */}
         <div style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
           gap: "16px",
           marginBottom: "32px"
         }}>
@@ -304,7 +334,7 @@ export default function NewTrickPage() {
             boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Gap Up Companies</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Total Gap Up Count</span>
               <div style={{
                 width: "36px", height: "36px", borderRadius: "10px",
                 background: "rgba(16,185,129,0.15)", color: "#16A34A",
@@ -317,7 +347,7 @@ export default function NewTrickPage() {
               {gapUps.length}
             </div>
             <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "6px" }}>
-              15m Low &gt; Prev Day High
+              Futures: 15m Low &gt; Prev Day High
             </div>
           </div>
 
@@ -330,7 +360,7 @@ export default function NewTrickPage() {
             boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Gap Down Companies</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Total Gap Down Count</span>
               <div style={{
                 width: "36px", height: "36px", borderRadius: "10px",
                 background: "rgba(239,68,68,0.15)", color: "#DC2626",
@@ -343,11 +373,11 @@ export default function NewTrickPage() {
               {gapDowns.length}
             </div>
             <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "6px" }}>
-              15m High &lt; Prev Day Low
+              Futures: 15m High &lt; Prev Day Low
             </div>
           </div>
 
-          {/* Card 3: Last Scan Timestamp */}
+          {/* Card 3: Last Successful Scan */}
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -356,7 +386,7 @@ export default function NewTrickPage() {
             boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Last Scan Status</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Last Successful Scan</span>
               <div style={{
                 width: "36px", height: "36px", borderRadius: "10px",
                 background: "rgba(59,130,246,0.12)", color: "#2563EB",
@@ -378,11 +408,11 @@ export default function NewTrickPage() {
             <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "6px" }}>
               {statusSummary?.lastScanTime
                 ? new Date(statusSummary.lastScanTime).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "short", timeStyle: "short" })
-                : "Awaiting next market session"}
+                : "Awaiting next 9:31 AM IST market session"}
             </div>
           </div>
 
-          {/* Card 4: Next Scheduled Scan */}
+          {/* Card 4: Next Scheduled Scan & Status */}
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -391,7 +421,7 @@ export default function NewTrickPage() {
             boxShadow: "0 2px 10px rgba(0,0,0,0.04)"
           }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Next Scheduled Scan</span>
+              <span style={{ fontSize: "13px", fontWeight: 700, color: "#64748B" }}>Scheduler Status</span>
               <div style={{
                 width: "36px", height: "36px", borderRadius: "10px",
                 background: "rgba(100,116,139,0.12)", color: "#475569",
@@ -404,7 +434,7 @@ export default function NewTrickPage() {
               {statusSummary?.nextScheduledScan || "09:31 AM IST (Mon-Fri)"}
             </div>
             <div style={{ fontSize: "12px", color: "#94A3B8", marginTop: "6px" }}>
-              Cron: 31 9 * * 1-5 (Asia/Kolkata)
+              Retries: 9:35, 9:40, 9:45 AM if delayed
             </div>
           </div>
         </div>
@@ -425,7 +455,7 @@ export default function NewTrickPage() {
         }}>
           {/* Left: Date selector & Search */}
           <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "12px", flex: 1 }}>
-            {/* Date Dropdown */}
+            {/* Historical Date Dropdown */}
             <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
               <Calendar size={18} color="#64748B" weight="bold" />
               <select
@@ -474,7 +504,7 @@ export default function NewTrickPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search stock symbol or name..."
+                placeholder="Search Futures company or symbol..."
                 style={{
                   border: "none",
                   background: "transparent",
@@ -539,7 +569,7 @@ export default function NewTrickPage() {
                   animation: scanning ? "spin 1s linear infinite" : "none"
                 }}
               />
-              {scanning ? "Scanning Chartink..." : "Run Scanner Now"}
+              {scanning ? "Scanning Futures..." : "Run Scanner Now"}
             </button>
           </div>
         </div>
@@ -547,7 +577,7 @@ export default function NewTrickPage() {
         {/* Dual Strategy Sections: Gap Ups & Gap Downs */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "32px" }}>
           
-          {/* Section 1: Gap Up Companies (Bullish) */}
+          {/* Section 1: Gap Up — Bullish */}
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -566,10 +596,10 @@ export default function NewTrickPage() {
                 </div>
                 <div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
-                    Gap Up Companies (Bullish)
+                    Gap Up — Bullish
                   </h2>
                   <span style={{ fontSize: "12px", color: "#64748B" }}>
-                    Condition: <code>[=1] 15 minute Low Greater than 1 day ago High</code>
+                    Futures Segment: <code>[=1] 15 minute Low Greater than 1 day ago High</code>
                   </span>
                 </div>
               </div>
@@ -589,7 +619,7 @@ export default function NewTrickPage() {
             {/* Table Container */}
             <div style={{ overflowX: "auto" }}>
               {loading ? (
-                <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading scan results...</div>
+                <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading Futures scan results...</div>
               ) : filteredGapUps.length === 0 ? (
                 <div style={{
                   padding: "48px 24px",
@@ -602,7 +632,7 @@ export default function NewTrickPage() {
                     No Gap Up Companies Found
                   </div>
                   <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "480px", margin: "0 auto", lineHeight: "1.5" }}>
-                    No Nifty 50 companies satisfied the Chartink condition for this session. 
+                    No Futures segment stocks met the Gap Up condition for this session. 
                     The entire first 15-minute candle low must hold strictly above yesterday&apos;s peak high.
                   </div>
                 </div>
@@ -610,13 +640,12 @@ export default function NewTrickPage() {
                 <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px" }}>
                   <thead>
                     <tr style={{ color: "#64748B", fontSize: "12px", fontWeight: 800, textAlign: "left", textTransform: "uppercase" }}>
-                      <th style={{ padding: "8px 16px" }}>Company</th>
+                      <th style={{ padding: "8px 16px" }}>Company Name</th>
                       <th style={{ padding: "8px 16px" }}>NSE Symbol</th>
                       <th style={{ padding: "8px 16px" }}>Signal</th>
                       <th style={{ padding: "8px 16px" }}>Trading Date</th>
                       <th style={{ padding: "8px 16px" }}>Candle Time</th>
-                      <th style={{ padding: "8px 16px" }}>Data Source</th>
-                      <th style={{ padding: "8px 16px", textAlign: "right" }}>Status</th>
+                      <th style={{ padding: "8px 16px", textAlign: "right" }}>Detected At</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -662,20 +691,8 @@ export default function NewTrickPage() {
                         <td style={{ padding: "16px", color: "#64748B", fontSize: "12px", fontFamily: "monospace" }}>
                           {stock.candle_time || "09:15 - 09:30 AM"}
                         </td>
-                        <td style={{ padding: "16px", color: "#475569", fontSize: "12px", fontWeight: 600 }}>
-                          {stock.data_source || "Chartink"}
-                        </td>
-                        <td style={{ padding: "16px", textAlign: "right", borderRadius: "0 12px 12px 0" }}>
-                          <span style={{
-                            background: "rgba(16,185,129,0.15)",
-                            color: "#16A34A",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            padding: "3px 8px",
-                            borderRadius: "6px"
-                          }}>
-                            CONFIRMED
-                          </span>
+                        <td style={{ padding: "16px", textAlign: "right", borderRadius: "0 12px 12px 0", color: "#0F2044", fontSize: "12px", fontWeight: 700 }}>
+                          {formatDetectedAt(stock.scan_time)}
                         </td>
                       </tr>
                     ))}
@@ -685,7 +702,7 @@ export default function NewTrickPage() {
             </div>
           </div>
 
-          {/* Section 2: Gap Down Companies (Bearish) */}
+          {/* Section 2: Gap Down — Bearish */}
           <div style={{
             background: "#FFFFFF",
             border: "1px solid #E2E8F0",
@@ -704,10 +721,10 @@ export default function NewTrickPage() {
                 </div>
                 <div>
                   <h2 style={{ fontSize: "20px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
-                    Gap Down Companies (Bearish)
+                    Gap Down — Bearish
                   </h2>
                   <span style={{ fontSize: "12px", color: "#64748B" }}>
-                    Condition: <code>[=1] 15 minute High Less than 1 day ago Low</code>
+                    Futures Segment: <code>[=1] 15 minute High Less than 1 day ago Low</code>
                   </span>
                 </div>
               </div>
@@ -727,7 +744,7 @@ export default function NewTrickPage() {
             {/* Table Container */}
             <div style={{ overflowX: "auto" }}>
               {loading ? (
-                <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading scan results...</div>
+                <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading Futures scan results...</div>
               ) : filteredGapDowns.length === 0 ? (
                 <div style={{
                   padding: "48px 24px",
@@ -740,21 +757,20 @@ export default function NewTrickPage() {
                     No Gap Down Companies Found
                   </div>
                   <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "480px", margin: "0 auto", lineHeight: "1.5" }}>
-                    No Nifty 50 companies satisfied the Chartink condition for this session. 
-                    The entire first 15-minute candle high must stay strictly below yesterday&apos;s lowest floor.
+                    No Futures segment stocks met the Gap Down condition for this session. 
+                    The entire first 15-minute candle high must hold strictly below yesterday&apos;s lowest floor.
                   </div>
                 </div>
               ) : (
                 <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: "0 8px" }}>
                   <thead>
                     <tr style={{ color: "#64748B", fontSize: "12px", fontWeight: 800, textAlign: "left", textTransform: "uppercase" }}>
-                      <th style={{ padding: "8px 16px" }}>Company</th>
+                      <th style={{ padding: "8px 16px" }}>Company Name</th>
                       <th style={{ padding: "8px 16px" }}>NSE Symbol</th>
                       <th style={{ padding: "8px 16px" }}>Signal</th>
                       <th style={{ padding: "8px 16px" }}>Trading Date</th>
                       <th style={{ padding: "8px 16px" }}>Candle Time</th>
-                      <th style={{ padding: "8px 16px" }}>Data Source</th>
-                      <th style={{ padding: "8px 16px", textAlign: "right" }}>Status</th>
+                      <th style={{ padding: "8px 16px", textAlign: "right" }}>Detected At</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -800,20 +816,8 @@ export default function NewTrickPage() {
                         <td style={{ padding: "16px", color: "#64748B", fontSize: "12px", fontFamily: "monospace" }}>
                           {stock.candle_time || "09:15 - 09:30 AM"}
                         </td>
-                        <td style={{ padding: "16px", color: "#475569", fontSize: "12px", fontWeight: 600 }}>
-                          {stock.data_source || "Chartink"}
-                        </td>
-                        <td style={{ padding: "16px", textAlign: "right", borderRadius: "0 12px 12px 0" }}>
-                          <span style={{
-                            background: "rgba(239,68,68,0.15)",
-                            color: "#DC2626",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                            padding: "3px 8px",
-                            borderRadius: "6px"
-                          }}>
-                            CONFIRMED
-                          </span>
+                        <td style={{ padding: "16px", textAlign: "right", borderRadius: "0 12px 12px 0", color: "#0F2044", fontSize: "12px", fontWeight: 700 }}>
+                          {formatDetectedAt(stock.scan_time)}
                         </td>
                       </tr>
                     ))}

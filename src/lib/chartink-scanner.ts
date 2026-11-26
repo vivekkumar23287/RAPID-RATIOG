@@ -1,4 +1,4 @@
-import { NIFTY_50_STOCKS, getStockName } from "./stocks";
+import { getStockName } from "./stocks";
 import { saveGapSignals, logScanExecution, GapSignalRecord } from "./new-trick-db";
 import { getISTMarketTime } from "./nse-calendar";
 
@@ -19,21 +19,10 @@ export interface ChartinkScanResult {
   rawCount?: number;
 }
 
-// Chartink NIFTY 50 watchlist ID is 33489
-// Condition 1 (GAP UP): [=1] 15 minute Low Greater than 1 day ago High
-const CHARTINK_CLAUSE_GAP_UP_NIFTY50 = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
-const CHARTINK_CLAUSE_GAP_UP_FALLBACK = "( [=1] 15 minute low > 1 day ago high )";
-
-// Condition 2 (GAP DOWN): [=1] 15 minute High Less than 1 day ago Low
-const CHARTINK_CLAUSE_GAP_DOWN_NIFTY50 = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
-const CHARTINK_CLAUSE_GAP_DOWN_FALLBACK = "( [=1] 15 minute high < 1 day ago low )";
-
-// Set of verified Nifty 50 symbols for strict universe validation
-const NIFTY_50_SYMBOLS = new Set(
-  NIFTY_50_STOCKS
-    .filter(s => s.symbol !== "NIFTY50" && s.symbol !== "BTC" && s.symbol !== "BTC-USD")
-    .map(s => s.symbol.toUpperCase().replace(/\.NS$/, ""))
-);
+// Chartink Futures segment filter: ( {futures} ( ... ) )
+// Automatically covers all F&O stocks with dynamic additions/removals
+export const CHARTINK_CLAUSE_GAP_UP_FUTURES = "( {futures} ( [=1] 15 minute low > 1 day ago high ) )";
+export const CHARTINK_CLAUSE_GAP_DOWN_FUTURES = "( {futures} ( [=1] 15 minute high < 1 day ago low ) )";
 
 /**
  * Fetch CSRF token and session cookies from Chartink
@@ -68,7 +57,6 @@ async function getChartinkSession(): Promise<{ csrfToken: string; cookies: strin
     }
 
     // Extract set-cookie headers
-    // When using native fetch in Node / Next.js, cookies can be retrieved from headers
     const rawCookies: string[] = [];
     const getSetCookie = (res.headers as any).getSetCookie?.bind(res.headers);
     if (typeof getSetCookie === "function") {
@@ -135,7 +123,7 @@ async function queryChartinkScreener(
 }
 
 /**
- * Execute a single Chartink scanner condition (GAP UP or GAP DOWN)
+ * Execute a single Chartink scanner condition (GAP UP or GAP DOWN) for the FUTURES segment
  */
 export async function executeChartinkScanner(
   signalType: "GAP_UP" | "GAP_DOWN",
@@ -147,36 +135,27 @@ export async function executeChartinkScanner(
       success: false,
       signals: [],
       error: "Unable to establish Chartink connection or obtain CSRF session token.",
-      dataSource: "Chartink",
+      dataSource: "Chartink Futures",
     };
   }
 
-  const primaryClause = signalType === "GAP_UP" 
-    ? CHARTINK_CLAUSE_GAP_UP_NIFTY50 
-    : CHARTINK_CLAUSE_GAP_DOWN_NIFTY50;
+  // Futures Segment clause
+  const scanClause = signalType === "GAP_UP"
+    ? CHARTINK_CLAUSE_GAP_UP_FUTURES
+    : CHARTINK_CLAUSE_GAP_DOWN_FUTURES;
 
-  const fallbackClause = signalType === "GAP_UP" 
-    ? CHARTINK_CLAUSE_GAP_UP_FALLBACK 
-    : CHARTINK_CLAUSE_GAP_DOWN_FALLBACK;
-
-  let rawItems = await queryChartinkScreener(primaryClause, session);
-
-  // If primary Nifty50 segment query fails or yields empty, retry with fallback clause
-  if (rawItems === null) {
-    console.log(`[CHARTINK] Retrying ${signalType} with fallback clause...`);
-    rawItems = await queryChartinkScreener(fallbackClause, session);
-  }
+  const rawItems = await queryChartinkScreener(scanClause, session);
 
   if (rawItems === null) {
     return {
       success: false,
       signals: [],
-      error: `Chartink screener process query failed for ${signalType}.`,
-      dataSource: "Chartink",
+      error: `Chartink screener process query failed for Futures ${signalType}.`,
+      dataSource: "Chartink Futures",
     };
   }
 
-  // Filter strictly to Nifty 50 stocks, map to GapSignalRecord, and deduplicate
+  // Include ALL stocks returned in the Futures segment without hardcoding
   const seen = new Set<string>();
   const signals: GapSignalRecord[] = [];
 
@@ -184,12 +163,9 @@ export async function executeChartinkScanner(
     const rawSymbol = (item.nsecode || "").toUpperCase().trim();
     if (!rawSymbol) continue;
 
-    // Must be in NIFTY 50 universe
-    if (!NIFTY_50_SYMBOLS.has(rawSymbol)) continue;
-
     if (!seen.has(rawSymbol)) {
       seen.add(rawSymbol);
-      const companyName = getStockName(rawSymbol) || item.name || rawSymbol;
+      const companyName = item.name || getStockName(rawSymbol) || rawSymbol;
 
       signals.push({
         company_name: companyName,
@@ -198,7 +174,7 @@ export async function executeChartinkScanner(
         trading_date: tradingDate,
         candle_time: "09:15 - 09:30 AM",
         status: "CONFIRMED",
-        data_source: "Chartink",
+        data_source: "Chartink Futures",
       });
     }
   }
@@ -206,15 +182,14 @@ export async function executeChartinkScanner(
   return {
     success: true,
     signals,
-    dataSource: "Chartink",
+    dataSource: "Chartink Futures",
     rawCount: rawItems.length,
   };
 }
 
 /**
- * Runs both Chartink Gap Up and Gap Down scanners independently,
- * validates against Nifty 50 universe, saves results in database,
- * and logs execution details.
+ * Runs both Chartink Gap Up and Gap Down scanners independently for the FUTURES segment,
+ * saves results in database, and logs execution details.
  */
 export async function runFullChartinkScan(options: {
   isScheduled?: boolean;
@@ -234,12 +209,12 @@ export async function runFullChartinkScan(options: {
   // 1. Market day validation
   if (!options.forceScan && !marketTime.isTradingDay) {
     await logScanExecution({
-      scan_type: "GAP_UP_DOWN_CHARTINK",
+      scan_type: "GAP_UP_DOWN_FUTURES",
       trading_date: tradingDate,
       status: "MARKET_CLOSED",
       gap_up_count: 0,
       gap_down_count: 0,
-      data_source: "Chartink",
+      data_source: "Chartink Futures",
       error_message: `Market is closed today (${marketTime.weekday}, Holiday: ${marketTime.isHoliday})`,
     });
 
@@ -253,12 +228,12 @@ export async function runFullChartinkScan(options: {
     };
   }
 
-  // 2. Run Scanner 1 — GAP UP
-  console.log(`[CHARTINK] Running Scanner 1 (GAP UP) for ${tradingDate}...`);
+  // 2. Run Scanner 1 — GAP UP (Futures segment)
+  console.log(`[CHARTINK] Running Scanner 1 (GAP UP - Futures Segment) for ${tradingDate}...`);
   const upResult = await executeChartinkScanner("GAP_UP", tradingDate);
 
-  // 3. Run Scanner 2 — GAP DOWN
-  console.log(`[CHARTINK] Running Scanner 2 (GAP DOWN) for ${tradingDate}...`);
+  // 3. Run Scanner 2 — GAP DOWN (Futures segment)
+  console.log(`[CHARTINK] Running Scanner 2 (GAP DOWN - Futures Segment) for ${tradingDate}...`);
   const downResult = await executeChartinkScanner("GAP_DOWN", tradingDate);
 
   const bothSucceeded = upResult.success && downResult.success;
@@ -276,14 +251,15 @@ export async function runFullChartinkScan(options: {
 
   // 5. Log execution
   await logScanExecution({
-    scan_type: "GAP_UP_DOWN_CHARTINK",
+    scan_type: "GAP_UP_DOWN_FUTURES",
     trading_date: tradingDate,
     status: executionStatus,
     gap_up_count: upResult.signals.length,
     gap_down_count: downResult.signals.length,
-    data_source: "Chartink",
+    data_source: "Chartink Futures",
     error_message: errorMessage,
     details: {
+      segment: "Futures",
       isScheduled: options.isScheduled || false,
       rawUpCount: upResult.rawCount,
       rawDownCount: downResult.rawCount,
