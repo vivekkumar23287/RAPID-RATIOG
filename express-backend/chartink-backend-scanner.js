@@ -1,20 +1,20 @@
 /**
  * chartink-backend-scanner.js
  * 
- * Automated Chartink Gap Up and Gap Down Scanner (FUTURES Segment).
+ * Automated Chartink Gap Up and Gap Down Scanner for FUTURES Segment (Chartink Watchlist ID: 33489).
  * Runs on cron at 9:31 AM IST (with retries at 9:35, 9:40, 9:45 AM).
- * Dynamically covers all stocks available in Chartink's Futures segment.
- * Saves verified gap results to Neon PostgreSQL.
+ * Saves verified Futures gap results to Neon PostgreSQL.
  */
 
 'use strict';
 
-require('dotenv').config({ path: '../.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 const { pool } = require('./scanner');
 
-// Chartink Futures segment clauses
-const CHARTINK_CLAUSE_GAP_UP = "( {futures} ( [=1] 15 minute low > 1 day ago high ) )";
-const CHARTINK_CLAUSE_GAP_DOWN = "( {futures} ( [=1] 15 minute high < 1 day ago low ) )";
+// Verified Chartink Futures segment clauses
+const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
+const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
 
 // Official NSE Holidays (YYYY-MM-DD)
 const NSE_HOLIDAYS = new Set([
@@ -47,15 +47,21 @@ async function getChartinkSession() {
   try {
     const res = await fetch('https://chartink.com/screener', {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       }
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[CHARTINK-BACKEND] Homepage returned HTTP ${res.status}`);
+      return null;
+    }
     const html = await res.text();
     const tokenMatch = html.match(/<meta\s+name=["']csrf-token["']\s+content=["']([^"']+)["']/i);
-    if (!tokenMatch) return null;
+    if (!tokenMatch) {
+      console.warn('[CHARTINK-BACKEND] CSRF token not found in HTML');
+      return null;
+    }
 
     const rawCookies = [];
     const getSetCookie = res.headers.getSetCookie?.bind(res.headers);
@@ -85,7 +91,7 @@ async function queryScreener(clause, session) {
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
         'x-csrf-token': session.csrfToken,
         'Cookie': session.cookies,
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
         'X-Requested-With': 'XMLHttpRequest',
         'Origin': 'https://chartink.com',
@@ -94,7 +100,10 @@ async function queryScreener(clause, session) {
       body: new URLSearchParams({ scan_clause: clause }).toString()
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[CHARTINK-BACKEND] Process endpoint returned HTTP ${res.status}`);
+      return null;
+    }
     const json = await res.json();
     return Array.isArray(json.data) ? json.data : [];
   } catch (e) {
@@ -127,7 +136,7 @@ async function runChartinkBackendScan() {
       return;
     }
   } catch (err) {
-    // If table doesn't exist yet, continue
+    // Continue if table is being created
   }
 
   const session = await getChartinkSession();
@@ -136,12 +145,12 @@ async function runChartinkBackendScan() {
     return;
   }
 
-  // 1. Scan GAP UP (Futures)
-  console.log('[CHARTINK CRON] Running GAP UP scan for Futures segment...');
+  // 1. Scan GAP UP (Futures: 33489)
+  console.log('[CHARTINK CRON] Running GAP UP scan for Futures segment (ID: 33489)...');
   const upData = await queryScreener(CHARTINK_CLAUSE_GAP_UP, session);
 
-  // 2. Scan GAP DOWN (Futures)
-  console.log('[CHARTINK CRON] Running GAP DOWN scan for Futures segment...');
+  // 2. Scan GAP DOWN (Futures: 33489)
+  console.log('[CHARTINK CRON] Running GAP DOWN scan for Futures segment (ID: 33489)...');
   const downData = await queryScreener(CHARTINK_CLAUSE_GAP_DOWN, session);
 
   if (upData === null || downData === null) {
@@ -149,12 +158,14 @@ async function runChartinkBackendScan() {
     return;
   }
 
-  // Include all stocks in the Futures segment without hardcoding
+  // Map all stocks returned in the Futures segment without any hardcoded filtering
   const gapUps = (upData || [])
     .filter(item => Boolean(item.nsecode))
     .map(item => ({
       symbol: item.nsecode.toUpperCase().trim(),
       name: item.name || item.nsecode,
+      price: item.close ? Number(item.close) : null,
+      changePercent: item.per_chg ? Number(item.per_chg) : null,
       type: 'GAP_UP'
     }));
 
@@ -163,32 +174,37 @@ async function runChartinkBackendScan() {
     .map(item => ({
       symbol: item.nsecode.toUpperCase().trim(),
       name: item.name || item.nsecode,
+      price: item.close ? Number(item.close) : null,
+      changePercent: item.per_chg ? Number(item.per_chg) : null,
       type: 'GAP_DOWN'
     }));
 
-  console.log(`[CHARTINK CRON] ✅ Found ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs in Futures Segment.`);
+  console.log(`[CHARTINK CRON] ✅ Found ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs in Futures Segment:`, {
+    gapUps: gapUps.map(g => g.symbol),
+    gapDowns: gapDowns.map(g => g.symbol)
+  });
 
   // Save to DB
   try {
     for (const item of gapUps) {
       await pool.query(
         `INSERT INTO new_trick_gap_signals (
-          company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source
-        ) VALUES ($1, $2, 'GAP_UP', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures')
+          company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source, price, change_percent
+        ) VALUES ($1, $2, 'GAP_UP', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures', $4, $5)
         ON CONFLICT (nse_symbol, signal_type, trading_date)
-        DO UPDATE SET company_name = EXCLUDED.company_name, scan_time = CURRENT_TIMESTAMP`,
-        [item.name, item.symbol, ist.dateStr]
+        DO UPDATE SET company_name = EXCLUDED.company_name, price = EXCLUDED.price, change_percent = EXCLUDED.change_percent, scan_time = CURRENT_TIMESTAMP`,
+        [item.name, item.symbol, ist.dateStr, item.price, item.changePercent]
       );
     }
 
     for (const item of gapDowns) {
       await pool.query(
         `INSERT INTO new_trick_gap_signals (
-          company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source
-        ) VALUES ($1, $2, 'GAP_DOWN', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures')
+          company_name, nse_symbol, signal_type, trading_date, candle_time, status, data_source, price, change_percent
+        ) VALUES ($1, $2, 'GAP_DOWN', $3, '09:15 - 09:30 AM', 'CONFIRMED', 'Chartink Futures', $4, $5)
         ON CONFLICT (nse_symbol, signal_type, trading_date)
-        DO UPDATE SET company_name = EXCLUDED.company_name, scan_time = CURRENT_TIMESTAMP`,
-        [item.name, item.symbol, ist.dateStr]
+        DO UPDATE SET company_name = EXCLUDED.company_name, price = EXCLUDED.price, change_percent = EXCLUDED.change_percent, scan_time = CURRENT_TIMESTAMP`,
+        [item.name, item.symbol, ist.dateStr, item.price, item.changePercent]
       );
     }
 
@@ -197,7 +213,7 @@ async function runChartinkBackendScan() {
         scan_type, trading_date, status, gap_up_count, gap_down_count, data_source, details
       ) VALUES ('GAP_UP_DOWN_FUTURES', $1, 'SUCCESS', $2, $3, 'Chartink Futures', $4)`,
       [ist.dateStr, gapUps.length, gapDowns.length, JSON.stringify({
-        segment: 'Futures',
+        segment: 'Futures (33489)',
         gapUps: gapUps.map(g => g.symbol),
         gapDowns: gapDowns.map(g => g.symbol)
       })]

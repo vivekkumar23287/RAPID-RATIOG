@@ -1,4 +1,6 @@
 import { sql } from "./db";
+import fs from "fs";
+import path from "path";
 
 export interface GapSignalRecord {
   id?: number;
@@ -13,7 +15,9 @@ export interface GapSignalRecord {
   candle_time?: string; // e.g. "09:15 - 09:30 AM"
   scan_time?: string;
   status?: string; // "CONFIRMED"
-  data_source?: string; // "Chartink"
+  data_source?: string; // "Chartink Futures"
+  price?: number | null;
+  change_percent?: number | null;
 }
 
 export interface ScanLogRecord {
@@ -29,7 +33,87 @@ export interface ScanLogRecord {
   details?: Record<string, any> | null;
 }
 
+const LOCAL_STORAGE_DIR = path.resolve(process.cwd(), "data");
+const LOCAL_SIGNALS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_gap_signals.json");
+const LOCAL_LOGS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_scan_logs.json");
+
+// In-memory cache for ultra-fast access
+let memorySignalsCache: GapSignalRecord[] = [];
+let memoryLogsCache: ScanLogRecord[] = [];
 let dbInitialized = false;
+
+// Ensure local backup storage exists
+function ensureLocalDir() {
+  try {
+    if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+      fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+    }
+  } catch (_) {}
+}
+
+function loadLocalSignals(): GapSignalRecord[] {
+  ensureLocalDir();
+  try {
+    if (fs.existsSync(LOCAL_SIGNALS_FILE)) {
+      const raw = fs.readFileSync(LOCAL_SIGNALS_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error reading local signals:", e.message);
+  }
+  return [];
+}
+
+function saveLocalSignals(signals: GapSignalRecord[]) {
+  ensureLocalDir();
+  try {
+    const existing = loadLocalSignals();
+    const seen = new Set<string>();
+    const combined: GapSignalRecord[] = [];
+
+    // Prioritize new signals
+    for (const s of [...signals, ...existing]) {
+      const key = `${s.nse_symbol}|${s.signal_type}|${s.trading_date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        combined.push(s);
+      }
+    }
+
+    fs.writeFileSync(LOCAL_SIGNALS_FILE, JSON.stringify(combined, null, 2), "utf8");
+    memorySignalsCache = combined;
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error writing local signals:", e.message);
+  }
+}
+
+function loadLocalLogs(): ScanLogRecord[] {
+  ensureLocalDir();
+  try {
+    if (fs.existsSync(LOCAL_LOGS_FILE)) {
+      const raw = fs.readFileSync(LOCAL_LOGS_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (_) {}
+  return [];
+}
+
+function saveLocalLog(log: ScanLogRecord) {
+  ensureLocalDir();
+  try {
+    const existing = loadLocalLogs();
+    existing.unshift({
+      ...log,
+      scan_time: log.scan_time || new Date().toISOString()
+    });
+    // Keep last 100 logs
+    const trimmed = existing.slice(0, 100);
+    fs.writeFileSync(LOCAL_LOGS_FILE, JSON.stringify(trimmed, null, 2), "utf8");
+    memoryLogsCache = trimmed;
+  } catch (_) {}
+}
 
 /**
  * Ensures New Trick tables exist in Neon PostgreSQL
@@ -51,11 +135,18 @@ export async function initNewTrickDB(): Promise<void> {
         candle_time VARCHAR(30) NOT NULL DEFAULT '09:15 - 09:30 AM',
         scan_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED',
-        data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink',
+        data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink Futures',
+        price DECIMAL,
+        change_percent DECIMAL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(nse_symbol, signal_type, trading_date)
       );
     `;
+
+    try {
+      await sql`ALTER TABLE new_trick_gap_signals ADD COLUMN IF NOT EXISTS price DECIMAL;`;
+      await sql`ALTER TABLE new_trick_gap_signals ADD COLUMN IF NOT EXISTS change_percent DECIMAL;`;
+    } catch (_) {}
 
     await sql`
       CREATE INDEX IF NOT EXISTS idx_new_trick_date ON new_trick_gap_signals(trading_date);
@@ -73,7 +164,7 @@ export async function initNewTrickDB(): Promise<void> {
         status VARCHAR(20) NOT NULL,
         gap_up_count INTEGER NOT NULL DEFAULT 0,
         gap_down_count INTEGER NOT NULL DEFAULT 0,
-        data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink',
+        data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink Futures',
         error_message TEXT,
         details JSONB
       );
@@ -81,56 +172,71 @@ export async function initNewTrickDB(): Promise<void> {
 
     dbInitialized = true;
   } catch (err: any) {
-    console.error("[NEW-TRICK-DB] Failed to ensure tables exist:", err.message);
+    console.warn("[NEW-TRICK-DB] Neon DB table check skipped/offline (using local fallback store):", err.message);
   }
 }
 
 /**
- * Save gap signals to database with duplicate prevention
+ * Save gap signals to database with duplicate prevention & resilient local backup
  */
 export async function saveGapSignals(signals: GapSignalRecord[]): Promise<number> {
-  await initNewTrickDB();
   if (!signals || signals.length === 0) return 0;
 
+  // 1. Always save to resilient local storage first so data is never lost
+  saveLocalSignals(signals);
+
+  // 2. Attempt Neon DB insert
   let insertedCount = 0;
-  for (const s of signals) {
-    try {
-      await sql`
-        INSERT INTO new_trick_gap_signals (
-          company_name, nse_symbol, signal_type,
-          prev_day_high, prev_day_low, first_candle_high, first_candle_low,
-          trading_date, candle_time, status, data_source
-        ) VALUES (
-          ${s.company_name}, ${s.nse_symbol}, ${s.signal_type},
-          ${s.prev_day_high ?? null}, ${s.prev_day_low ?? null},
-          ${s.first_candle_high ?? null}, ${s.first_candle_low ?? null},
-          ${s.trading_date}, ${s.candle_time || '09:15 - 09:30 AM'},
-          ${s.status || 'CONFIRMED'}, ${s.data_source || 'Chartink'}
-        )
-        ON CONFLICT (nse_symbol, signal_type, trading_date)
-        DO UPDATE SET
-          company_name = EXCLUDED.company_name,
-          prev_day_high = COALESCE(EXCLUDED.prev_day_high, new_trick_gap_signals.prev_day_high),
-          prev_day_low = COALESCE(EXCLUDED.prev_day_low, new_trick_gap_signals.prev_day_low),
-          first_candle_high = COALESCE(EXCLUDED.first_candle_high, new_trick_gap_signals.first_candle_high),
-          first_candle_low = COALESCE(EXCLUDED.first_candle_low, new_trick_gap_signals.first_candle_low),
-          scan_time = CURRENT_TIMESTAMP;
-      `;
-      insertedCount++;
-    } catch (e: any) {
-      console.warn(`[NEW-TRICK-DB] Warning inserting ${s.nse_symbol} (${s.signal_type}):`, e.message);
+  try {
+    await initNewTrickDB();
+    for (const s of signals) {
+      try {
+        await sql`
+          INSERT INTO new_trick_gap_signals (
+            company_name, nse_symbol, signal_type,
+            prev_day_high, prev_day_low, first_candle_high, first_candle_low,
+            trading_date, candle_time, status, data_source,
+            price, change_percent
+          ) VALUES (
+            ${s.company_name}, ${s.nse_symbol}, ${s.signal_type},
+            ${s.prev_day_high ?? null}, ${s.prev_day_low ?? null},
+            ${s.first_candle_high ?? null}, ${s.first_candle_low ?? null},
+            ${s.trading_date}, ${s.candle_time || '09:15 - 09:30 AM'},
+            ${s.status || 'CONFIRMED'}, ${s.data_source || 'Chartink Futures'},
+            ${s.price ?? null}, ${s.change_percent ?? null}
+          )
+          ON CONFLICT (nse_symbol, signal_type, trading_date)
+          DO UPDATE SET
+            company_name = EXCLUDED.company_name,
+            prev_day_high = COALESCE(EXCLUDED.prev_day_high, new_trick_gap_signals.prev_day_high),
+            prev_day_low = COALESCE(EXCLUDED.prev_day_low, new_trick_gap_signals.prev_day_low),
+            first_candle_high = COALESCE(EXCLUDED.first_candle_high, new_trick_gap_signals.first_candle_high),
+            first_candle_low = COALESCE(EXCLUDED.first_candle_low, new_trick_gap_signals.first_candle_low),
+            price = COALESCE(EXCLUDED.price, new_trick_gap_signals.price),
+            change_percent = COALESCE(EXCLUDED.change_percent, new_trick_gap_signals.change_percent),
+            scan_time = CURRENT_TIMESTAMP;
+        `;
+        insertedCount++;
+      } catch (e: any) {
+        console.warn(`[NEW-TRICK-DB] Warning inserting ${s.nse_symbol} (${s.signal_type}):`, e.message);
+      }
     }
+  } catch (err: any) {
+    console.warn("[NEW-TRICK-DB] Neon DB insert failed (saved to local backup):", err.message);
   }
 
-  return insertedCount;
+  return signals.length;
 }
 
 /**
  * Log scan execution
  */
 export async function logScanExecution(log: ScanLogRecord): Promise<void> {
-  await initNewTrickDB();
+  // Always save locally first
+  saveLocalLog(log);
+
   try {
+    await initNewTrickDB();
     await sql`
       INSERT INTO new_trick_scan_logs (
         scan_type, trading_date, status,
@@ -138,12 +244,12 @@ export async function logScanExecution(log: ScanLogRecord): Promise<void> {
         error_message, details
       ) VALUES (
         ${log.scan_type}, ${log.trading_date}, ${log.status},
-        ${log.gap_up_count}, ${log.gap_down_count}, ${log.data_source || 'Chartink'},
+        ${log.gap_up_count}, ${log.gap_down_count}, ${log.data_source || 'Chartink Futures'},
         ${log.error_message || null}, ${JSON.stringify(log.details || {})}
       );
     `;
   } catch (err: any) {
-    console.warn("[NEW-TRICK-DB] Error logging scan execution:", err.message);
+    console.warn("[NEW-TRICK-DB] Error logging to Neon DB (saved locally):", err.message);
   }
 }
 
@@ -161,37 +267,57 @@ export async function getGapSignals(params: {
   totalUp: number;
   totalDown: number;
 }> {
-  await initNewTrickDB();
-
+  let rows: GapSignalRecord[] = [];
   let targetDate: string = params.date || "";
-  if (!targetDate) {
-    // Find the latest trading date available in signals
-    const latestRow = await sql`
-      SELECT trading_date FROM new_trick_gap_signals 
-      ORDER BY trading_date DESC LIMIT 1
-    `;
-    if (latestRow.length > 0) {
-      targetDate = latestRow[0].trading_date;
-    } else {
-      // Return today's IST date string as fallback
-      const now = new Date();
-      targetDate = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+
+  // 1. Try Neon DB
+  try {
+    await initNewTrickDB();
+    if (!targetDate) {
+      const latestRow = await sql`
+        SELECT trading_date FROM new_trick_gap_signals 
+        ORDER BY trading_date DESC LIMIT 1
+      `;
+      if (latestRow.length > 0) {
+        targetDate = latestRow[0].trading_date;
+      }
+    }
+
+    if (targetDate) {
+      const dbRows = await sql`
+        SELECT 
+          id, company_name, nse_symbol, signal_type,
+          prev_day_high, prev_day_low, first_candle_high, first_candle_low,
+          trading_date, candle_time, scan_time, status, data_source,
+          price, change_percent
+        FROM new_trick_gap_signals
+        WHERE trading_date = ${targetDate}
+        ORDER BY id ASC;
+      `;
+      if (dbRows && dbRows.length > 0) {
+        rows = dbRows as GapSignalRecord[];
+      }
+    }
+  } catch (err: any) {
+    console.warn("[NEW-TRICK-DB] Neon DB read failed, falling back to local file store:", err.message);
+  }
+
+  // 2. If Neon DB returned no rows or is offline, use local backup store
+  if (rows.length === 0) {
+    const localSignals = loadLocalSignals();
+    if (localSignals.length > 0) {
+      if (!targetDate) {
+        // Find latest date in local signals
+        const dates = [...new Set(localSignals.map(s => s.trading_date))].sort().reverse();
+        targetDate = dates[0] || "";
+      }
+      rows = localSignals.filter(s => s.trading_date === targetDate);
     }
   }
 
-  let rows: any[] = [];
-  try {
-    rows = await sql`
-      SELECT 
-        id, company_name, nse_symbol, signal_type,
-        prev_day_high, prev_day_low, first_candle_high, first_candle_low,
-        trading_date, candle_time, scan_time, status, data_source
-      FROM new_trick_gap_signals
-      WHERE trading_date = ${targetDate}
-      ORDER BY id ASC;
-    `;
-  } catch (err: any) {
-    console.warn("[NEW-TRICK-DB] Error fetching signals:", err.message);
+  if (!targetDate) {
+    const now = new Date();
+    targetDate = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   }
 
   // Filter in memory for search query if provided
@@ -219,18 +345,23 @@ export async function getGapSignals(params: {
  * Get distinct available trading dates for filter dropdown
  */
 export async function getAvailableTradingDates(): Promise<string[]> {
-  await initNewTrickDB();
   try {
+    await initNewTrickDB();
     const rows = await sql`
       SELECT DISTINCT trading_date FROM new_trick_gap_signals
       ORDER BY trading_date DESC
       LIMIT 60;
     `;
-    return rows.map((r: any) => r.trading_date);
+    if (rows && rows.length > 0) {
+      return rows.map((r: any) => r.trading_date);
+    }
   } catch (err: any) {
-    console.warn("[NEW-TRICK-DB] Error fetching dates:", err.message);
-    return [];
+    console.warn("[NEW-TRICK-DB] Neon DB dates query failed, using local dates:", err.message);
   }
+
+  const localSignals = loadLocalSignals();
+  const dates = [...new Set(localSignals.map(s => s.trading_date))].sort().reverse();
+  return dates.slice(0, 60);
 }
 
 /**
@@ -244,20 +375,20 @@ export async function getScannerStatusSummary(): Promise<{
   totalDownToday: number;
   latestTradingDate: string;
   dataSource: string;
+  errorMessage: string | null;
 }> {
-  await initNewTrickDB();
-
-  // Next scheduled scan is 9:31 AM IST on next weekday
   const nextScheduled = computeNextScheduledTime();
 
+  // 1. Try Neon DB
   try {
+    await initNewTrickDB();
     const latestLog = await sql`
-      SELECT scan_time, status, gap_up_count, gap_down_count, trading_date, data_source
+      SELECT scan_time, status, gap_up_count, gap_down_count, trading_date, data_source, error_message
       FROM new_trick_scan_logs
       ORDER BY id DESC LIMIT 1;
     `;
 
-    if (latestLog.length > 0) {
+    if (latestLog && latestLog.length > 0) {
       const log = latestLog[0];
       return {
         lastScanTime: log.scan_time,
@@ -266,11 +397,28 @@ export async function getScannerStatusSummary(): Promise<{
         totalUpToday: log.gap_up_count,
         totalDownToday: log.gap_down_count,
         latestTradingDate: log.trading_date,
-        dataSource: log.data_source || "Chartink",
+        dataSource: log.data_source || "Chartink Futures",
+        errorMessage: log.error_message || null,
       };
     }
   } catch (err: any) {
-    console.warn("[NEW-TRICK-DB] Error fetching status summary:", err.message);
+    console.warn("[NEW-TRICK-DB] Neon DB log query failed, using local log:", err.message);
+  }
+
+  // 2. Fallback to local logs
+  const localLogs = loadLocalLogs();
+  if (localLogs.length > 0) {
+    const log = localLogs[0];
+    return {
+      lastScanTime: log.scan_time || null,
+      lastScanStatus: log.status,
+      nextScheduledScan: nextScheduled,
+      totalUpToday: log.gap_up_count,
+      totalDownToday: log.gap_down_count,
+      latestTradingDate: log.trading_date,
+      dataSource: log.data_source || "Chartink Futures",
+      errorMessage: log.error_message || null,
+    };
   }
 
   const todayIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
@@ -281,7 +429,8 @@ export async function getScannerStatusSummary(): Promise<{
     totalUpToday: 0,
     totalDownToday: 0,
     latestTradingDate: todayIST,
-    dataSource: "Chartink",
+    dataSource: "Chartink Futures",
+    errorMessage: null,
   };
 }
 
@@ -315,11 +464,7 @@ function computeNextScheduledTime(): string {
     return "Today at 09:31 AM IST";
   }
 
-  if (weekday === "Fri") {
-    return "Monday at 09:31 AM IST";
-  } else if (weekday === "Sat") {
-    return "Monday at 09:31 AM IST";
-  } else if (weekday === "Sun") {
+  if (weekday === "Fri" || weekday === "Sat" || weekday === "Sun") {
     return "Monday at 09:31 AM IST";
   }
 

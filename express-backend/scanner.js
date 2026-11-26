@@ -3,7 +3,8 @@
 //   1. 3-Candle Bullish Breakout Confirmation Strategy (for ALL NSE stocks & Nifty 50)
 //   2. Open = High and Open = Low Signals (15-min)
 
-require('dotenv').config({ path: '../.env.local' });
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env.local') });
 const { Pool } = require('pg');
 const { getISTTimeString, getISTDateString, getISTHourMinute } = require('./candle-importer');
 

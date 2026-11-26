@@ -1,4 +1,3 @@
-import { getStockName } from "./stocks";
 import { saveGapSignals, logScanExecution, GapSignalRecord } from "./new-trick-db";
 import { getISTMarketTime } from "./nse-calendar";
 
@@ -17,31 +16,34 @@ export interface ChartinkScanResult {
   error?: string;
   dataSource: string;
   rawCount?: number;
+  httpStatus?: number;
 }
 
-// Chartink Futures segment filter: ( {futures} ( ... ) )
-// Automatically covers all F&O stocks with dynamic additions/removals
-export const CHARTINK_CLAUSE_GAP_UP_FUTURES = "( {futures} ( [=1] 15 minute low > 1 day ago high ) )";
-export const CHARTINK_CLAUSE_GAP_DOWN_FUTURES = "( {futures} ( [=1] 15 minute high < 1 day ago low ) )";
+// Chartink Watchlist ID for Futures segment is 33489
+// Condition 1 (GAP UP): [=1] 15 minute Low Greater than 1 day ago High
+export const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
+
+// Condition 2 (GAP DOWN): [=1] 15 minute High Less than 1 day ago Low
+export const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
 
 /**
  * Fetch CSRF token and session cookies from Chartink
  */
-async function getChartinkSession(): Promise<{ csrfToken: string; cookies: string } | null> {
+async function getChartinkSession(): Promise<{ csrfToken: string; cookies: string; httpStatus: number } | null> {
   const url = "https://chartink.com/screener";
   try {
     const res = await fetch(url, {
       method: "GET",
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
       },
       next: { revalidate: 0 }
     });
 
     if (!res.ok) {
-      console.warn(`[CHARTINK] Screener page responded with HTTP ${res.status}`);
+      console.warn(`[CHARTINK] Screener homepage returned HTTP ${res.status}`);
       return null;
     }
 
@@ -52,11 +54,11 @@ async function getChartinkSession(): Promise<{ csrfToken: string; cookies: strin
     const csrfToken = tokenMatch ? tokenMatch[1] : null;
 
     if (!csrfToken) {
-      console.warn("[CHARTINK] Failed to locate csrf-token meta tag in Chartink HTML.");
+      console.warn("[CHARTINK] Failed to locate CSRF token in homepage HTML.");
       return null;
     }
 
-    // Extract set-cookie headers
+    // Extract cookies from Set-Cookie headers
     const rawCookies: string[] = [];
     const getSetCookie = (res.headers as any).getSetCookie?.bind(res.headers);
     if (typeof getSetCookie === "function") {
@@ -71,9 +73,9 @@ async function getChartinkSession(): Promise<{ csrfToken: string; cookies: strin
       .filter(Boolean)
       .join("; ");
 
-    return { csrfToken, cookies: cookieString };
+    return { csrfToken, cookies: cookieString, httpStatus: res.status };
   } catch (err: any) {
-    console.error("[CHARTINK] Error getting session:", err.message);
+    console.error("[CHARTINK] Error obtaining session:", err.message);
     return null;
   }
 }
@@ -84,7 +86,7 @@ async function getChartinkSession(): Promise<{ csrfToken: string; cookies: strin
 async function queryChartinkScreener(
   clause: string,
   session: { csrfToken: string; cookies: string }
-): Promise<ChartinkRawItem[] | null> {
+): Promise<{ data: ChartinkRawItem[] | null; httpStatus: number; error?: string }> {
   const processUrl = "https://chartink.com/screener/process";
   const body = new URLSearchParams({ scan_clause: clause });
 
@@ -95,7 +97,7 @@ async function queryChartinkScreener(
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
         "x-csrf-token": session.csrfToken,
         "Cookie": session.cookies,
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/javascript, */*; q=0.01",
         "X-Requested-With": "XMLHttpRequest",
         "Origin": "https://chartink.com",
@@ -106,19 +108,19 @@ async function queryChartinkScreener(
     });
 
     if (!res.ok) {
-      console.warn(`[CHARTINK] Process endpoint responded with HTTP ${res.status}`);
-      return null;
+      console.warn(`[CHARTINK] Process endpoint returned HTTP ${res.status}`);
+      return { data: null, httpStatus: res.status, error: `Chartink returned HTTP ${res.status}` };
     }
 
     const json = await res.json();
     if (json && Array.isArray(json.data)) {
-      return json.data;
+      return { data: json.data, httpStatus: res.status };
     }
 
-    return [];
+    return { data: [], httpStatus: res.status };
   } catch (err: any) {
-    console.error("[CHARTINK] Error executing scan clause:", err.message);
-    return null;
+    console.error("[CHARTINK] Network error executing scan clause:", err.message);
+    return { data: null, httpStatus: 0, error: err.message };
   }
 }
 
@@ -134,28 +136,28 @@ export async function executeChartinkScanner(
     return {
       success: false,
       signals: [],
-      error: "Unable to establish Chartink connection or obtain CSRF session token.",
+      error: "Scanner Fetch Failed: Unable to obtain CSRF session token from Chartink.",
       dataSource: "Chartink Futures",
     };
   }
 
-  // Futures Segment clause
   const scanClause = signalType === "GAP_UP"
-    ? CHARTINK_CLAUSE_GAP_UP_FUTURES
-    : CHARTINK_CLAUSE_GAP_DOWN_FUTURES;
+    ? CHARTINK_CLAUSE_GAP_UP
+    : CHARTINK_CLAUSE_GAP_DOWN;
 
-  const rawItems = await queryChartinkScreener(scanClause, session);
+  const { data: rawItems, httpStatus, error } = await queryChartinkScreener(scanClause, session);
 
   if (rawItems === null) {
     return {
       success: false,
       signals: [],
-      error: `Chartink screener process query failed for Futures ${signalType}.`,
+      error: `Scanner Fetch Failed: ${error || `Chartink process returned HTTP ${httpStatus}`}`,
       dataSource: "Chartink Futures",
+      httpStatus,
     };
   }
 
-  // Include ALL stocks returned in the Futures segment without hardcoding
+  // Include EVERY stock returned in the Futures segment without hardcoded filtering
   const seen = new Set<string>();
   const signals: GapSignalRecord[] = [];
 
@@ -165,7 +167,7 @@ export async function executeChartinkScanner(
 
     if (!seen.has(rawSymbol)) {
       seen.add(rawSymbol);
-      const companyName = item.name || getStockName(rawSymbol) || rawSymbol;
+      const companyName = item.name || rawSymbol;
 
       signals.push({
         company_name: companyName,
@@ -175,15 +177,20 @@ export async function executeChartinkScanner(
         candle_time: "09:15 - 09:30 AM",
         status: "CONFIRMED",
         data_source: "Chartink Futures",
+        price: item.close ? Number(item.close) : null,
+        change_percent: item.per_chg ? Number(item.per_chg) : null,
       });
     }
   }
+
+  console.log(`[CHARTINK] ${signalType} (Futures) executed with HTTP ${httpStatus}. Found ${signals.length} stocks:`, signals.map(s => s.nse_symbol));
 
   return {
     success: true,
     signals,
     dataSource: "Chartink Futures",
-    rawCount: rawItems.length,
+    rawCount: signals.length,
+    httpStatus,
   };
 }
 
@@ -229,11 +236,11 @@ export async function runFullChartinkScan(options: {
   }
 
   // 2. Run Scanner 1 — GAP UP (Futures segment)
-  console.log(`[CHARTINK] Running Scanner 1 (GAP UP - Futures Segment) for ${tradingDate}...`);
+  console.log(`[CHARTINK] Running Scanner 1 (GAP UP - Futures: {33489}) for ${tradingDate}...`);
   const upResult = await executeChartinkScanner("GAP_UP", tradingDate);
 
   // 3. Run Scanner 2 — GAP DOWN (Futures segment)
-  console.log(`[CHARTINK] Running Scanner 2 (GAP DOWN - Futures Segment) for ${tradingDate}...`);
+  console.log(`[CHARTINK] Running Scanner 2 (GAP DOWN - Futures: {33489}) for ${tradingDate}...`);
   const downResult = await executeChartinkScanner("GAP_DOWN", tradingDate);
 
   const bothSucceeded = upResult.success && downResult.success;
@@ -244,12 +251,12 @@ export async function runFullChartinkScan(options: {
 
   const allSignals = [...upResult.signals, ...downResult.signals];
 
-  // 4. Save to database if succeeded
+  // 4. Save to database only if scan succeeded
   if (bothSucceeded) {
     await saveGapSignals(allSignals);
   }
 
-  // 5. Log execution
+  // 5. Log execution with diagnostic details
   await logScanExecution({
     scan_type: "GAP_UP_DOWN_FUTURES",
     trading_date: tradingDate,
@@ -259,12 +266,14 @@ export async function runFullChartinkScan(options: {
     data_source: "Chartink Futures",
     error_message: errorMessage,
     details: {
-      segment: "Futures",
+      segment: "Futures (33489)",
       isScheduled: options.isScheduled || false,
       rawUpCount: upResult.rawCount,
       rawDownCount: downResult.rawCount,
       gapUpSymbols: upResult.signals.map(s => s.nse_symbol),
-      gapDownSymbols: downResult.signals.map(s => s.nse_symbol)
+      gapDownSymbols: downResult.signals.map(s => s.nse_symbol),
+      upHttpStatus: upResult.httpStatus,
+      downHttpStatus: downResult.httpStatus,
     }
   });
 

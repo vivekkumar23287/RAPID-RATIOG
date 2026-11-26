@@ -1,0 +1,62 @@
+[
+  {
+    "company_name": "Hero Motocorp Limited",
+    "nse_symbol": "HEROMOTOCO",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-26",
+    "candle_time": "09:15 - 09:30 AM",
+    "status": "CONFIRMED",
+    "data_source": "Chartink Futures",
+    "price": 5789,
+    "change_percent": null,
+    "scan_time": "2026-11-26T17:01:10.000Z"
+  },
+  {
+    "company_name": "Torrent Pharmaceuticals Limited",
+    "nse_symbol": "TORNTPHARM",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-26",
+    "candle_time": "09:15 - 09:30 AM",
+    "status": "CONFIRMED",
+    "data_source": "Chartink Futures",
+    "price": 5019.1,
+    "change_percent": null,
+    "scan_time": "2026-11-26T17:01:10.000Z"
+  },
+  {
+    "company_name": "Siemens Energy India Ltd",
+    "nse_symbol": "ENRIN",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-26",
+    "candle_time": "09:15 - 09:30 AM",
+    "status": "CONFIRMED",
+    "data_source": "Chartink Futures",
+    "price": 3058,
+    "change_percent": null,
+    "scan_time": "2026-11-26T17:01:10.000Z"
+  },
+  {
+    "company_name": "Hindustan Zinc Limited",
+    "nse_symbol": "HINDZINC",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-26",
+    "candle_time": "09:15 - 09:30 AM",
+    "status": "CONFIRMED",
+    "data_source": "Chartink Futures",
+    "price": 526.6,
+    "change_percent": null,
+    "scan_time": "2026-11-26T17:01:10.000Z"
+  },
+  {
+    "company_name": "Shriram Finance Ltd",
+    "nse_symbol": "SHRIRAMFIN",
+    "signal_type": "GAP_DOWN",
+    "trading_date": "2026-11-26",
+    "candle_time": "09:15 - 09:30 AM",
+    "status": "CONFIRMED",
+    "data_source": "Chartink Futures",
+    "price": 961.85,
+    "change_percent": null,
+    "scan_time": "2026-11-26T17:01:10.000Z"
+  }
+]

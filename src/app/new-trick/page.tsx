@@ -620,6 +620,21 @@ export default function NewTrickPage() {
             <div style={{ overflowX: "auto" }}>
               {loading ? (
                 <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading Futures scan results...</div>
+              ) : statusSummary?.lastScanStatus === "FAILED" ? (
+                <div style={{
+                  padding: "48px 24px",
+                  textAlign: "center",
+                  background: "rgba(239,68,68,0.06)",
+                  borderRadius: "16px",
+                  border: "2px dashed rgba(239,68,68,0.3)"
+                }}>
+                  <div style={{ fontSize: "16px", fontWeight: 800, color: "#DC2626", marginBottom: "6px" }}>
+                    Scanner Fetch Failed
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "480px", margin: "0 auto", lineHeight: "1.5" }}>
+                    Chartink screener request encountered a network or session error. Click &ldquo;Run Scanner Now&rdquo; above to re-trigger.
+                  </div>
+                </div>
               ) : filteredGapUps.length === 0 ? (
                 <div style={{
                   padding: "48px 24px",
@@ -745,6 +760,21 @@ export default function NewTrickPage() {
             <div style={{ overflowX: "auto" }}>
               {loading ? (
                 <div style={{ padding: "40px", textAlign: "center", color: "#94A3B8" }}>Loading Futures scan results...</div>
+              ) : statusSummary?.lastScanStatus === "FAILED" ? (
+                <div style={{
+                  padding: "48px 24px",
+                  textAlign: "center",
+                  background: "rgba(239,68,68,0.06)",
+                  borderRadius: "16px",
+                  border: "2px dashed rgba(239,68,68,0.3)"
+                }}>
+                  <div style={{ fontSize: "16px", fontWeight: 800, color: "#DC2626", marginBottom: "6px" }}>
+                    Scanner Fetch Failed
+                  </div>
+                  <div style={{ fontSize: "13px", color: "#64748B", maxWidth: "480px", margin: "0 auto", lineHeight: "1.5" }}>
+                    Chartink screener request encountered a network or session error. Click &ldquo;Run Scanner Now&rdquo; above to re-trigger.
+                  </div>
+                </div>
               ) : filteredGapDowns.length === 0 ? (
                 <div style={{
                   padding: "48px 24px",

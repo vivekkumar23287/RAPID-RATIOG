@@ -1,0 +1,17 @@
+[
+  {
+    "scan_type": "GAP_UP_DOWN_FUTURES",
+    "trading_date": "2026-11-26",
+    "scan_time": "2026-11-26T17:01:10.000Z",
+    "status": "SUCCESS",
+    "gap_up_count": 4,
+    "gap_down_count": 1,
+    "data_source": "Chartink Futures",
+    "error_message": null,
+    "details": {
+      "segment": "Futures (33489)",
+      "gapUps": ["HEROMOTOCO", "TORNTPHARM", "ENRIN", "HINDZINC"],
+      "gapDowns": ["SHRIRAMFIN"]
+    }
+  }
+]
