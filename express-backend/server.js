@@ -368,6 +368,16 @@ cron.schedule('31,35,40,45 9 * * 1-5', async () => {
   }
 }, { timezone: 'Asia/Kolkata' });
 
+// ── Chartink 3-Candle Gap Scanner — Every 15 minutes during market hours (:02, :17, :32, :47) ──
+cron.schedule('2,17,32,47 9-15 * * 1-5', async () => {
+  try {
+    const { runChartink3CBackendScan } = require('./chartink-backend-scanner');
+    await runChartink3CBackendScan();
+  } catch (err) {
+    console.error('[CHARTINK-3C CRON] Error executing 3C scan:', err.message);
+  }
+}, { timezone: 'Asia/Kolkata' });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // STARTUP
 // ─────────────────────────────────────────────────────────────────────────────

@@ -1,21 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runFullChartinkScan } from "@/lib/chartink-scanner";
-import { getGapSignals } from "@/lib/new-trick-db";
+import { runFullChartinkScan, run3CGapScan } from "@/lib/chartink-scanner";
+import { getGapSignals, get3CGapSignals } from "@/lib/new-trick-db";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    console.log("[API] Fast manual scan triggered for New Trick...");
-    const scanOutcome = await runFullChartinkScan({ forceScan: true });
+    console.log("[API] Manual scan triggered for New Trick (Trick 1 & Trick 2)...");
+
+    // Run both scans concurrently
+    const [t1Outcome, t2Outcome] = await Promise.all([
+      runFullChartinkScan({ forceScan: true }),
+      run3CGapScan(),
+    ]);
 
     // Fetch updated signals from DB/cache
-    const updatedSignals = await getGapSignals({ date: scanOutcome.tradingDate });
+    const [updatedT1, updatedT2] = await Promise.all([
+      getGapSignals({ date: t1Outcome.tradingDate }),
+      get3CGapSignals({ date: t1Outcome.tradingDate }),
+    ]);
 
-    const gapUps = updatedSignals.gapUps.length > 0 ? updatedSignals.gapUps : scanOutcome.gapUps;
-    const gapDowns = updatedSignals.gapDowns.length > 0 ? updatedSignals.gapDowns : scanOutcome.gapDowns;
+    const gapUps = updatedT1.gapUps.length > 0 ? updatedT1.gapUps : t1Outcome.gapUps;
+    const gapDowns = updatedT1.gapDowns.length > 0 ? updatedT1.gapDowns : t1Outcome.gapDowns;
 
-    // Current IST time string (e.g. "10:47 PM")
+    const m15Up = updatedT2.m15Up.length > 0 ? updatedT2.m15Up : t2Outcome.m15Up;
+    const m15Down = updatedT2.m15Down.length > 0 ? updatedT2.m15Down : t2Outcome.m15Down;
+    const h1Up = updatedT2.h1Up.length > 0 ? updatedT2.h1Up : t2Outcome.h1Up;
+    const h1Down = updatedT2.h1Down.length > 0 ? updatedT2.h1Down : t2Outcome.h1Down;
+
+    // Current IST time string
     const nowIST = new Date().toLocaleTimeString("en-US", {
       timeZone: "Asia/Kolkata",
       hour: "numeric",
@@ -24,20 +37,32 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({
-      success: scanOutcome.success,
-      status: scanOutcome.status,
-      tradingDate: scanOutcome.tradingDate,
-      error: scanOutcome.error,
+      success: t1Outcome.success || t2Outcome.success,
+      tradingDate: t1Outcome.tradingDate,
       gapUps: gapUps.map((s) => ({
-        nse_symbol: s.nse_symbol,
         company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
       })),
       gapDowns: gapDowns.map((s) => ({
-        nse_symbol: s.nse_symbol,
         company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
       })),
-      totalUp: gapUps.length,
-      totalDown: gapDowns.length,
+      m15Up: m15Up.map((s) => ({
+        company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
+      })),
+      m15Down: m15Down.map((s) => ({
+        company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
+      })),
+      h1Up: h1Up.map((s) => ({
+        company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
+      })),
+      h1Down: h1Down.map((s) => ({
+        company_name: s.company_name,
+        nse_symbol: s.nse_symbol,
+      })),
       lastRefreshedAt: nowIST,
     });
   } catch (error: any) {

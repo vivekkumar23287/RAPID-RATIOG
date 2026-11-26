@@ -20,12 +20,27 @@ export interface GapSignalRecord {
   change_percent?: number | null;
 }
 
+export interface ThreeCandleGapRecord {
+  id?: number;
+  company_name: string;
+  nse_symbol: string;
+  direction: "BULLISH" | "BEARISH";
+  timeframe: "15m" | "1h";
+  candle3_close_time: string; // e.g. "09:45 AM" or ISO timestamp
+  trading_date: string; // YYYY-MM-DD
+  scan_time?: string;
+  status?: string;
+  data_source?: string;
+  price?: number | null;
+  change_percent?: number | null;
+}
+
 export interface ScanLogRecord {
   id?: number;
   scan_type: string;
   trading_date: string;
   scan_time?: string;
-  status: "SUCCESS" | "RETRYING" | "FAILED" | "MARKET_CLOSED";
+  status: "SUCCESS" | "RETRYING" | "FAILED" | "MARKET_CLOSED" | "PARTIAL";
   gap_up_count: number;
   gap_down_count: number;
   data_source?: string;
@@ -35,10 +50,12 @@ export interface ScanLogRecord {
 
 const LOCAL_STORAGE_DIR = path.resolve(process.cwd(), "data");
 const LOCAL_SIGNALS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_gap_signals.json");
+const LOCAL_3C_SIGNALS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_3c_signals.json");
 const LOCAL_LOGS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_scan_logs.json");
 
 // In-memory cache for ultra-fast access
 let memorySignalsCache: GapSignalRecord[] = [];
+let memory3CSignalsCache: ThreeCandleGapRecord[] = [];
 let memoryLogsCache: ScanLogRecord[] = [];
 let dbInitialized = false;
 
@@ -88,6 +105,42 @@ function saveLocalSignals(signals: GapSignalRecord[]) {
   }
 }
 
+function loadLocal3CSignals(): ThreeCandleGapRecord[] {
+  ensureLocalDir();
+  try {
+    if (fs.existsSync(LOCAL_3C_SIGNALS_FILE)) {
+      const raw = fs.readFileSync(LOCAL_3C_SIGNALS_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error reading local 3C signals:", e.message);
+  }
+  return [];
+}
+
+function saveLocal3CSignals(signals: ThreeCandleGapRecord[]) {
+  ensureLocalDir();
+  try {
+    const existing = loadLocal3CSignals();
+    const seen = new Set<string>();
+    const combined: ThreeCandleGapRecord[] = [];
+
+    for (const s of [...signals, ...existing]) {
+      const key = `${s.nse_symbol}|${s.direction}|${s.timeframe}|${s.candle3_close_time}|${s.trading_date}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        combined.push(s);
+      }
+    }
+
+    fs.writeFileSync(LOCAL_3C_SIGNALS_FILE, JSON.stringify(combined, null, 2), "utf8");
+    memory3CSignalsCache = combined;
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error writing local 3C signals:", e.message);
+  }
+}
+
 function loadLocalLogs(): ScanLogRecord[] {
   ensureLocalDir();
   try {
@@ -121,6 +174,7 @@ function saveLocalLog(log: ScanLogRecord) {
 export async function initNewTrickDB(): Promise<void> {
   if (dbInitialized) return;
   try {
+    // Trick 1: Gap Up & Gap Down table
     await sql`
       CREATE TABLE IF NOT EXISTS new_trick_gap_signals (
         id SERIAL PRIMARY KEY,
@@ -148,13 +202,33 @@ export async function initNewTrickDB(): Promise<void> {
       await sql`ALTER TABLE new_trick_gap_signals ADD COLUMN IF NOT EXISTS change_percent DECIMAL;`;
     } catch (_) {}
 
+    await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_date ON new_trick_gap_signals(trading_date);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_symbol ON new_trick_gap_signals(nse_symbol);`;
+
+    // Trick 2: 3-Candle Gap table
     await sql`
-      CREATE INDEX IF NOT EXISTS idx_new_trick_date ON new_trick_gap_signals(trading_date);
-    `;
-    await sql`
-      CREATE INDEX IF NOT EXISTS idx_new_trick_symbol ON new_trick_gap_signals(nse_symbol);
+      CREATE TABLE IF NOT EXISTS new_trick_3c_signals (
+        id SERIAL PRIMARY KEY,
+        company_name TEXT NOT NULL,
+        nse_symbol TEXT NOT NULL,
+        direction VARCHAR(20) NOT NULL,
+        timeframe VARCHAR(10) NOT NULL,
+        candle3_close_time VARCHAR(50) NOT NULL,
+        trading_date VARCHAR(20) NOT NULL,
+        scan_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED',
+        data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink Futures',
+        price DECIMAL,
+        change_percent DECIMAL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(nse_symbol, direction, timeframe, candle3_close_time, trading_date)
+      );
     `;
 
+    await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_3c_date ON new_trick_3c_signals(trading_date);`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_3c_tf ON new_trick_3c_signals(timeframe, direction);`;
+
+    // Scan logs table
     await sql`
       CREATE TABLE IF NOT EXISTS new_trick_scan_logs (
         id SERIAL PRIMARY KEY,
@@ -177,7 +251,7 @@ export async function initNewTrickDB(): Promise<void> {
 }
 
 /**
- * Save gap signals to database with duplicate prevention & resilient local backup
+ * Save Trick 1 gap signals to database with duplicate prevention & resilient local backup
  */
 export async function saveGapSignals(signals: GapSignalRecord[]): Promise<number> {
   if (!signals || signals.length === 0) return 0;
@@ -186,7 +260,6 @@ export async function saveGapSignals(signals: GapSignalRecord[]): Promise<number
   saveLocalSignals(signals);
 
   // 2. Attempt Neon DB insert
-  let insertedCount = 0;
   try {
     await initNewTrickDB();
     for (const s of signals) {
@@ -216,13 +289,53 @@ export async function saveGapSignals(signals: GapSignalRecord[]): Promise<number
             change_percent = COALESCE(EXCLUDED.change_percent, new_trick_gap_signals.change_percent),
             scan_time = CURRENT_TIMESTAMP;
         `;
-        insertedCount++;
       } catch (e: any) {
         console.warn(`[NEW-TRICK-DB] Warning inserting ${s.nse_symbol} (${s.signal_type}):`, e.message);
       }
     }
   } catch (err: any) {
     console.warn("[NEW-TRICK-DB] Neon DB insert failed (saved to local backup):", err.message);
+  }
+
+  return signals.length;
+}
+
+/**
+ * Save Trick 2 3-Candle Gap signals to database with duplicate prevention & resilient local backup
+ */
+export async function save3CGapSignals(signals: ThreeCandleGapRecord[]): Promise<number> {
+  if (!signals || signals.length === 0) return 0;
+
+  // 1. Save locally
+  saveLocal3CSignals(signals);
+
+  // 2. Attempt Neon DB insert
+  try {
+    await initNewTrickDB();
+    for (const s of signals) {
+      try {
+        await sql`
+          INSERT INTO new_trick_3c_signals (
+            company_name, nse_symbol, direction, timeframe, candle3_close_time,
+            trading_date, status, data_source, price, change_percent
+          ) VALUES (
+            ${s.company_name}, ${s.nse_symbol}, ${s.direction}, ${s.timeframe}, ${s.candle3_close_time},
+            ${s.trading_date}, ${s.status || 'CONFIRMED'}, ${s.data_source || 'Chartink Futures'},
+            ${s.price ?? null}, ${s.change_percent ?? null}
+          )
+          ON CONFLICT (nse_symbol, direction, timeframe, candle3_close_time, trading_date)
+          DO UPDATE SET
+            company_name = EXCLUDED.company_name,
+            price = COALESCE(EXCLUDED.price, new_trick_3c_signals.price),
+            change_percent = COALESCE(EXCLUDED.change_percent, new_trick_3c_signals.change_percent),
+            scan_time = CURRENT_TIMESTAMP;
+        `;
+      } catch (e: any) {
+        console.warn(`[NEW-TRICK-DB] Warning inserting 3C ${s.nse_symbol} (${s.timeframe} ${s.direction}):`, e.message);
+      }
+    }
+  } catch (err: any) {
+    console.warn("[NEW-TRICK-DB] Neon DB 3C insert failed (saved to local backup):", err.message);
   }
 
   return signals.length;
@@ -254,7 +367,7 @@ export async function logScanExecution(log: ScanLogRecord): Promise<void> {
 }
 
 /**
- * Fetch gap signals for a specific date or latest date
+ * Fetch Trick 1 gap signals
  */
 export async function getGapSignals(params: {
   date?: string;
@@ -302,12 +415,11 @@ export async function getGapSignals(params: {
     console.warn("[NEW-TRICK-DB] Neon DB read failed, falling back to local file store:", err.message);
   }
 
-  // 2. If Neon DB returned no rows or is offline, use local backup store
+  // 2. Fallback to local backup store
   if (rows.length === 0) {
     const localSignals = loadLocalSignals();
     if (localSignals.length > 0) {
       if (!targetDate) {
-        // Find latest date in local signals
         const dates = [...new Set(localSignals.map(s => s.trading_date))].sort().reverse();
         targetDate = dates[0] || "";
       }
@@ -316,11 +428,9 @@ export async function getGapSignals(params: {
   }
 
   if (!targetDate) {
-    const now = new Date();
-    targetDate = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    targetDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
   }
 
-  // Filter in memory for search query if provided
   let filtered = rows;
   if (params.search && params.search.trim().length > 0) {
     const q = params.search.toLowerCase().trim();
@@ -342,7 +452,83 @@ export async function getGapSignals(params: {
 }
 
 /**
- * Get distinct available trading dates for filter dropdown
+ * Fetch Trick 2: 3-Candle Gap signals (15m Up/Down, 1h Up/Down)
+ */
+export async function get3CGapSignals(params: {
+  date?: string;
+}): Promise<{
+  date: string;
+  m15Up: ThreeCandleGapRecord[];
+  m15Down: ThreeCandleGapRecord[];
+  h1Up: ThreeCandleGapRecord[];
+  h1Down: ThreeCandleGapRecord[];
+}> {
+  let rows: ThreeCandleGapRecord[] = [];
+  let targetDate: string = params.date || "";
+
+  // 1. Try Neon DB
+  try {
+    await initNewTrickDB();
+    if (!targetDate) {
+      const latestRow = await sql`
+        SELECT trading_date FROM new_trick_3c_signals 
+        ORDER BY trading_date DESC LIMIT 1
+      `;
+      if (latestRow.length > 0) {
+        targetDate = latestRow[0].trading_date;
+      }
+    }
+
+    if (targetDate) {
+      const dbRows = await sql`
+        SELECT 
+          id, company_name, nse_symbol, direction, timeframe, candle3_close_time,
+          trading_date, scan_time, status, data_source, price, change_percent
+        FROM new_trick_3c_signals
+        WHERE trading_date = ${targetDate}
+        ORDER BY id ASC;
+      `;
+      if (dbRows && dbRows.length > 0) {
+        rows = dbRows as ThreeCandleGapRecord[];
+      }
+    }
+  } catch (err: any) {
+    console.warn("[NEW-TRICK-DB] Neon DB 3C read failed, using local backup:", err.message);
+  }
+
+  // 2. Fallback to local store
+  if (rows.length === 0) {
+    const local = loadLocal3CSignals();
+    if (local.length > 0) {
+      if (!targetDate) {
+        const dates = [...new Set(local.map(s => s.trading_date))].sort().reverse();
+        targetDate = dates[0] || "";
+      }
+      rows = local.filter(s => s.trading_date === targetDate);
+    }
+  }
+
+  if (!targetDate) {
+    targetDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  }
+
+  // Deduplicate and group by category
+  const m15Up = rows.filter(r => r.timeframe === "15m" && r.direction === "BULLISH");
+  const m15Down = rows.filter(r => r.timeframe === "15m" && r.direction === "BEARISH");
+  const h1Up = rows.filter(r => r.timeframe === "1h" && r.direction === "BULLISH");
+  const h1Down = rows.filter(r => r.timeframe === "1h" && r.direction === "BEARISH");
+
+  return {
+    date: targetDate,
+    m15Up,
+    m15Down,
+    h1Up,
+    h1Down,
+  };
+}
+
+/**
+ * Get distinct available trading dates
  */
 export async function getAvailableTradingDates(): Promise<string[]> {
   try {
@@ -379,7 +565,6 @@ export async function getScannerStatusSummary(): Promise<{
 }> {
   const nextScheduled = computeNextScheduledTime();
 
-  // 1. Try Neon DB
   try {
     await initNewTrickDB();
     const latestLog = await sql`
@@ -405,7 +590,6 @@ export async function getScannerStatusSummary(): Promise<{
     console.warn("[NEW-TRICK-DB] Neon DB log query failed, using local log:", err.message);
   }
 
-  // 2. Fallback to local logs
   const localLogs = loadLocalLogs();
   if (localLogs.length > 0) {
     const log = localLogs[0];
@@ -434,9 +618,6 @@ export async function getScannerStatusSummary(): Promise<{
   };
 }
 
-/**
- * Helper to compute next 9:31 AM IST weekday
- */
 function computeNextScheduledTime(): string {
   const now = new Date();
   const istFormatter = new Intl.DateTimeFormat("en-US", {

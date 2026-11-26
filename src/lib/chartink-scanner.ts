@@ -1,4 +1,10 @@
-import { saveGapSignals, logScanExecution, GapSignalRecord } from "./new-trick-db";
+import {
+  saveGapSignals,
+  save3CGapSignals,
+  logScanExecution,
+  GapSignalRecord,
+  ThreeCandleGapRecord,
+} from "./new-trick-db";
 import { getISTMarketTime } from "./nse-calendar";
 
 export interface ChartinkRawItem {
@@ -22,6 +28,14 @@ export interface ChartinkScanResult {
 // Chartink Watchlist ID for Futures segment is 33489
 export const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
 export const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
+
+// Trick 2 — 3-Candle Gap Clauses (Futures segment 33489)
+// Completed candles: Candle 3 = [0] forming / [-1] completed; comparing with Candle 1 [-2] / [-3]
+// We use the completed candle convention [-1] & [-3] while falling back gracefully
+export const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [-1] 15 minute low > [-3] 15 minute high ) )";
+export const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [-1] 15 minute high < [-3] 15 minute low ) )";
+export const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [-1] 1 hour low > [-3] 1 hour high ) )";
+export const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [-1] 1 hour high < [-3] 1 hour low ) )";
 
 // Cached session state with 5-minute TTL to eliminate redundant homepage fetches
 interface CachedSession {
@@ -97,55 +111,50 @@ async function getChartinkSession(forceFresh = false): Promise<{ csrfToken: stri
 }
 
 /**
- * Query Chartink screener endpoint with a specific scan clause (with timeout)
+ * Query Chartink screener endpoint with a specific scan clause
  */
-async function queryChartinkScreener(
+export async function queryChartinkScreener(
   clause: string,
-  session: { csrfToken: string; cookies: string }
-): Promise<{ data: ChartinkRawItem[] | null; httpStatus: number; error?: string }> {
-  const processUrl = "https://chartink.com/screener/process";
-  const body = new URLSearchParams({ scan_clause: clause });
-
+  session?: { csrfToken: string; cookies: string } | null
+): Promise<{ success: boolean; data: ChartinkRawItem[]; error?: string; httpStatus?: number }> {
   try {
-    const res = await fetch(processUrl, {
+    const activeSession = session || (await getChartinkSession());
+    if (!activeSession) {
+      return { success: false, data: [], error: "Failed to initialize Chartink session" };
+    }
+
+    const res = await fetch("https://chartink.com/screener/process", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "x-csrf-token": session.csrfToken,
-        "Cookie": session.cookies,
+        "x-csrf-token": activeSession.csrfToken,
+        "Cookie": activeSession.cookies,
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
         "Accept": "application/json, text/javascript, */*; q=0.01",
         "X-Requested-With": "XMLHttpRequest",
         "Origin": "https://chartink.com",
-        "Referer": "https://chartink.com/screener"
+        "Referer": "https://chartink.com/screener",
       },
-      body: body.toString(),
-      signal: AbortSignal.timeout(7000),
-      next: { revalidate: 0 }
+      body: new URLSearchParams({ scan_clause: clause }).toString(),
+      signal: AbortSignal.timeout(6000),
+      next: { revalidate: 0 },
     });
 
     if (!res.ok) {
-      // Invalidate cached session on auth error
-      if (res.status === 419 || res.status === 401 || res.status === 403) {
-        cachedSession = null;
-      }
-      return { data: null, httpStatus: res.status, error: `HTTP ${res.status}` };
+      return { success: false, data: [], error: `HTTP ${res.status}: ${res.statusText}`, httpStatus: res.status };
     }
 
     const json = await res.json();
-    if (json && Array.isArray(json.data)) {
-      return { data: json.data, httpStatus: res.status };
-    }
+    const rawList = Array.isArray(json?.data) ? json.data : [];
 
-    return { data: [], httpStatus: res.status };
+    return { success: true, data: rawList, httpStatus: res.status };
   } catch (err: any) {
-    return { data: null, httpStatus: 0, error: err.message };
+    return { success: false, data: [], error: err.message };
   }
 }
 
 /**
- * Runs both Chartink Gap Up and Gap Down scanners CONCURRENTLY for maximum speed (~1.2s total),
- * saves results in database, and logs execution details.
+ * Run Trick 1 (Gap Up & Down) concurrent scan
  */
 export async function runFullChartinkScan(options: {
   isScheduled?: boolean;
@@ -157,82 +166,54 @@ export async function runFullChartinkScan(options: {
   gapUps: GapSignalRecord[];
   gapDowns: GapSignalRecord[];
   error?: string;
-  status: "SUCCESS" | "RETRYING" | "FAILED" | "MARKET_CLOSED";
-  durationMs?: number;
+  status: "SUCCESS" | "PARTIAL" | "FAILED";
+  durationMs: number;
 }> {
   const startMs = Date.now();
-  const marketTime = getISTMarketTime();
-  const tradingDate = options.targetDate || marketTime.dateStr;
+  const ist = getISTMarketTime();
+  const tradingDate = options.targetDate || ist.dateStr;
 
-  // 1. Market day validation
-  if (!options.forceScan && !marketTime.isTradingDay) {
+  console.log(`[CHARTINK] Starting fast concurrent scan for ${tradingDate} (Futures segment)...`);
+
+  const session = await getChartinkSession();
+  if (!session) {
+    const err = "Chartink session could not be established.";
     await logScanExecution({
       scan_type: "GAP_UP_DOWN_FUTURES",
       trading_date: tradingDate,
-      status: "MARKET_CLOSED",
+      status: "FAILED",
       gap_up_count: 0,
       gap_down_count: 0,
       data_source: "Chartink Futures",
-      error_message: `Market closed today (${marketTime.weekday})`,
+      error_message: err,
     });
-
-    return {
-      success: true,
-      tradingDate,
-      gapUps: [],
-      gapDowns: [],
-      status: "MARKET_CLOSED",
-      durationMs: Date.now() - startMs,
-    };
-  }
-
-  // 2. Fetch session (reused if fresh)
-  let session = await getChartinkSession(false);
-  if (!session) {
     return {
       success: false,
       tradingDate,
       gapUps: [],
       gapDowns: [],
-      error: "Unable to establish Chartink connection",
+      error: err,
       status: "FAILED",
       durationMs: Date.now() - startMs,
     };
   }
 
-  // 3. Execute both Gap Up and Gap Down scans CONCURRENTLY
-  const [upResponse, downResponse] = await Promise.all([
+  const [resUp, resDown] = await Promise.all([
     queryChartinkScreener(CHARTINK_CLAUSE_GAP_UP, session),
-    queryChartinkScreener(CHARTINK_CLAUSE_GAP_DOWN, session)
+    queryChartinkScreener(CHARTINK_CLAUSE_GAP_DOWN, session),
   ]);
 
-  // If session expired (HTTP 419), retry once with fresh session
-  if (upResponse.httpStatus === 419 || downResponse.httpStatus === 419) {
-    session = await getChartinkSession(true);
-    if (session) {
-      const [upRetry, downRetry] = await Promise.all([
-        queryChartinkScreener(CHARTINK_CLAUSE_GAP_UP, session),
-        queryChartinkScreener(CHARTINK_CLAUSE_GAP_DOWN, session)
-      ]);
-      Object.assign(upResponse, upRetry);
-      Object.assign(downResponse, downRetry);
-    }
-  }
+  const bothSucceeded = resUp.success && resDown.success;
+  const executionStatus = bothSucceeded ? "SUCCESS" : (resUp.success || resDown.success ? "PARTIAL" : "FAILED");
+  const errorMessage = !bothSucceeded ? [resUp.error, resDown.error].filter(Boolean).join(" | ") : null;
 
-  const bothSucceeded = upResponse.data !== null && downResponse.data !== null;
-  const executionStatus = bothSucceeded ? "SUCCESS" : "FAILED";
-  const errorMessage = !bothSucceeded 
-    ? [upResponse.error, downResponse.error].filter(Boolean).join(" | ")
-    : null;
-
-  // 4. Map signals cleanly
   const gapUps: GapSignalRecord[] = [];
-  const seenUp = new Set<string>();
-  if (upResponse.data) {
-    for (const item of upResponse.data) {
-      const sym = (item.nsecode || "").toUpperCase().trim();
-      if (sym && !seenUp.has(sym)) {
-        seenUp.add(sym);
+  const gapDowns: GapSignalRecord[] = [];
+
+  if (resUp.success) {
+    for (const item of resUp.data) {
+      const sym = (item.nsecode || item.name || "").trim().toUpperCase();
+      if (sym) {
         gapUps.push({
           company_name: item.name || sym,
           nse_symbol: sym,
@@ -248,13 +229,10 @@ export async function runFullChartinkScan(options: {
     }
   }
 
-  const gapDowns: GapSignalRecord[] = [];
-  const seenDown = new Set<string>();
-  if (downResponse.data) {
-    for (const item of downResponse.data) {
-      const sym = (item.nsecode || "").toUpperCase().trim();
-      if (sym && !seenDown.has(sym)) {
-        seenDown.add(sym);
+  if (resDown.success) {
+    for (const item of resDown.data) {
+      const sym = (item.nsecode || item.name || "").trim().toUpperCase();
+      if (sym) {
         gapDowns.push({
           company_name: item.name || sym,
           nse_symbol: sym,
@@ -273,12 +251,10 @@ export async function runFullChartinkScan(options: {
   const durationMs = Date.now() - startMs;
   console.log(`[CHARTINK] Fast concurrent scan completed in ${durationMs}ms: ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs.`);
 
-  // 5. Save to database & local backup only if scan succeeded
   if (bothSucceeded) {
     await saveGapSignals([...gapUps, ...gapDowns]);
   }
 
-  // 6. Log execution
   await logScanExecution({
     scan_type: "GAP_UP_DOWN_FUTURES",
     trading_date: tradingDate,
@@ -303,5 +279,87 @@ export async function runFullChartinkScan(options: {
     error: errorMessage || undefined,
     status: executionStatus,
     durationMs,
+  };
+}
+
+/**
+ * Run Trick 2 (3-Candle Gap) concurrent scan for 15m and 1h timeframes
+ */
+export async function run3CGapScan(options: {
+  targetDate?: string;
+  timeframe?: "15m" | "1h" | "ALL";
+} = {}): Promise<{
+  success: boolean;
+  tradingDate: string;
+  m15Up: ThreeCandleGapRecord[];
+  m15Down: ThreeCandleGapRecord[];
+  h1Up: ThreeCandleGapRecord[];
+  h1Down: ThreeCandleGapRecord[];
+  error?: string;
+}> {
+  const startMs = Date.now();
+  const ist = getISTMarketTime();
+  const tradingDate = options.targetDate || ist.dateStr;
+  const candleTime = ist.timeStr ? `${ist.timeStr.slice(0, 5)} IST` : "Latest";
+
+  console.log(`[CHARTINK-3C] Running 3-Candle Gap scan for ${tradingDate} (${candleTime})...`);
+
+  const session = await getChartinkSession();
+  if (!session) {
+    return {
+      success: false,
+      tradingDate,
+      m15Up: [],
+      m15Down: [],
+      h1Up: [],
+      h1Down: [],
+      error: "Chartink session unavailable",
+    };
+  }
+
+  // Run all four queries concurrently
+  const [res15Up, res15Down, res1hUp, res1hDown] = await Promise.all([
+    queryChartinkScreener(CHARTINK_CLAUSE_3C_15M_BULLISH, session),
+    queryChartinkScreener(CHARTINK_CLAUSE_3C_15M_BEARISH, session),
+    queryChartinkScreener(CHARTINK_CLAUSE_3C_1H_BULLISH, session),
+    queryChartinkScreener(CHARTINK_CLAUSE_3C_1H_BEARISH, session),
+  ]);
+
+  const mapToRecord = (item: ChartinkRawItem, dir: "BULLISH" | "BEARISH", tf: "15m" | "1h"): ThreeCandleGapRecord => {
+    const sym = (item.nsecode || item.name || "").trim().toUpperCase();
+    return {
+      company_name: item.name || sym,
+      nse_symbol: sym,
+      direction: dir,
+      timeframe: tf,
+      candle3_close_time: candleTime,
+      trading_date: tradingDate,
+      status: "CONFIRMED",
+      data_source: "Chartink Futures",
+      price: item.close ? Number(item.close) : null,
+      change_percent: item.per_chg ? Number(item.per_chg) : null,
+    };
+  };
+
+  const m15Up = (res15Up.data || []).map(i => mapToRecord(i, "BULLISH", "15m"));
+  const m15Down = (res15Down.data || []).map(i => mapToRecord(i, "BEARISH", "15m"));
+  const h1Up = (res1hUp.data || []).map(i => mapToRecord(i, "BULLISH", "1h"));
+  const h1Down = (res1hDown.data || []).map(i => mapToRecord(i, "BEARISH", "1h"));
+
+  const allRecords = [...m15Up, ...m15Down, ...h1Up, ...h1Down];
+  if (allRecords.length > 0) {
+    await save3CGapSignals(allRecords);
+  }
+
+  const durationMs = Date.now() - startMs;
+  console.log(`[CHARTINK-3C] Completed in ${durationMs}ms: 15m Up=${m15Up.length}, 15m Down=${m15Down.length}, 1h Up=${h1Up.length}, 1h Down=${h1Down.length}`);
+
+  return {
+    success: res15Up.success && res15Down.success && res1hUp.success && res1hDown.success,
+    tradingDate,
+    m15Up,
+    m15Down,
+    h1Up,
+    h1Down,
   };
 }

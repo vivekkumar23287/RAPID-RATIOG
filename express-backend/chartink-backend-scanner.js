@@ -1,8 +1,9 @@
 /**
  * chartink-backend-scanner.js
  * 
- * Automated Chartink Gap Up and Gap Down Scanner for FUTURES Segment (Chartink Watchlist ID: 33489).
- * Runs on cron at 9:31 AM IST (with retries at 9:35, 9:40, 9:45 AM).
+ * Automated Chartink Gap Up/Down and 3-Candle Gap Scanner for FUTURES Segment (Watchlist ID: 33489).
+ * - Trick 1: 9:31 AM IST (retry at 9:35, 9:40, 9:45 AM).
+ * - Trick 2: 15m & 1h checks throughout trading hours.
  * Saves verified Futures gap results to Neon PostgreSQL.
  */
 
@@ -15,6 +16,12 @@ const { pool } = require('./scanner');
 // Verified Chartink Futures segment clauses
 const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high ) )";
 const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
+
+// Trick 2: 3-Candle Gap Clauses
+const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [-1] 15 minute low > [-3] 15 minute high ) )";
+const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [-1] 15 minute high < [-3] 15 minute low ) )";
+const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [-1] 1 hour low > [-3] 1 hour high ) )";
+const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [-1] 1 hour high < [-3] 1 hour low ) )";
 
 // Official NSE Holidays (YYYY-MM-DD)
 const NSE_HOLIDAYS = new Set([
@@ -40,10 +47,18 @@ function getISTDateParts() {
   return { dateStr, timeStr, weekday: map.weekday, isTradingDay, isHoliday };
 }
 
+let cachedSession = null;
+let sessionExpiresAt = 0;
+
 /**
  * Fetch CSRF token and cookies from Chartink
  */
 async function getChartinkSession() {
+  const now = Date.now();
+  if (cachedSession && sessionExpiresAt > now) {
+    return cachedSession;
+  }
+
   try {
     const res = await fetch('https://chartink.com/screener', {
       headers: {
@@ -73,7 +88,9 @@ async function getChartinkSession() {
     }
 
     const cookies = rawCookies.map(c => c.split(';')[0]).filter(Boolean).join('; ');
-    return { csrfToken: tokenMatch[1], cookies };
+    cachedSession = { csrfToken: tokenMatch[1], cookies };
+    sessionExpiresAt = now + 5 * 60 * 1000;
+    return cachedSession;
   } catch (e) {
     console.warn('[CHARTINK-BACKEND] Session error:', e.message);
     return null;
@@ -101,11 +118,12 @@ async function queryScreener(clause, session) {
     });
 
     if (!res.ok) {
-      console.warn(`[CHARTINK-BACKEND] Process endpoint returned HTTP ${res.status}`);
+      console.warn(`[CHARTINK-BACKEND] Screener query returned HTTP ${res.status}`);
       return null;
     }
+
     const json = await res.json();
-    return Array.isArray(json.data) ? json.data : [];
+    return Array.isArray(json?.data) ? json.data : [];
   } catch (e) {
     console.warn('[CHARTINK-BACKEND] Query error:', e.message);
     return null;
@@ -113,78 +131,49 @@ async function queryScreener(clause, session) {
 }
 
 /**
- * Main function executed by cron for Futures segment
+ * Trick 1: Run Gap Up and Gap Down scans
  */
 async function runChartinkBackendScan() {
   const ist = getISTDateParts();
-  console.log(`\n[CHARTINK CRON] ⏰ Scheduled Futures scan triggered at ${ist.dateStr} ${ist.timeStr} IST`);
-
   if (!ist.isTradingDay) {
-    console.log(`[CHARTINK CRON] ⏸️ Skipped: Market is closed today (${ist.weekday}, Holiday: ${ist.isHoliday})`);
+    console.log(`[CHARTINK CRON] Skipping scan — today (${ist.dateStr}, ${ist.weekday}) is not an active trading day.`);
     return;
   }
 
-  // Check if today already has confirmed scan results
-  try {
-    const existing = await pool.query(
-      `SELECT COUNT(*) as count FROM new_trick_scan_logs 
-       WHERE trading_date = $1 AND status = 'SUCCESS'`,
-      [ist.dateStr]
-    );
-    if (existing.rows[0]?.count > 0) {
-      console.log(`[CHARTINK CRON] ℹ️ Today (${ist.dateStr}) already successfully scanned. Skipping redundant execution.`);
-      return;
-    }
-  } catch (err) {
-    // Continue if table is being created
-  }
+  console.log(`[CHARTINK CRON] 🚀 Starting automated scan for ${ist.dateStr} at ${ist.timeStr} IST...`);
 
   const session = await getChartinkSession();
   if (!session) {
-    console.warn('[CHARTINK CRON] ❌ Failed to get Chartink session token. Will retry on next scheduled interval.');
+    console.error('[CHARTINK CRON] Failed to establish Chartink session.');
     return;
   }
 
-  // 1. Scan GAP UP (Futures: 33489)
-  console.log('[CHARTINK CRON] Running GAP UP scan for Futures segment (ID: 33489)...');
-  const upData = await queryScreener(CHARTINK_CLAUSE_GAP_UP, session);
+  const [rawUp, rawDown] = await Promise.all([
+    queryScreener(CHARTINK_CLAUSE_GAP_UP, session),
+    queryScreener(CHARTINK_CLAUSE_GAP_DOWN, session)
+  ]);
 
-  // 2. Scan GAP DOWN (Futures: 33489)
-  console.log('[CHARTINK CRON] Running GAP DOWN scan for Futures segment (ID: 33489)...');
-  const downData = await queryScreener(CHARTINK_CLAUSE_GAP_DOWN, session);
-
-  if (upData === null || downData === null) {
-    console.warn('[CHARTINK CRON] ❌ Chartink query failed. Will retry on next schedule.');
+  if (rawUp === null || rawDown === null) {
+    console.error('[CHARTINK CRON] One or both screener queries failed. Aborting DB write.');
     return;
   }
 
-  // Map all stocks returned in the Futures segment without any hardcoded filtering
-  const gapUps = (upData || [])
-    .filter(item => Boolean(item.nsecode))
-    .map(item => ({
-      symbol: item.nsecode.toUpperCase().trim(),
-      name: item.name || item.nsecode,
-      price: item.close ? Number(item.close) : null,
-      changePercent: item.per_chg ? Number(item.per_chg) : null,
-      type: 'GAP_UP'
-    }));
+  const gapUps = rawUp.map(item => ({
+    symbol: (item.nsecode || item.name || '').trim().toUpperCase(),
+    name: item.name || item.nsecode,
+    price: item.close ? Number(item.close) : null,
+    changePercent: item.per_chg ? Number(item.per_chg) : null
+  })).filter(x => x.symbol);
 
-  const gapDowns = (downData || [])
-    .filter(item => Boolean(item.nsecode))
-    .map(item => ({
-      symbol: item.nsecode.toUpperCase().trim(),
-      name: item.name || item.nsecode,
-      price: item.close ? Number(item.close) : null,
-      changePercent: item.per_chg ? Number(item.per_chg) : null,
-      type: 'GAP_DOWN'
-    }));
+  const gapDowns = rawDown.map(item => ({
+    symbol: (item.nsecode || item.name || '').trim().toUpperCase(),
+    name: item.name || item.nsecode,
+    price: item.close ? Number(item.close) : null,
+    changePercent: item.per_chg ? Number(item.per_chg) : null
+  })).filter(x => x.symbol);
 
-  console.log(`[CHARTINK CRON] ✅ Found ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs in Futures Segment:`, {
-    gapUps: gapUps.map(g => g.symbol),
-    gapDowns: gapDowns.map(g => g.symbol)
-  });
+  console.log(`[CHARTINK CRON] Scan completed: ${gapUps.length} Gap Ups, ${gapDowns.length} Gap Downs.`);
 
-  // Save to DB
   try {
     for (const item of gapUps) {
       await pool.query(
@@ -225,8 +214,60 @@ async function runChartinkBackendScan() {
   }
 }
 
+/**
+ * Trick 2: Run 3-Candle Gap scans (15m & 1h)
+ */
+async function runChartink3CBackendScan() {
+  const ist = getISTDateParts();
+  if (!ist.isTradingDay) return;
+
+  console.log(`[CHARTINK-3C CRON] 🚀 Starting 3-Candle Gap scan at ${ist.timeStr} IST...`);
+
+  const session = await getChartinkSession();
+  if (!session) return;
+
+  const [r15Up, r15Down, r1hUp, r1hDown] = await Promise.all([
+    queryScreener(CHARTINK_CLAUSE_3C_15M_BULLISH, session),
+    queryScreener(CHARTINK_CLAUSE_3C_15M_BEARISH, session),
+    queryScreener(CHARTINK_CLAUSE_3C_1H_BULLISH, session),
+    queryScreener(CHARTINK_CLAUSE_3C_1H_BEARISH, session)
+  ]);
+
+  const candleTime = ist.timeStr.slice(0, 5) + ' IST';
+
+  const insertItems = async (items, dir, tf) => {
+    if (!items || !items.length) return;
+    for (const item of items) {
+      const sym = (item.nsecode || item.name || '').trim().toUpperCase();
+      if (!sym) continue;
+      try {
+        await pool.query(
+          `INSERT INTO new_trick_3c_signals (
+            company_name, nse_symbol, direction, timeframe, candle3_close_time, trading_date, status, data_source, price, change_percent
+          ) VALUES ($1, $2, $3, $4, $5, $6, 'CONFIRMED', 'Chartink Futures', $7, $8)
+          ON CONFLICT (nse_symbol, direction, timeframe, candle3_close_time, trading_date)
+          DO UPDATE SET company_name = EXCLUDED.company_name, price = EXCLUDED.price, change_percent = EXCLUDED.change_percent, scan_time = CURRENT_TIMESTAMP`,
+          [item.name || sym, sym, dir, tf, candleTime, ist.dateStr, item.close ? Number(item.close) : null, item.per_chg ? Number(item.per_chg) : null]
+        );
+      } catch (e) {
+        console.warn(`[CHARTINK-3C CRON] Insert error for ${sym}:`, e.message);
+      }
+    }
+  };
+
+  await Promise.all([
+    insertItems(r15Up, 'BULLISH', '15m'),
+    insertItems(r15Down, 'BEARISH', '15m'),
+    insertItems(r1hUp, 'BULLISH', '1h'),
+    insertItems(r1hDown, 'BEARISH', '1h')
+  ]);
+
+  console.log(`[CHARTINK-3C CRON] ✅ 3C Scan complete: 15m Up=${r15Up?.length || 0}, 15m Down=${r15Down?.length || 0}, 1h Up=${r1hUp?.length || 0}, 1h Down=${r1hDown?.length || 0}`);
+}
+
 module.exports = {
   runChartinkBackendScan,
+  runChartink3CBackendScan,
   getChartinkSession,
   queryScreener,
 };

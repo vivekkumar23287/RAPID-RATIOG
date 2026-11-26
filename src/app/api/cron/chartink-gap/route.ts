@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { runFullChartinkScan } from "@/lib/chartink-scanner";
+import { runFullChartinkScan, run3CGapScan } from "@/lib/chartink-scanner";
 import { getISTMarketTime } from "@/lib/nse-calendar";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +44,11 @@ async function handleCronExecution(req: NextRequest) {
 
   const result = await runFullChartinkScan({
     isScheduled: true,
+    targetDate: marketTime.dateStr,
+  });
+
+  // Also run Trick 2 (3-Candle Gap) scan
+  await run3CGapScan({
     targetDate: marketTime.dateStr,
   });
 
