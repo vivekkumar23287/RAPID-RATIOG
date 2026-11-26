@@ -1,4 +1,5 @@
 import { sql } from './db';
+import { initNewTrickDB } from './new-trick-db';
 
 export async function initDatabase() {
   try {
@@ -113,6 +114,9 @@ export async function initDatabase() {
       );
     `;
     
+    // ── Initialize New Trick (Chartink Gap Scanner) tables ──────────────────
+    await initNewTrickDB();
+
     console.log('Database initialized successfully!');
   } catch (error) {
     console.error('Failed to initialize database:', error);

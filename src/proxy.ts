@@ -21,6 +21,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/signals(.*)",
   "/api/export-tricks(.*)",
   "/api/sync-scanners(.*)",
+  "/api/new-trick(.*)",
+  "/api/cron/chartink-gap(.*)",
 ]);
 
 export const proxy = clerkMiddleware(async (auth, req) => {

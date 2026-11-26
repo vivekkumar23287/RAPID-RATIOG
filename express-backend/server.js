@@ -358,6 +358,16 @@ cron.schedule('0 16 * * 1-5', async () => {
   }
 }, { timezone: 'Asia/Kolkata' });
 
+// ── Chartink Gap Up & Gap Down Scanner — 9:31 AM IST (with 9:35, 9:40, 9:45 retries) ──
+cron.schedule('31,35,40,45 9 * * 1-5', async () => {
+  try {
+    const { runChartinkBackendScan } = require('./chartink-backend-scanner');
+    await runChartinkBackendScan();
+  } catch (err) {
+    console.error('[CHARTINK CRON] Error executing scan:', err.message);
+  }
+}, { timezone: 'Asia/Kolkata' });
+
 // ─────────────────────────────────────────────────────────────────────────────
 // STARTUP
 // ─────────────────────────────────────────────────────────────────────────────

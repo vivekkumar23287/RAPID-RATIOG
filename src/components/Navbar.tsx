@@ -11,6 +11,7 @@ const navLinks = [
   { label: "Home", href: "/" },
   { label: "Company", href: "/prices" },
   { label: "Tricks", href: "/trick-in-nse" },
+  { label: "New Trick", href: "/new-trick" },
   { label: "Sheet Flow", href: "/sheetflow" },
 ];
 
