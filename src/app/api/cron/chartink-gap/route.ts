@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runFullChartinkScan, run3CGapScan } from "@/lib/chartink-scanner";
 import { getISTMarketTime } from "@/lib/nse-calendar";
+import { runSMCScan } from "@/app/api/new-trick/smc/route";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,13 @@ async function handleCronExecution(req: NextRequest) {
   await run3CGapScan({
     targetDate: marketTime.dateStr,
   });
+
+  // Also run Trick 3 (Smart Money Concepts) scan
+  try {
+    await runSMCScan();
+  } catch (err: any) {
+    console.warn("[CRON] SMC scan error:", err.message);
+  }
 
   return NextResponse.json({
     success: result.success,

@@ -10,6 +10,17 @@ interface CompanyItem {
   nse_symbol: string;
 }
 
+interface SMCSignalItem {
+  company_name: string;
+  nse_symbol: string;
+  timeframe: string;
+  signal_type: string;
+  direction: "BULLISH" | "BEARISH";
+  category: "BOS" | "CHOCH" | "FVG" | "OB" | "LIQUIDITY";
+  price?: number;
+  detected_at?: string;
+}
+
 export default function NewTrickPage() {
   // Trick 1: Gap Up & Gap Down
   const [gapUps, setGapUps] = useState<CompanyItem[]>([]);
@@ -22,6 +33,13 @@ export default function NewTrickPage() {
   const [h1Up, setH1Up] = useState<CompanyItem[]>([]);
   const [h1Down, setH1Down] = useState<CompanyItem[]>([]);
   const [isPendingT2, setIsPendingT2] = useState(false);
+
+  // Trick 3: Smart Money Concepts (SMC)
+  const [smcSignals, setSmcSignals] = useState<SMCSignalItem[]>([]);
+  const [smcTimeframe, setSmcTimeframe] = useState<string>("15m");
+  const [smcDirection, setSmcDirection] = useState<string>("ALL");
+  const [smcCategory, setSmcCategory] = useState<string>("ALL");
+  const [smcLoading, setSmcLoading] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -56,8 +74,32 @@ export default function NewTrickPage() {
     }
   }, []);
 
+  // Fetch SMC Signals
+  const fetchSmcSignals = useCallback(async (tf = smcTimeframe, dir = smcDirection, cat = smcCategory) => {
+    try {
+      setSmcLoading(true);
+      const params = new URLSearchParams();
+      if (tf && tf !== "ALL") params.append("timeframe", tf);
+      if (dir && dir !== "ALL") params.append("direction", dir);
+      if (cat && cat !== "ALL") params.append("category", cat);
+
+      const res = await fetch(`/api/new-trick/smc?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSmcSignals(data.signals || []);
+        }
+      }
+    } catch (err: any) {
+      console.warn("[New Trick] Failed to fetch SMC signals:", err);
+    } finally {
+      setSmcLoading(false);
+    }
+  }, [smcTimeframe, smcDirection, smcCategory]);
+
   useEffect(() => {
     loadInitialData();
+    fetchSmcSignals();
 
     // Background interval check every 30 seconds for live updates
     const interval = setInterval(() => {
@@ -81,7 +123,7 @@ export default function NewTrickPage() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [loadInitialData]);
+  }, [loadInitialData, fetchSmcSignals]);
 
   // Single refresh handler for entire page
   const handleRefresh = async () => {
@@ -90,10 +132,17 @@ export default function NewTrickPage() {
     setRefreshStatus("Scanning...");
 
     try {
-      const res = await fetch("/api/new-trick/manual-scan", { method: "POST" });
-      const data = await res.json();
+      const [gapRes, smcRes] = await Promise.all([
+        fetch("/api/new-trick/manual-scan", { method: "POST" }),
+        fetch("/api/new-trick/smc", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ timeframe: smcTimeframe === "ALL" ? "15m" : smcTimeframe }),
+        }),
+      ]);
 
-      if (res.ok && data.success) {
+      const data = await gapRes.json();
+      if (gapRes.ok && data.success) {
         setGapUps(data.gapUps || []);
         setGapDowns(data.gapDowns || []);
         setIsPendingT1(false);
@@ -107,6 +156,13 @@ export default function NewTrickPage() {
         setRefreshStatus(`Refreshed at ${data.lastRefreshedAt}`);
       } else {
         setRefreshStatus("Refresh failed");
+      }
+
+      if (smcRes.ok) {
+        const smcData = await smcRes.json();
+        if (smcData.success) {
+          fetchSmcSignals(smcTimeframe, smcDirection, smcCategory);
+        }
       }
     } catch (err: any) {
       console.error("[New Trick] Refresh failed:", err);
@@ -404,6 +460,480 @@ export default function NewTrickPage() {
               "rgba(239,68,68,0.08)",
               isPendingT2
             )}
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* STRATEGY 3: TRICK 3 — SMART MONEY CONCEPTS (SMC) */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: "28px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "12px",
+              marginBottom: "14px",
+            }}
+          >
+            <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
+              Trick 3 — Smart Money Concepts
+            </h2>
+
+            {/* Filter Pills */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {/* Timeframe */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {["15m", "1h", "5m", "ALL"].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => {
+                      setSmcTimeframe(tf);
+                      fetchSmcSignals(tf, smcDirection, smcCategory);
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcTimeframe === tf ? "#0F2044" : "transparent",
+                      color: smcTimeframe === tf ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {tf.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Direction */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {[
+                  { id: "ALL", label: "ALL" },
+                  { id: "BULLISH", label: "Bullish", color: "#10B981" },
+                  { id: "BEARISH", label: "Bearish", color: "#EF4444" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => {
+                      setSmcDirection(d.id);
+                      fetchSmcSignals(smcTimeframe, d.id, smcCategory);
+                    }}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcDirection === d.id ? (d.color || "#0F2044") : "transparent",
+                      color: smcDirection === d.id ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Category */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {["ALL", "BOS", "CHOCH", "FVG", "OB", "LIQUIDITY"].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => {
+                      setSmcCategory(cat);
+                      fetchSmcSignals(smcTimeframe, smcDirection, cat);
+                    }}
+                    style={{
+                      padding: "4px 8px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcCategory === cat ? "#0F2044" : "transparent",
+                      color: smcCategory === cat ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Table Section */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* Header: Title and Count */}
+            <div
+              style={{
+                padding: "10px 16px",
+                background: "#FFFFFF",
+                borderBottom: "1px solid #E2E8F0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 800,
+                  color: "#0F2044",
+                  letterSpacing: "0.03em",
+                  textTransform: "uppercase",
+                }}
+              >
+                SMC Signals
+              </span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: "#0F2044",
+                  background: "rgba(15,32,68,0.08)",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  border: "1px solid rgba(15,32,68,0.15)",
+                }}
+              >
+                {smcSignals.length}
+              </span>
+            </div>
+
+            {/* Column Sub-header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "6px 16px",
+                background: "#F8FAFC",
+                borderBottom: "1px solid #E2E8F0",
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "#64748B",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              <span style={{ flex: 2 }}>Company Name</span>
+              <span style={{ flex: 1, textAlign: "center" }}>Code</span>
+              <span style={{ flex: 1.5, textAlign: "right" }}>SMC Signal</span>
+            </div>
+
+            {/* Rows List */}
+            <div style={{ maxHeight: "420px", overflowY: "auto" }}>
+              {smcLoading ? (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+                  Scanning SMC market structure...
+                </div>
+              ) : smcSignals.length === 0 ? (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+                  No SMC signals detected for current filters
+                </div>
+              ) : (
+                smcSignals.map((item, idx) => {
+                  const isBull = item.direction === "BULLISH";
+                  const badgeColor = isBull ? "#10B981" : "#EF4444";
+                  const badgeBg = isBull ? "rgba(16,185,129,0.08)" : "rgba(239,68,68,0.08)";
+
+                  return (
+                    <Link
+                      key={`${item.nse_symbol}-${item.signal_type}-${idx}`}
+                      href={`/stock/${encodeURIComponent(item.nse_symbol)}?tf=${encodeURIComponent(item.timeframe || "15m")}&smc=true`}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        height: "40px",
+                        padding: "0 16px",
+                        borderBottom: idx === smcSignals.length - 1 ? "none" : "1px solid #F1F5F9",
+                        textDecoration: "none",
+                        background: "#FFFFFF",
+                        transition: "background 0.12s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = badgeBg)}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
+                    >
+                      {/* Left: Company Name */}
+                      <span
+                        style={{
+                          flex: 2,
+                          fontSize: "12.5px",
+                          fontWeight: 500,
+                          color: "#334155",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          textAlign: "left",
+                        }}
+                      >
+                        {item.company_name}
+                      </span>
+
+                      {/* Center: NSE Symbol */}
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#0F2044",
+                          textAlign: "center",
+                        }}
+                      >
+                        {item.nse_symbol}
+                      </span>
+
+                      {/* Right: Signal Badge */}
+                      <div style={{ flex: 1.5, textAlign: "right" }}>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: "12px",
+                            color: badgeColor,
+                            background: badgeBg,
+                            border: `1px solid ${badgeColor}25`,
+                            display: "inline-block",
+                          }}
+                        >
+                          {item.signal_type}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        {/* STRATEGY 3: TRICK 3 — SMART MONEY CONCEPTS (SMC) */}
+        {/* ═══════════════════════════════════════════════════════════════════ */}
+        <div style={{ marginBottom: "36px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "12px",
+              marginBottom: "14px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
+                Trick 3 — Smart Money Concepts
+              </h2>
+            </div>
+
+            {/* Filter Pills: Timeframe, Direction, Category */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+              {/* Timeframe selector */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {["15m", "1h", "5m", "ALL"].map((tf) => (
+                  <button
+                    key={tf}
+                    onClick={() => { setSmcTimeframe(tf); fetchSmcSignals(tf, smcDirection, smcCategory); }}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcTimeframe === tf ? "#0F2044" : "transparent",
+                      color: smcTimeframe === tf ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {tf.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
+              {/* Direction selector */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {[
+                  { id: "ALL", label: "ALL" },
+                  { id: "BULLISH", label: "Bullish", color: "#10B981" },
+                  { id: "BEARISH", label: "Bearish", color: "#EF4444" },
+                ].map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => { setSmcDirection(d.id); fetchSmcSignals(smcTimeframe, d.id, smcCategory); }}
+                    style={{
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcDirection === d.id ? (d.color || "#0F2044") : "transparent",
+                      color: smcDirection === d.id ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Category selector */}
+              <div style={{ display: "flex", alignItems: "center", background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "2px" }}>
+                {["ALL", "BOS", "CHOCH", "FVG", "OB", "LIQUIDITY"].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => { setSmcCategory(cat); fetchSmcSignals(smcTimeframe, smcDirection, cat); }}
+                    style={{
+                      padding: "4px 9px",
+                      fontSize: "11px",
+                      fontWeight: 700,
+                      borderRadius: "6px",
+                      border: "none",
+                      background: smcCategory === cat ? "#0F2044" : "transparent",
+                      color: smcCategory === cat ? "#FFFFFF" : "#64748B",
+                      cursor: "pointer",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* SMC Table Section: White Card with Company Name (left), Code (middle/right), SMC Signal (right) */}
+          <div
+            style={{
+              background: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              borderRadius: "16px",
+              overflow: "hidden",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            }}
+          >
+            {/* Sub-header */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 140px 180px",
+                padding: "8px 16px",
+                background: "#F8FAFC",
+                borderBottom: "1px solid #E2E8F0",
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "#64748B",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              <span>Company Name</span>
+              <span style={{ textAlign: "center" }}>NSE Code</span>
+              <span style={{ textAlign: "right" }}>SMC Signal</span>
+            </div>
+
+            {/* Rows List */}
+            <div style={{ maxHeight: "420px", overflowY: "auto" }}>
+              {smcLoading ? (
+                <div style={{ padding: "32px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+                  Scanning SMC market structure...
+                </div>
+              ) : smcSignals.length === 0 ? (
+                <div style={{ padding: "32px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+                  No SMC signals detected for current filters
+                </div>
+              ) : (
+                smcSignals.map((item, idx) => {
+                  const isBull = item.direction === "BULLISH";
+                  const badgeBg = isBull ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)";
+                  const badgeColor = isBull ? "#059669" : "#DC2626";
+
+                  return (
+                    <Link
+                      key={`${item.nse_symbol}-${item.signal_type}-${idx}`}
+                      href={`/stock/${encodeURIComponent(item.nse_symbol)}?tf=${encodeURIComponent(item.timeframe || "15m")}&smc=true`}
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 140px 180px",
+                        alignItems: "center",
+                        height: "40px",
+                        padding: "0 16px",
+                        borderBottom: idx === smcSignals.length - 1 ? "none" : "1px solid #F1F5F9",
+                        textDecoration: "none",
+                        background: "#FFFFFF",
+                        transition: "background 0.12s ease",
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = isBull ? "rgba(16,185,129,0.04)" : "rgba(239,68,68,0.04)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
+                    >
+                      {/* Left: Company Name */}
+                      <span
+                        style={{
+                          fontSize: "12.5px",
+                          fontWeight: 500,
+                          color: "#334155",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {item.company_name}
+                      </span>
+
+                      {/* Middle: NSE Symbol */}
+                      <span
+                        style={{
+                          fontSize: "12px",
+                          fontWeight: 700,
+                          color: "#0F2044",
+                          textAlign: "center",
+                        }}
+                      >
+                        {item.nse_symbol}
+                      </span>
+
+                      {/* Right: Signal Badge */}
+                      <div style={{ textAlign: "right" }}>
+                        <span
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            padding: "3px 8px",
+                            borderRadius: "6px",
+                            background: badgeBg,
+                            color: badgeColor,
+                            border: `1px solid ${badgeColor}30`,
+                            display: "inline-block",
+                          }}
+                        >
+                          {item.signal_type}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       </div>

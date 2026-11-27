@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { createChart, ColorType, CandlestickSeries, LineSeries, type UTCTimestamp } from "lightweight-charts";
 import { ChartLineUp } from "@phosphor-icons/react";
 import { fetchStockDataCached, getFromCache } from "@/lib/data-cache";
+import SMCOverlay, { SMCSettings } from "@/components/SMCOverlay";
 
 const DISPLAY_NAMES: Record<string, string> = {
   // --- Nifty 50 Official Constituents ---
@@ -90,7 +91,17 @@ export default function StockChartPage() {
     return !cached;
   });
   const [error, setError] = useState<string | null>(null);
-  const [timeframe, setTimeframe] = useState({ interval: "1d", range: "1y", label: "1D" });
+  const [timeframe, setTimeframe] = useState(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tfParam = urlParams.get("tf");
+      if (tfParam === "15m") return { interval: "15m", range: "5d", label: "15m" };
+      if (tfParam === "1h" || tfParam === "60m") return { interval: "60m", range: "1mo", label: "1H" };
+      if (tfParam === "5m") return { interval: "5m", range: "1d", label: "5m" };
+      if (tfParam === "30m") return { interval: "30m", range: "5d", label: "30m" };
+    }
+    return { interval: "1d", range: "1y", label: "1D" };
+  });
 
   const isCrypto = rawSymbol.toUpperCase() === "BTC" || rawSymbol.toUpperCase() === "BTC-USD" || stockData?.currency === "USD";
 
@@ -143,6 +154,33 @@ export default function StockChartPage() {
   const rsiChartRef = useRef<any>(null);
   const rsiSeriesRef = useRef<any>(null);
 
+
+  const [smcSettings, setSmcSettings] = useState<SMCSettings>(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isSmcQuery = urlParams.get("smc") === "true";
+      return {
+        enabled: isSmcQuery,
+        bos: true,
+        choch: true,
+        fvg: true,
+        orderBlocks: true,
+        liquidity: true,
+        premiumDiscount: true,
+      };
+    }
+    return {
+      enabled: false,
+      bos: true,
+      choch: true,
+      fvg: true,
+      orderBlocks: true,
+      liquidity: true,
+      premiumDiscount: true,
+    };
+  });
+
+  const [chartDimensions, setChartDimensions] = useState({ width: 800, height: 600 });
 
   const [indicatorSettings, setIndicatorSettings] = useState({
     rsi: {
@@ -548,6 +586,10 @@ export default function StockChartPage() {
     const handleResize = () => {
       if (container && container.clientWidth > 0 && container.clientHeight > 0) {
         chart.applyOptions({
+          width: container.clientWidth,
+          height: container.clientHeight,
+        });
+        setChartDimensions({
           width: container.clientWidth,
           height: container.clientHeight,
         });
@@ -1930,6 +1972,20 @@ export default function StockChartPage() {
             <div
               ref={rsiContainerRef}
               style={{ width: "100%", height: "100%", minHeight: 0, flex: 2, borderTop: "1px solid #E2E8F0" }}
+            />
+          )}
+
+          {chartReady && candleSeriesRef.current && chartRef.current && (
+            <SMCOverlay
+              symbol={rawSymbol.toUpperCase()}
+              timeframe={timeframe.interval}
+              candles={stockData?.candles || []}
+              priceToCoordinate={(p) => candleSeriesRef.current?.priceToCoordinate(p)}
+              timeToCoordinate={(t) => chartRef.current?.timeScale().timeToCoordinate(t)}
+              chartWidth={chartDimensions.width}
+              chartHeight={chartDimensions.height}
+              settings={smcSettings}
+              onToggleSettings={setSmcSettings}
             />
           )}
 

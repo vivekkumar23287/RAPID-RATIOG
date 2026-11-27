@@ -307,6 +307,48 @@ cron.schedule('1,16,31,46 9-15 * * 1-5', async () => {
     } catch (e) {
       console.warn(`[${timeStr}] Tricks DB cache calculation error:`, e.message);
     }
+
+    // Trigger Smart Money Concepts (SMC) scan
+    try {
+      const nextPort = process.env.PORT || 3000;
+      await fetch(`http://localhost:${nextPort}/api/new-trick/smc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeframe: '15m' }),
+        signal: AbortSignal.timeout(10000)
+      });
+      console.log(`[${timeStr}] ✅ SMC scan triggered successfully`);
+    } catch (e) {
+      // Non-blocking if Next.js server is not reachable
+    }
+
+    // Trigger SMC scan in Next.js backend for Trick 3
+    try {
+      const nextPort = process.env.PORT || 3000;
+      await fetch(`http://localhost:${nextPort}/api/new-trick/smc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeframe: '15m' }),
+        signal: AbortSignal.timeout(10000)
+      });
+      console.log(`[${timeStr}] ✅ SMC scan triggered successfully`);
+    } catch (e) {
+      // Non-blocking background trigger
+    }
+
+    // Trigger Trick 3 (Smart Money Concepts) scan in Next.js backend
+    try {
+      const nextPort = process.env.PORT || 3000;
+      await fetch(`http://localhost:${nextPort}/api/new-trick/smc`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeframe: '15m' }),
+        signal: AbortSignal.timeout(10000)
+      });
+      console.log(`[${timeStr}] ✅ SMC scan triggered successfully`);
+    } catch (e) {
+      // Non-blocking
+    }
   } catch (err) {
     console.error(`[${timeStr}] Scanner error:`, err.message);
   }
