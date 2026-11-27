@@ -9,10 +9,32 @@ export async function GET(req: NextRequest) {
     const date = searchParams.get("date") || undefined;
 
     // Fetch both Trick 1 (Gap Up & Down) and Trick 2 (3-Candle Gap) concurrently
-    const [t1Results, t2Results] = await Promise.all([
+    let [t1Results, t2Results] = await Promise.all([
       getGapSignals({ date }),
       get3CGapSignals({ date }),
     ]);
+
+    // If both Trick 1 and Trick 2 are completely empty, execute a quick initial live scan so first-time visitors immediately see data
+    const t1Empty = t1Results.gapUps.length === 0 && t1Results.gapDowns.length === 0;
+    const t2Empty = t2Results.m15Up.length === 0 && t2Results.m15Down.length === 0 && t2Results.h1Up.length === 0 && t2Results.h1Down.length === 0;
+
+    if (t1Empty || t2Empty) {
+      try {
+        const { runFullChartinkScan, run3CGapScan } = await import("@/lib/chartink-scanner");
+        const tasks: Promise<any>[] = [];
+        if (t1Empty) tasks.push(runFullChartinkScan());
+        if (t2Empty) tasks.push(run3CGapScan());
+        await Promise.allSettled(tasks);
+
+        // Re-read populated records
+        [t1Results, t2Results] = await Promise.all([
+          getGapSignals({ date }),
+          get3CGapSignals({ date }),
+        ]);
+      } catch (scanErr: any) {
+        console.warn("[API] Results auto-initial-scan warning:", scanErr.message);
+      }
+    }
 
     // Current IST formatted timestamp
     const nowIST = new Date().toLocaleTimeString("en-US", {

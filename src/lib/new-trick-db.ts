@@ -504,7 +504,13 @@ export async function get3CGapSignals(params: {
         const dates = [...new Set(local.map(s => s.trading_date))].sort().reverse();
         targetDate = dates[0] || "";
       }
-      rows = local.filter(s => s.trading_date === targetDate);
+      rows = local.filter(s => !targetDate || s.trading_date === targetDate);
+      if (rows.length === 0 && local.length > 0) {
+        // If no rows match targetDate, return the latest date available in local store
+        const dates = [...new Set(local.map(s => s.trading_date))].sort().reverse();
+        targetDate = dates[0];
+        rows = local.filter(s => s.trading_date === targetDate);
+      }
     }
   }
 

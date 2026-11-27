@@ -18,10 +18,10 @@ const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ago high 
 const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
 
 // Trick 2: 3-Candle Gap Clauses
-const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [-1] 15 minute low > [-3] 15 minute high ) )";
-const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [-1] 15 minute high < [-3] 15 minute low ) )";
-const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [-1] 1 hour low > [-3] 1 hour high ) )";
-const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [-1] 1 hour high < [-3] 1 hour low ) )";
+const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [0] 15 minute low > [-2] 15 minute high ) )";
+const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [0] 15 minute high < [-2] 15 minute low ) )";
+const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [0] 1 hour low > [-2] 1 hour high ) )";
+const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [0] 1 hour high < [-2] 1 hour low ) )";
 
 // Official NSE Holidays (YYYY-MM-DD)
 const NSE_HOLIDAYS = new Set([

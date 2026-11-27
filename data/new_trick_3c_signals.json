@@ -1,0 +1,1202 @@
+[
+  {
+    "company_name": "Solar Industries India Limited",
+    "nse_symbol": "SOLARINDS",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hindustan Aeronautics Ltd",
+    "nse_symbol": "HAL",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Data Patterns (India) Ltd",
+    "nse_symbol": "DATAPATTNS",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Tata Elxsi Limited",
+    "nse_symbol": "TATAELXSI",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Mahindra & Mahindra Limited",
+    "nse_symbol": "M&M",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Supreme Industries Limited",
+    "nse_symbol": "SUPREMEIND",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Oberoi Realty Limited",
+    "nse_symbol": "OBEROIRLTY",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Mazagon Dock Shipbuilders Ltd",
+    "nse_symbol": "MAZDOCK",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Godfrey Phillips India Limited",
+    "nse_symbol": "GODFRYPHLP",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "One 97 Communications Ltd",
+    "nse_symbol": "PAYTM",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Cipla Limited",
+    "nse_symbol": "CIPLA",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Cochin Shipyard Ltd",
+    "nse_symbol": "COCHINSHIP",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharat Dynamics Ltd",
+    "nse_symbol": "BDL",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Nippon Life India Asset Management Ltd",
+    "nse_symbol": "NAM-INDIA",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Fortis Healthcare Limited",
+    "nse_symbol": "FORTIS",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Pg Electroplast Limited",
+    "nse_symbol": "PGEL",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Container Corporation Of India Limited",
+    "nse_symbol": "CONCOR",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharat Electronics Limited",
+    "nse_symbol": "BEL",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hindustan Petroleum Corporation Limited",
+    "nse_symbol": "HINDPETRO",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Yes Bank Limited",
+    "nse_symbol": "YESBANK",
+    "direction": "BULLISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Force Motors Ltd",
+    "nse_symbol": "FORCEMOT",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "BSE (Bombay stock exchange) Ltd",
+    "nse_symbol": "BSE",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hyundai Motor India Ltd",
+    "nse_symbol": "HYUNDAI",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Coromandel International Limited",
+    "nse_symbol": "COROMANDEL",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bajaj Finserv Limited",
+    "nse_symbol": "BAJAJFINSV",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Cholamandalam Investment And Finance Company Limited",
+    "nse_symbol": "CHOLAFIN",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Prestige Estates Projects Limited",
+    "nse_symbol": "PRESTIGE",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "United Spirits Ltd",
+    "nse_symbol": "UNITDSPR",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Lodha Developers Ltd",
+    "nse_symbol": "LODHA",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "KFin Technologies Ltd",
+    "nse_symbol": "KFINTECH",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Lic Housing Finance Limited",
+    "nse_symbol": "LICHSGFIN",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Varun Beverages Limited",
+    "nse_symbol": "VBL",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Power Grid Corporation Of India Limited",
+    "nse_symbol": "POWERGRID",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Indian Energy Exchange Ltd",
+    "nse_symbol": "IEX",
+    "direction": "BEARISH",
+    "timeframe": "15m",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hitachi Energy India Ltd",
+    "nse_symbol": "POWERINDIA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Force Motors Ltd",
+    "nse_symbol": "FORCEMOT",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Solar Industries India Limited",
+    "nse_symbol": "SOLARINDS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Dixon Technologies Ltd",
+    "nse_symbol": "DIXON",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Ultratech Cement Limited",
+    "nse_symbol": "ULTRACEMCO",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Navin Fluorine International Limited",
+    "nse_symbol": "NAVINFLUOR",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Oracle Financial Services Software Limited",
+    "nse_symbol": "OFSS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Polycab India Ltd",
+    "nse_symbol": "POLYCAB",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Abb India Limited",
+    "nse_symbol": "ABB",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Persistent Systems Limited",
+    "nse_symbol": "PERSISTENT",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hero Motocorp Limited",
+    "nse_symbol": "HEROMOTOCO",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Interglobe Aviation Limited",
+    "nse_symbol": "INDIGO",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hindustan Aeronautics Ltd",
+    "nse_symbol": "HAL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Titan Company Limited",
+    "nse_symbol": "TITAN",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Data Patterns (India) Ltd",
+    "nse_symbol": "DATAPATTNS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "GE Vernova T&D India Ltd",
+    "nse_symbol": "GVT&D",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Cummins India Limited",
+    "nse_symbol": "CUMMINSIND",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "BSE (Bombay stock exchange) Ltd",
+    "nse_symbol": "BSE",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Multi Commodity Exchange Of India Limited",
+    "nse_symbol": "MCX",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Tata Elxsi Limited",
+    "nse_symbol": "TATAELXSI",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Kei Industries Limited",
+    "nse_symbol": "KEI",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Supreme Industries Limited",
+    "nse_symbol": "SUPREMEIND",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Grasim Industries Limited",
+    "nse_symbol": "GRASIM",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Glenmark Pharmaceuticals Limited",
+    "nse_symbol": "GLENMARK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Kaynes Technology India Ltd",
+    "nse_symbol": "KAYNES",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Mankind Pharma Ltd",
+    "nse_symbol": "MANKIND",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Muthoot Finance Limited",
+    "nse_symbol": "MUTHOOTFIN",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Srf Limited",
+    "nse_symbol": "SRF",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Laurus Labs Limited",
+    "nse_symbol": "LAURUSLABS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Anand Rathi Wealth Ltd",
+    "nse_symbol": "ANANDRATHI",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Tube Investments of India Ltd",
+    "nse_symbol": "TIINDIA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Coforge (Niit Tech) Ltd",
+    "nse_symbol": "COFORGE",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Lupin Limited",
+    "nse_symbol": "LUPIN",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Coromandel International Limited",
+    "nse_symbol": "COROMANDEL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Oberoi Realty Limited",
+    "nse_symbol": "OBEROIRLTY",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Mazagon Dock Shipbuilders Ltd",
+    "nse_symbol": "MAZDOCK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Godfrey Phillips India Limited",
+    "nse_symbol": "GODFRYPHLP",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "One 97 Communications Ltd",
+    "nse_symbol": "PAYTM",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharat Forge Limited",
+    "nse_symbol": "BHARATFORG",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "ICICI Lombard General Insurance Company Ltd",
+    "nse_symbol": "ICICIGI",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Pi Industries Limited",
+    "nse_symbol": "PIIND",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Apl Apollo Tubes Limited",
+    "nse_symbol": "APLAPOLLO",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Syrma SGS Technology Ltd",
+    "nse_symbol": "SYRMA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Central Depository Services Ltd",
+    "nse_symbol": "CDSL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Jsw Steel Limited",
+    "nse_symbol": "JSWSTEEL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Astral Ltd",
+    "nse_symbol": "ASTRAL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Motilal Oswal Financial Services Limited",
+    "nse_symbol": "MOTILALOFS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "360 ONE WAM Ltd",
+    "nse_symbol": "360ONE",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "PB Fintech Ltd",
+    "nse_symbol": "POLICYBZR",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Cochin Shipyard Ltd",
+    "nse_symbol": "COCHINSHIP",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Jindal Steel Ltd",
+    "nse_symbol": "JINDALSTEL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharat Dynamics Ltd",
+    "nse_symbol": "BDL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Indusind Bank Limited",
+    "nse_symbol": "INDUSINDBK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Indian Bank Ltd",
+    "nse_symbol": "INDIANB",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Sona BLW Precision Forgings Ltd",
+    "nse_symbol": "SONACOMS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Fortis Healthcare Limited",
+    "nse_symbol": "FORTIS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "CG Power and Industrial Solutions Ltd",
+    "nse_symbol": "CGPOWER",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Computer Age Management Services Ltd",
+    "nse_symbol": "CAMS",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Kalyan Jewellers India Ltd",
+    "nse_symbol": "KALYANKJIL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hindustan Zinc Limited",
+    "nse_symbol": "HINDZINC",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "KPIT Technologies Ltd",
+    "nse_symbol": "KPITTECH",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Jsw Energy Limited",
+    "nse_symbol": "JSWENERGY",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Delhivery Ltd",
+    "nse_symbol": "DELHIVERY",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Oil India Limited",
+    "nse_symbol": "OIL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Container Corporation Of India Limited",
+    "nse_symbol": "CONCOR",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharat Electronics Limited",
+    "nse_symbol": "BEL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Rbl Bank Limited",
+    "nse_symbol": "RBLBANK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Angel One Ltd",
+    "nse_symbol": "ANGELONE",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Biocon Limited",
+    "nse_symbol": "BIOCON",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "The Federal Bank  Limited",
+    "nse_symbol": "FEDERALBNK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "National Aluminium Company Limited",
+    "nse_symbol": "NATIONALUM",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bank Of Baroda Ltd",
+    "nse_symbol": "BANKBARODA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Manappuram Finance Limited",
+    "nse_symbol": "MANAPPURAM",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Power Grid Corporation Of India Limited",
+    "nse_symbol": "POWERGRID",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Vedanta Limited",
+    "nse_symbol": "VEDL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Union Bank Of India Ltd",
+    "nse_symbol": "UNIONBANK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Rail Vikas Nigam Ltd",
+    "nse_symbol": "RVNL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Gail (india) Limited",
+    "nse_symbol": "GAIL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bank Of India Ltd",
+    "nse_symbol": "BANKINDIA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Tata Steel Limited",
+    "nse_symbol": "TATASTEEL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Steel Authority Of India Limited",
+    "nse_symbol": "SAIL",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Punjab National Bank Ltd",
+    "nse_symbol": "PNB",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "IDFC First Bank Ltd",
+    "nse_symbol": "IDFCFIRSTB",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Nbcc (india) Limited",
+    "nse_symbol": "NBCC",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Nmdc Limited",
+    "nse_symbol": "NMDC",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Inox Wind Limited",
+    "nse_symbol": "INOXWIND",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Suzlon Energy Limited",
+    "nse_symbol": "SUZLON",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Yes Bank Limited",
+    "nse_symbol": "YESBANK",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Vodafone Idea Ltd",
+    "nse_symbol": "IDEA",
+    "direction": "BULLISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Page Industries Limited",
+    "nse_symbol": "PAGEIND",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Eicher Motors Limited",
+    "nse_symbol": "EICHERMOT",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Alkem Laboratories Limited",
+    "nse_symbol": "ALKEM",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Mphasis Limited",
+    "nse_symbol": "MPHASIS",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "The Phoenix Mills Limited",
+    "nse_symbol": "PHOENIXLTD",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bharti Airtel Limited",
+    "nse_symbol": "BHARTIARTL",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hyundai Motor India Ltd",
+    "nse_symbol": "HYUNDAI",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Bajaj Finserv Limited",
+    "nse_symbol": "BAJAJFINSV",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Colgate Palmolive (india) Limited",
+    "nse_symbol": "COLPAL",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Blue Star Limited",
+    "nse_symbol": "BLUESTARCO",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "United Spirits Ltd",
+    "nse_symbol": "UNITDSPR",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Hcl Technologies Limited",
+    "nse_symbol": "HCLTECH",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Axis Bank Limited",
+    "nse_symbol": "AXISBANK",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Voltas Limited",
+    "nse_symbol": "VOLTAS",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Zydus Lifesciences Ltd",
+    "nse_symbol": "ZYDUSLIFE",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Infosys Limited",
+    "nse_symbol": "INFY",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Havells India Limited",
+    "nse_symbol": "HAVELLS",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "TATA Consumer Products Ltd",
+    "nse_symbol": "TATACONSUM",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Shriram Finance Ltd",
+    "nse_symbol": "SHRIRAMFIN",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Godrej Consumer Products Limited",
+    "nse_symbol": "GODREJCP",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Kotak Mahindra Bank Limited",
+    "nse_symbol": "KOTAKBANK",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Varun Beverages Limited",
+    "nse_symbol": "VBL",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Dabur India Limited",
+    "nse_symbol": "DABUR",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "L&T Finance Ltd",
+    "nse_symbol": "LTF",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Crompton Greaves Consumer Electricals Limited",
+    "nse_symbol": "CROMPTON",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Wipro Limited",
+    "nse_symbol": "WIPRO",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Ashok Leyland Limited",
+    "nse_symbol": "ASHOKLEY",
+    "direction": "BEARISH",
+    "timeframe": "1h",
+    "candle3_close_time": "10:30 AM IST",
+    "trading_date": "2026-11-27"
+  }
+]

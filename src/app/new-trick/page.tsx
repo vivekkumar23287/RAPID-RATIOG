@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Navbar from "@/components/Navbar";
 import { ArrowClockwise } from "@phosphor-icons/react";
 
 interface CompanyItem {
@@ -82,20 +83,21 @@ export default function NewTrickPage() {
     }
   };
 
-  // Reusable compact table component
+  // Reusable compact table component styled with the Tricks page white theme
   const renderTableSection = (
     title: string,
     items: CompanyItem[],
-    accentColor: string, // "#22C55E" (green) or "#EF4444" (red)
+    accentColor: string, // "#10B981" (green) or "#EF4444" (red)
     borderColor: string,
-    bgColor: string
+    badgeBg: string
   ) => (
     <div
       style={{
-        backgroundColor: "#0B111D",
-        border: `1px solid ${borderColor}`,
-        borderRadius: "10px",
+        background: "#FFFFFF",
+        border: "1px solid #E2E8F0",
+        borderRadius: "16px",
         overflow: "hidden",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         display: "flex",
         flexDirection: "column",
       }}
@@ -103,9 +105,9 @@ export default function NewTrickPage() {
       {/* Table Header: Category Title and Count */}
       <div
         style={{
-          padding: "8px 14px",
-          backgroundColor: bgColor,
-          borderBottom: `1px solid ${borderColor}`,
+          padding: "10px 16px",
+          background: "#FFFFFF",
+          borderBottom: "1px solid #E2E8F0",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -114,9 +116,9 @@ export default function NewTrickPage() {
         <span
           style={{
             fontSize: "12px",
-            fontWeight: 700,
+            fontWeight: 800,
             color: accentColor,
-            letterSpacing: "0.02em",
+            letterSpacing: "0.03em",
             textTransform: "uppercase",
           }}
         >
@@ -125,11 +127,12 @@ export default function NewTrickPage() {
         <span
           style={{
             fontSize: "11px",
-            fontWeight: 600,
+            fontWeight: 700,
             color: accentColor,
-            backgroundColor: `${accentColor}1A`,
-            padding: "2px 7px",
-            borderRadius: "10px",
+            background: badgeBg,
+            padding: "2px 8px",
+            borderRadius: "12px",
+            border: `1px solid ${accentColor}25`,
           }}
         >
           {items.length}
@@ -142,14 +145,14 @@ export default function NewTrickPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "6px 14px",
-          backgroundColor: "#0F172A40",
-          borderBottom: "1px solid #1E293B40",
+          padding: "6px 16px",
+          background: "#F8FAFC",
+          borderBottom: "1px solid #E2E8F0",
           fontSize: "11px",
-          fontWeight: 600,
+          fontWeight: 700,
           color: "#64748B",
           textTransform: "uppercase",
-          letterSpacing: "0.03em",
+          letterSpacing: "0.04em",
         }}
       >
         <span>Company Name</span>
@@ -159,11 +162,11 @@ export default function NewTrickPage() {
       {/* Rows List */}
       <div style={{ maxHeight: "360px", overflowY: "auto" }}>
         {loading ? (
-          <div style={{ padding: "20px 14px", textAlign: "center", color: "#64748B", fontSize: "12px" }}>
+          <div style={{ padding: "24px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
             Loading...
           </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: "20px 14px", textAlign: "center", color: "#64748B", fontSize: "12px" }}>
+          <div style={{ padding: "24px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
             No companies found
           </div>
         ) : (
@@ -176,19 +179,21 @@ export default function NewTrickPage() {
                 alignItems: "center",
                 justifyContent: "space-between",
                 height: "36px",
-                padding: "0 14px",
-                borderBottom: idx === items.length - 1 ? "none" : "1px solid #1E293B44",
+                padding: "0 16px",
+                borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9",
                 textDecoration: "none",
+                background: "#FFFFFF",
                 transition: "background 0.12s ease",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = `${accentColor}0D`)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = badgeBg)}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
             >
               {/* Left: Company Name */}
               <span
                 style={{
                   fontSize: "12.5px",
-                  color: "#94A3B8",
+                  fontWeight: 500,
+                  color: "#334155",
                   maxWidth: "68%",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -199,7 +204,7 @@ export default function NewTrickPage() {
                 {item.company_name}
               </span>
               {/* Right: NSE Symbol / Code */}
-              <span style={{ fontSize: "12.5px", fontWeight: 600, color: "#F1F5F9" }}>
+              <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F2044" }}>
                 {item.nse_symbol}
               </span>
             </Link>
@@ -210,21 +215,23 @@ export default function NewTrickPage() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#060A10", color: "#F1F5F9", padding: "20px 16px" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        {/* Top Header: Title & Single Refresh Button */}
+    <div style={{ minHeight: "100vh", backgroundColor: "#F8FAFC", color: "#0F2044" }}>
+      <Navbar />
+
+      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "28px 20px 60px" }}>
+        {/* Top Header Row: Title & Single Refresh Action */}
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            paddingBottom: "16px",
-            borderBottom: "1px solid #1E293B",
-            marginBottom: "24px",
+            paddingBottom: "18px",
+            borderBottom: "1px solid #E2E8F0",
+            marginBottom: "28px",
           }}
         >
           <div>
-            <h1 style={{ fontSize: "18px", fontWeight: 700, letterSpacing: "-0.01em", color: "#F8FAFC", margin: 0 }}>
+            <h1 style={{ fontSize: "22px", fontWeight: 800, color: "#0F2044", margin: 0, letterSpacing: "-0.01em" }}>
               New Trick
             </h1>
           </div>
@@ -235,8 +242,8 @@ export default function NewTrickPage() {
               <span
                 style={{
                   fontSize: "12px",
-                  color: refreshStatus.includes("failed") ? "#EF4444" : "#94A3B8",
-                  fontWeight: 500,
+                  color: refreshStatus.includes("failed") ? "#EF4444" : "#64748B",
+                  fontWeight: 600,
                   whiteSpace: "nowrap",
                 }}
               >
@@ -251,13 +258,14 @@ export default function NewTrickPage() {
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
-                width: "32px",
-                height: "32px",
+                width: "34px",
+                height: "34px",
                 borderRadius: "8px",
-                border: "1px solid #334155",
-                backgroundColor: refreshing ? "#1E293B" : "#0F172A",
-                color: "#E2E8F0",
+                border: "1px solid #CBD5E1",
+                backgroundColor: refreshing ? "#F1F5F9" : "#FFFFFF",
+                color: "#334155",
                 cursor: refreshing ? "not-allowed" : "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
                 transition: "all 0.15s ease",
               }}
             >
@@ -275,10 +283,10 @@ export default function NewTrickPage() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {/* STRATEGY 1: TRICK 1 — GAP UP & DOWN */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
-        <div style={{ marginBottom: "32px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-            <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#E2E8F0", margin: 0 }}>
-              Trick 1 — Gap Up & Down
+        <div style={{ marginBottom: "36px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
+              Trick 1 — Gap Up &amp; Down
             </h2>
           </div>
 
@@ -286,22 +294,22 @@ export default function NewTrickPage() {
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-              gap: "16px",
+              gap: "20px",
             }}
           >
             {renderTableSection(
               "Gap Up",
               gapUps,
-              "#22C55E",
-              "#16A34A33",
-              "#16A34A15"
+              "#10B981",
+              "#10B98130",
+              "rgba(16,185,129,0.08)"
             )}
             {renderTableSection(
               "Gap Down",
               gapDowns,
               "#EF4444",
-              "#DC262633",
-              "#DC262615"
+              "#EF444430",
+              "rgba(239,68,68,0.08)"
             )}
           </div>
         </div>
@@ -309,9 +317,9 @@ export default function NewTrickPage() {
         {/* ═══════════════════════════════════════════════════════════════════ */}
         {/* STRATEGY 2: TRICK 2 — 3-CANDLE GAP */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
-        <div style={{ marginBottom: "24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-            <h2 style={{ fontSize: "15px", fontWeight: 700, color: "#E2E8F0", margin: 0 }}>
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+            <h2 style={{ fontSize: "16px", fontWeight: 800, color: "#0F2044", margin: 0 }}>
               Trick 2 — 3-Candle Gap
             </h2>
           </div>
@@ -319,37 +327,37 @@ export default function NewTrickPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "16px",
+              gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))",
+              gap: "20px",
             }}
           >
             {renderTableSection(
               "15m Gap Up",
               m15Up,
-              "#22C55E",
-              "#16A34A33",
-              "#16A34A15"
+              "#10B981",
+              "#10B98130",
+              "rgba(16,185,129,0.08)"
             )}
             {renderTableSection(
               "15m Gap Down",
               m15Down,
               "#EF4444",
-              "#DC262633",
-              "#DC262615"
+              "#EF444430",
+              "rgba(239,68,68,0.08)"
             )}
             {renderTableSection(
               "1h Gap Up",
               h1Up,
-              "#22C55E",
-              "#16A34A33",
-              "#16A34A15"
+              "#10B981",
+              "#10B98130",
+              "rgba(16,185,129,0.08)"
             )}
             {renderTableSection(
               "1h Gap Down",
               h1Down,
               "#EF4444",
-              "#DC262633",
-              "#DC262615"
+              "#EF444430",
+              "rgba(239,68,68,0.08)"
             )}
           </div>
         </div>

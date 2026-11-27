@@ -1,57 +1,74 @@
 [
   {
-    "company_name": "Hero Motocorp Limited",
-    "nse_symbol": "HEROMOTOCO",
+    "company_name": "Titan Company Limited",
+    "nse_symbol": "TITAN",
     "signal_type": "GAP_UP",
-    "trading_date": "2026-11-26",
-    "candle_time": "09:15 - 09:30 AM",
-    "status": "CONFIRMED",
-    "data_source": "Chartink Futures",
-    "price": 5789,
-    "change_percent": 0.65
+    "trading_date": "2026-11-27"
   },
   {
-    "company_name": "Torrent Pharmaceuticals Limited",
-    "nse_symbol": "TORNTPHARM",
+    "company_name": "Muthoot Finance Limited",
+    "nse_symbol": "MUTHOOTFIN",
     "signal_type": "GAP_UP",
-    "trading_date": "2026-11-26",
-    "candle_time": "09:15 - 09:30 AM",
-    "status": "CONFIRMED",
-    "data_source": "Chartink Futures",
-    "price": 5019.1,
-    "change_percent": 2.52
+    "trading_date": "2026-11-27"
   },
   {
-    "company_name": "Siemens Energy India Ltd",
-    "nse_symbol": "ENRIN",
+    "company_name": "Syrma SGS Technology Ltd",
+    "nse_symbol": "SYRMA",
     "signal_type": "GAP_UP",
-    "trading_date": "2026-11-26",
-    "candle_time": "09:15 - 09:30 AM",
-    "status": "CONFIRMED",
-    "data_source": "Chartink Futures",
-    "price": 3058,
-    "change_percent": 2.96
+    "trading_date": "2026-11-27"
   },
   {
-    "company_name": "Hindustan Zinc Limited",
-    "nse_symbol": "HINDZINC",
+    "company_name": "360 ONE WAM Ltd",
+    "nse_symbol": "360ONE",
     "signal_type": "GAP_UP",
-    "trading_date": "2026-11-26",
-    "candle_time": "09:15 - 09:30 AM",
-    "status": "CONFIRMED",
-    "data_source": "Chartink Futures",
-    "price": 526.6,
-    "change_percent": 1.33
+    "trading_date": "2026-11-27"
   },
   {
-    "company_name": "Shriram Finance Ltd",
-    "nse_symbol": "SHRIRAMFIN",
+    "company_name": "Hindalco Industries Limited",
+    "nse_symbol": "HINDALCO",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "National Aluminium Company Limited",
+    "nse_symbol": "NATIONALUM",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Vedanta Limited",
+    "nse_symbol": "VEDL",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Tata Steel Limited",
+    "nse_symbol": "TATASTEEL",
+    "signal_type": "GAP_UP",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Asian Paints Limited",
+    "nse_symbol": "ASIANPAINT",
     "signal_type": "GAP_DOWN",
-    "trading_date": "2026-11-26",
-    "candle_time": "09:15 - 09:30 AM",
-    "status": "CONFIRMED",
-    "data_source": "Chartink Futures",
-    "price": 961.85,
-    "change_percent": -2.84
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Blue Star Limited",
+    "nse_symbol": "BLUESTARCO",
+    "signal_type": "GAP_DOWN",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Voltas Limited",
+    "nse_symbol": "VOLTAS",
+    "signal_type": "GAP_DOWN",
+    "trading_date": "2026-11-27"
+  },
+  {
+    "company_name": "Crompton Greaves Consumer Electricals Limited",
+    "nse_symbol": "CROMPTON",
+    "signal_type": "GAP_DOWN",
+    "trading_date": "2026-11-27"
   }
 ]

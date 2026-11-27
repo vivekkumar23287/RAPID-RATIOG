@@ -30,12 +30,11 @@ export const CHARTINK_CLAUSE_GAP_UP = "( {33489} ( [=1] 15 minute low > 1 day ag
 export const CHARTINK_CLAUSE_GAP_DOWN = "( {33489} ( [=1] 15 minute high < 1 day ago low ) )";
 
 // Trick 2 — 3-Candle Gap Clauses (Futures segment 33489)
-// Completed candles: Candle 3 = [0] forming / [-1] completed; comparing with Candle 1 [-2] / [-3]
-// We use the completed candle convention [-1] & [-3] while falling back gracefully
-export const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [-1] 15 minute low > [-3] 15 minute high ) )";
-export const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [-1] 15 minute high < [-3] 15 minute low ) )";
-export const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [-1] 1 hour low > [-3] 1 hour high ) )";
-export const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [-1] 1 hour high < [-3] 1 hour low ) )";
+// Compares Candle 3 and Candle 1 (ignoring Candle 2)
+export const CHARTINK_CLAUSE_3C_15M_BULLISH = "( {33489} ( [0] 15 minute low > [-2] 15 minute high ) )";
+export const CHARTINK_CLAUSE_3C_15M_BEARISH = "( {33489} ( [0] 15 minute high < [-2] 15 minute low ) )";
+export const CHARTINK_CLAUSE_3C_1H_BULLISH = "( {33489} ( [0] 1 hour low > [-2] 1 hour high ) )";
+export const CHARTINK_CLAUSE_3C_1H_BEARISH = "( {33489} ( [0] 1 hour high < [-2] 1 hour low ) )";
 
 // Cached session state with 5-minute TTL to eliminate redundant homepage fetches
 interface CachedSession {
