@@ -433,28 +433,28 @@ export default function NewTrickPage() {
             }}
           >
             {renderTableSection(
-              "15m Gap Up",
+              "15-Minute Bullish",
               m15Up,
               "#10B981",
               "rgba(16,185,129,0.08)",
               isPendingT2
             )}
             {renderTableSection(
-              "15m Gap Down",
+              "15-Minute Bearish",
               m15Down,
               "#EF4444",
               "rgba(239,68,68,0.08)",
               isPendingT2
             )}
             {renderTableSection(
-              "1h Gap Up",
+              "1-Hour Bullish",
               h1Up,
               "#10B981",
               "rgba(16,185,129,0.08)",
               isPendingT2
             )}
             {renderTableSection(
-              "1h Gap Down",
+              "1-Hour Bearish",
               h1Down,
               "#EF4444",
               "rgba(239,68,68,0.08)",

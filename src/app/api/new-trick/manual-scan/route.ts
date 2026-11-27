@@ -50,26 +50,18 @@ export async function POST(req: NextRequest) {
       m15Up: m15Up.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
-        added_at: s.added_at || s.candle3_close_time || "Today",
-        is_new: true,
       })),
       m15Down: m15Down.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
-        added_at: s.added_at || s.candle3_close_time || "Today",
-        is_new: true,
       })),
       h1Up: h1Up.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
-        added_at: s.added_at || s.candle3_close_time || "Today",
-        is_new: true,
       })),
       h1Down: h1Down.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
-        added_at: s.added_at || s.candle3_close_time || "Today",
-        is_new: true,
       })),
       lastRefreshedAt: nowIST,
     });
