@@ -8,8 +8,6 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 interface CompanyItem {
   company_name: string;
   nse_symbol: string;
-  added_at?: string;
-  is_new?: boolean;
 }
 
 export default function NewTrickPage() {
@@ -124,7 +122,6 @@ export default function NewTrickPage() {
     items: CompanyItem[],
     accentColor: string,
     badgeBg: string,
-    isTrick2: boolean = false,
     isPending: boolean = false
   ) => (
     <div
@@ -175,10 +172,11 @@ export default function NewTrickPage() {
         </span>
       </div>
 
-      {/* Column Sub-header */}
+      {/* Column Sub-header: Company Name (left) | Code (right) */}
       <div
         style={{
           display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
           padding: "6px 16px",
           background: "#F8FAFC",
@@ -190,9 +188,8 @@ export default function NewTrickPage() {
           letterSpacing: "0.04em",
         }}
       >
-        <span style={{ flex: isTrick2 ? "1.8" : "2.5" }}>Company Name</span>
-        <span style={{ flex: "1", textAlign: isTrick2 ? "center" : "right" }}>Code</span>
-        {isTrick2 && <span style={{ flex: "1", textAlign: "right" }}>Added At</span>}
+        <span>Company Name</span>
+        <span>Code</span>
       </div>
 
       {/* Rows List */}
@@ -217,6 +214,7 @@ export default function NewTrickPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 height: "36px",
                 padding: "0 16px",
                 borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9",
@@ -228,72 +226,32 @@ export default function NewTrickPage() {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
             >
               {/* Left: Company Name */}
-              <div
-                style={{
-                  flex: isTrick2 ? "1.8" : "2.5",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  overflow: "hidden",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "12.5px",
-                    fontWeight: 500,
-                    color: "#334155",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    textAlign: "left",
-                  }}
-                >
-                  {item.company_name}
-                </span>
-                {item.is_new && (
-                  <span
-                    style={{
-                      fontSize: "9px",
-                      fontWeight: 800,
-                      backgroundColor: "#10B98122",
-                      color: "#059669",
-                      padding: "1px 5px",
-                      borderRadius: "4px",
-                      letterSpacing: "0.04em",
-                    }}
-                  >
-                    NEW
-                  </span>
-                )}
-              </div>
-
-              {/* Middle: NSE Symbol / Code */}
               <span
                 style={{
-                  flex: "1",
+                  fontSize: "12.5px",
+                  fontWeight: 500,
+                  color: "#334155",
+                  maxWidth: "68%",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  textAlign: "left",
+                }}
+              >
+                {item.company_name}
+              </span>
+
+              {/* Right: NSE Symbol / Code */}
+              <span
+                style={{
                   fontSize: "12px",
                   fontWeight: 700,
                   color: "#0F2044",
-                  textAlign: isTrick2 ? "center" : "right",
+                  textAlign: "right",
                 }}
               >
                 {item.nse_symbol}
               </span>
-
-              {/* Right: Added At (for Trick 2) */}
-              {isTrick2 && (
-                <span
-                  style={{
-                    flex: "1",
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    color: "#64748B",
-                    textAlign: "right",
-                  }}
-                >
-                  {item.added_at || "—"}
-                </span>
-              )}
             </Link>
           ))
         )}
@@ -389,7 +347,6 @@ export default function NewTrickPage() {
               gapUps,
               "#10B981",
               "rgba(16,185,129,0.08)",
-              false,
               isPendingT1
             )}
             {renderTableSection(
@@ -397,7 +354,6 @@ export default function NewTrickPage() {
               gapDowns,
               "#EF4444",
               "rgba(239,68,68,0.08)",
-              false,
               isPendingT1
             )}
           </div>
@@ -425,7 +381,6 @@ export default function NewTrickPage() {
               m15Up,
               "#10B981",
               "rgba(16,185,129,0.08)",
-              true,
               isPendingT2
             )}
             {renderTableSection(
@@ -433,7 +388,6 @@ export default function NewTrickPage() {
               m15Down,
               "#EF4444",
               "rgba(239,68,68,0.08)",
-              true,
               isPendingT2
             )}
             {renderTableSection(
@@ -441,7 +395,6 @@ export default function NewTrickPage() {
               h1Up,
               "#10B981",
               "rgba(16,185,129,0.08)",
-              true,
               isPendingT2
             )}
             {renderTableSection(
@@ -449,7 +402,6 @@ export default function NewTrickPage() {
               h1Down,
               "#EF4444",
               "rgba(239,68,68,0.08)",
-              true,
               isPendingT2
             )}
           </div>

@@ -53,11 +53,13 @@ export interface ScanLogRecord {
 const LOCAL_STORAGE_DIR = path.resolve(process.cwd(), "data");
 const LOCAL_SIGNALS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_gap_signals.json");
 const LOCAL_3C_SIGNALS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_3c_signals.json");
+const LOCAL_3C_CURRENT_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_3c_current.json");
 const LOCAL_LOGS_FILE = path.join(LOCAL_STORAGE_DIR, "new_trick_scan_logs.json");
 
 // In-memory cache for ultra-fast access
 let memorySignalsCache: GapSignalRecord[] = [];
 let memory3CSignalsCache: ThreeCandleGapRecord[] = [];
+let memory3CCurrentCache: ThreeCandleGapRecord[] = [];
 let memoryLogsCache: ScanLogRecord[] = [];
 let dbInitialized = false;
 
@@ -119,6 +121,30 @@ function loadLocal3CSignals(): ThreeCandleGapRecord[] {
     console.warn("[NEW-TRICK-LOCAL] Error reading local 3C signals:", e.message);
   }
   return [];
+}
+
+export function loadCurrent3CSignals(): ThreeCandleGapRecord[] {
+  ensureLocalDir();
+  try {
+    if (fs.existsSync(LOCAL_3C_CURRENT_FILE)) {
+      const raw = fs.readFileSync(LOCAL_3C_CURRENT_FILE, "utf8");
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error reading current 3C signals:", e.message);
+  }
+  return [];
+}
+
+function saveCurrent3CSignals(signals: ThreeCandleGapRecord[]) {
+  ensureLocalDir();
+  try {
+    fs.writeFileSync(LOCAL_3C_CURRENT_FILE, JSON.stringify(signals, null, 2), "utf8");
+    memory3CCurrentCache = signals;
+  } catch (e: any) {
+    console.warn("[NEW-TRICK-LOCAL] Error writing current 3C signals:", e.message);
+  }
 }
 
 function saveLocal3CSignals(signals: ThreeCandleGapRecord[]) {
@@ -326,8 +352,11 @@ export async function save3CGapSignals(signals: ThreeCandleGapRecord[]): Promise
     added_at: s.added_at || nowIST
   }));
 
-  // 1. Save locally
+  // 1. Save to cumulative historical storage
   saveLocal3CSignals(processedSignals);
+
+  // 2. Save to current verified snapshot view
+  saveCurrent3CSignals(processedSignals);
 
   // 2. Attempt Neon DB insert
   try {
@@ -469,6 +498,8 @@ export async function getGapSignals(params: {
 
 /**
  * Fetch Trick 2: 3-Candle Gap signals (15m Up/Down, 1h Up/Down)
+ * Returns the current active snapshot of qualifying companies matching the latest Chartink scan,
+ * while preserving historical signals in cumulative storage.
  */
 export async function get3CGapSignals(params: {
   date?: string;
@@ -492,25 +523,35 @@ export async function get3CGapSignals(params: {
   const targetDate: string = params.date || todayIST;
   const isToday = targetDate === todayIST;
 
-  // 1. Try Neon DB
-  try {
-    await initNewTrickDB();
-    const dbRows = await sql`
-      SELECT 
-        id, company_name, nse_symbol, direction, timeframe, candle3_close_time,
-        trading_date, added_at, scan_time, status, data_source, price, change_percent
-      FROM new_trick_3c_signals
-      WHERE trading_date = ${targetDate}
-      ORDER BY id DESC;
-    `;
-    if (dbRows && dbRows.length > 0) {
-      rows = dbRows as ThreeCandleGapRecord[];
+  // 1. Check current verified snapshot first for today
+  if (isToday) {
+    const current = loadCurrent3CSignals();
+    if (current.length > 0 && current[0].trading_date === targetDate) {
+      rows = current;
     }
-  } catch (err: any) {
-    console.warn("[NEW-TRICK-DB] Neon DB 3C read failed, using local backup:", err.message);
   }
 
-  // 2. Fallback to local store strictly for targetDate
+  // 2. If no current snapshot in file, try Neon DB
+  if (rows.length === 0) {
+    try {
+      await initNewTrickDB();
+      const dbRows = await sql`
+        SELECT 
+          id, company_name, nse_symbol, direction, timeframe, candle3_close_time,
+          trading_date, added_at, scan_time, status, data_source, price, change_percent
+        FROM new_trick_3c_signals
+        WHERE trading_date = ${targetDate}
+        ORDER BY id DESC;
+      `;
+      if (dbRows && dbRows.length > 0) {
+        rows = dbRows as ThreeCandleGapRecord[];
+      }
+    } catch (err: any) {
+      console.warn("[NEW-TRICK-DB] Neon DB 3C read failed, using local backup:", err.message);
+    }
+  }
+
+  // 3. Fallback to cumulative local store strictly for targetDate
   if (rows.length === 0) {
     const local = loadLocal3CSignals();
     if (local.length > 0) {
@@ -520,11 +561,24 @@ export async function get3CGapSignals(params: {
 
   const isPending = isToday && rows.length === 0;
 
-  // Group by category, sorted newest first
-  const m15Up = rows.filter(r => r.timeframe === "15m" && r.direction === "BULLISH");
-  const m15Down = rows.filter(r => r.timeframe === "15m" && r.direction === "BEARISH");
-  const h1Up = rows.filter(r => r.timeframe === "1h" && r.direction === "BULLISH");
-  const h1Down = rows.filter(r => r.timeframe === "1h" && r.direction === "BEARISH");
+  // Group by category, deduplicated by symbol
+  const filterByTfAndDir = (tf: "15m" | "1h", dir: "BULLISH" | "BEARISH") => {
+    const matched = rows.filter(r => r.timeframe === tf && r.direction === dir);
+    const seen = new Set<string>();
+    const res: ThreeCandleGapRecord[] = [];
+    for (const item of matched) {
+      if (!seen.has(item.nse_symbol)) {
+        seen.add(item.nse_symbol);
+        res.push(item);
+      }
+    }
+    return res;
+  };
+
+  const m15Up = filterByTfAndDir("15m", "BULLISH");
+  const m15Down = filterByTfAndDir("15m", "BEARISH");
+  const h1Up = filterByTfAndDir("1h", "BULLISH");
+  const h1Down = filterByTfAndDir("1h", "BEARISH");
 
   return {
     date: targetDate,
