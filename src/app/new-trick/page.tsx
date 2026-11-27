@@ -8,18 +8,22 @@ import { ArrowClockwise } from "@phosphor-icons/react";
 interface CompanyItem {
   company_name: string;
   nse_symbol: string;
+  added_at?: string;
+  is_new?: boolean;
 }
 
 export default function NewTrickPage() {
   // Trick 1: Gap Up & Gap Down
   const [gapUps, setGapUps] = useState<CompanyItem[]>([]);
   const [gapDowns, setGapDowns] = useState<CompanyItem[]>([]);
+  const [isPendingT1, setIsPendingT1] = useState(false);
 
   // Trick 2: 3-Candle Gap (15m & 1h)
   const [m15Up, setM15Up] = useState<CompanyItem[]>([]);
   const [m15Down, setM15Down] = useState<CompanyItem[]>([]);
   const [h1Up, setH1Up] = useState<CompanyItem[]>([]);
   const [h1Down, setH1Down] = useState<CompanyItem[]>([]);
+  const [isPendingT2, setIsPendingT2] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,10 +38,14 @@ export default function NewTrickPage() {
         if (data.success) {
           setGapUps(data.gapUps || []);
           setGapDowns(data.gapDowns || []);
+          setIsPendingT1(!!data.isPendingT1);
+
           setM15Up(data.m15Up || []);
           setM15Down(data.m15Down || []);
           setH1Up(data.h1Up || []);
           setH1Down(data.h1Down || []);
+          setIsPendingT2(!!data.isPendingT2);
+
           if (data.lastRefreshedAt) {
             setRefreshStatus(`Refreshed at ${data.lastRefreshedAt}`);
           }
@@ -52,6 +60,29 @@ export default function NewTrickPage() {
 
   useEffect(() => {
     loadInitialData();
+
+    // Background interval check every 30 seconds for live updates
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetch("/api/new-trick/results")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data.success) {
+              setGapUps(data.gapUps || []);
+              setGapDowns(data.gapDowns || []);
+              setIsPendingT1(!!data.isPendingT1);
+              setM15Up(data.m15Up || []);
+              setM15Down(data.m15Down || []);
+              setH1Up(data.h1Up || []);
+              setH1Down(data.h1Down || []);
+              setIsPendingT2(!!data.isPendingT2);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [loadInitialData]);
 
   // Single refresh handler for entire page
@@ -67,10 +98,14 @@ export default function NewTrickPage() {
       if (res.ok && data.success) {
         setGapUps(data.gapUps || []);
         setGapDowns(data.gapDowns || []);
+        setIsPendingT1(false);
+
         setM15Up(data.m15Up || []);
         setM15Down(data.m15Down || []);
         setH1Up(data.h1Up || []);
         setH1Down(data.h1Down || []);
+        setIsPendingT2(false);
+
         setRefreshStatus(`Refreshed at ${data.lastRefreshedAt}`);
       } else {
         setRefreshStatus("Refresh failed");
@@ -87,9 +122,10 @@ export default function NewTrickPage() {
   const renderTableSection = (
     title: string,
     items: CompanyItem[],
-    accentColor: string, // "#10B981" (green) or "#EF4444" (red)
-    borderColor: string,
-    badgeBg: string
+    accentColor: string,
+    badgeBg: string,
+    isTrick2: boolean = false,
+    isPending: boolean = false
   ) => (
     <div
       style={{
@@ -135,15 +171,14 @@ export default function NewTrickPage() {
             border: `1px solid ${accentColor}25`,
           }}
         >
-          {items.length}
+          {isPending ? "Pending" : items.length}
         </span>
       </div>
 
-      {/* Column Sub-header: Company Name (left) | Code (right) */}
+      {/* Column Sub-header */}
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
           padding: "6px 16px",
           background: "#F8FAFC",
@@ -155,18 +190,23 @@ export default function NewTrickPage() {
           letterSpacing: "0.04em",
         }}
       >
-        <span>Company Name</span>
-        <span>Code</span>
+        <span style={{ flex: isTrick2 ? "1.8" : "2.5" }}>Company Name</span>
+        <span style={{ flex: "1", textAlign: isTrick2 ? "center" : "right" }}>Code</span>
+        {isTrick2 && <span style={{ flex: "1", textAlign: "right" }}>Added At</span>}
       </div>
 
       {/* Rows List */}
-      <div style={{ maxHeight: "360px", overflowY: "auto" }}>
+      <div style={{ maxHeight: "380px", overflowY: "auto" }}>
         {loading ? (
-          <div style={{ padding: "24px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+          <div style={{ padding: "28px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
             Loading...
           </div>
+        ) : isPending ? (
+          <div style={{ padding: "28px 16px", textAlign: "center", color: "#D97706", fontSize: "12px", fontWeight: 600 }}>
+            Today&apos;s scan pending (Runs 9:31 AM IST)
+          </div>
         ) : items.length === 0 ? (
-          <div style={{ padding: "24px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
+          <div style={{ padding: "28px 16px", textAlign: "center", color: "#94A3B8", fontSize: "12px" }}>
             No companies found
           </div>
         ) : (
@@ -177,7 +217,6 @@ export default function NewTrickPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
                 height: "36px",
                 padding: "0 16px",
                 borderBottom: idx === items.length - 1 ? "none" : "1px solid #F1F5F9",
@@ -189,24 +228,72 @@ export default function NewTrickPage() {
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
             >
               {/* Left: Company Name */}
-              <span
+              <div
                 style={{
-                  fontSize: "12.5px",
-                  fontWeight: 500,
-                  color: "#334155",
-                  maxWidth: "68%",
+                  flex: isTrick2 ? "1.8" : "2.5",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  textAlign: "left",
                 }}
               >
-                {item.company_name}
-              </span>
-              {/* Right: NSE Symbol / Code */}
-              <span style={{ fontSize: "12px", fontWeight: 700, color: "#0F2044" }}>
+                <span
+                  style={{
+                    fontSize: "12.5px",
+                    fontWeight: 500,
+                    color: "#334155",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    textAlign: "left",
+                  }}
+                >
+                  {item.company_name}
+                </span>
+                {item.is_new && (
+                  <span
+                    style={{
+                      fontSize: "9px",
+                      fontWeight: 800,
+                      backgroundColor: "#10B98122",
+                      color: "#059669",
+                      padding: "1px 5px",
+                      borderRadius: "4px",
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    NEW
+                  </span>
+                )}
+              </div>
+
+              {/* Middle: NSE Symbol / Code */}
+              <span
+                style={{
+                  flex: "1",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "#0F2044",
+                  textAlign: isTrick2 ? "center" : "right",
+                }}
+              >
                 {item.nse_symbol}
               </span>
+
+              {/* Right: Added At (for Trick 2) */}
+              {isTrick2 && (
+                <span
+                  style={{
+                    flex: "1",
+                    fontSize: "11px",
+                    fontWeight: 500,
+                    color: "#64748B",
+                    textAlign: "right",
+                  }}
+                >
+                  {item.added_at || "—"}
+                </span>
+              )}
             </Link>
           ))
         )}
@@ -301,15 +388,17 @@ export default function NewTrickPage() {
               "Gap Up",
               gapUps,
               "#10B981",
-              "#10B98130",
-              "rgba(16,185,129,0.08)"
+              "rgba(16,185,129,0.08)",
+              false,
+              isPendingT1
             )}
             {renderTableSection(
               "Gap Down",
               gapDowns,
               "#EF4444",
-              "#EF444430",
-              "rgba(239,68,68,0.08)"
+              "rgba(239,68,68,0.08)",
+              false,
+              isPendingT1
             )}
           </div>
         </div>
@@ -335,29 +424,33 @@ export default function NewTrickPage() {
               "15m Gap Up",
               m15Up,
               "#10B981",
-              "#10B98130",
-              "rgba(16,185,129,0.08)"
+              "rgba(16,185,129,0.08)",
+              true,
+              isPendingT2
             )}
             {renderTableSection(
               "15m Gap Down",
               m15Down,
               "#EF4444",
-              "#EF444430",
-              "rgba(239,68,68,0.08)"
+              "rgba(239,68,68,0.08)",
+              true,
+              isPendingT2
             )}
             {renderTableSection(
               "1h Gap Up",
               h1Up,
               "#10B981",
-              "#10B98130",
-              "rgba(16,185,129,0.08)"
+              "rgba(16,185,129,0.08)",
+              true,
+              isPendingT2
             )}
             {renderTableSection(
               "1h Gap Down",
               h1Down,
               "#EF4444",
-              "#EF444430",
-              "rgba(239,68,68,0.08)"
+              "rgba(239,68,68,0.08)",
+              true,
+              isPendingT2
             )}
           </div>
         </div>

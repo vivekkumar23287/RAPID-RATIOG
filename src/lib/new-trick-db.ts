@@ -26,13 +26,15 @@ export interface ThreeCandleGapRecord {
   nse_symbol: string;
   direction: "BULLISH" | "BEARISH";
   timeframe: "15m" | "1h";
-  candle3_close_time: string; // e.g. "09:45 AM" or ISO timestamp
+  candle3_close_time: string; // e.g. "09:45 AM"
   trading_date: string; // YYYY-MM-DD
+  added_at?: string; // e.g. "09:46 AM"
   scan_time?: string;
   status?: string;
   data_source?: string;
   price?: number | null;
   change_percent?: number | null;
+  is_new?: boolean;
 }
 
 export interface ScanLogRecord {
@@ -215,6 +217,7 @@ export async function initNewTrickDB(): Promise<void> {
         timeframe VARCHAR(10) NOT NULL,
         candle3_close_time VARCHAR(50) NOT NULL,
         trading_date VARCHAR(20) NOT NULL,
+        added_at VARCHAR(30),
         scan_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMED',
         data_source VARCHAR(50) NOT NULL DEFAULT 'Chartink Futures',
@@ -224,6 +227,10 @@ export async function initNewTrickDB(): Promise<void> {
         UNIQUE(nse_symbol, direction, timeframe, candle3_close_time, trading_date)
       );
     `;
+
+    try {
+      await sql`ALTER TABLE new_trick_3c_signals ADD COLUMN IF NOT EXISTS added_at VARCHAR(30);`;
+    } catch (_) {}
 
     await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_3c_date ON new_trick_3c_signals(trading_date);`;
     await sql`CREATE INDEX IF NOT EXISTS idx_new_trick_3c_tf ON new_trick_3c_signals(timeframe, direction);`;
@@ -306,21 +313,34 @@ export async function saveGapSignals(signals: GapSignalRecord[]): Promise<number
 export async function save3CGapSignals(signals: ThreeCandleGapRecord[]): Promise<number> {
   if (!signals || signals.length === 0) return 0;
 
+  // Format Added At in IST if not present
+  const nowIST = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
+
+  const processedSignals = signals.map(s => ({
+    ...s,
+    added_at: s.added_at || nowIST
+  }));
+
   // 1. Save locally
-  saveLocal3CSignals(signals);
+  saveLocal3CSignals(processedSignals);
 
   // 2. Attempt Neon DB insert
   try {
     await initNewTrickDB();
-    for (const s of signals) {
+    for (const s of processedSignals) {
       try {
         await sql`
           INSERT INTO new_trick_3c_signals (
             company_name, nse_symbol, direction, timeframe, candle3_close_time,
-            trading_date, status, data_source, price, change_percent
+            trading_date, added_at, status, data_source, price, change_percent
           ) VALUES (
             ${s.company_name}, ${s.nse_symbol}, ${s.direction}, ${s.timeframe}, ${s.candle3_close_time},
-            ${s.trading_date}, ${s.status || 'CONFIRMED'}, ${s.data_source || 'Chartink Futures'},
+            ${s.trading_date}, ${s.added_at}, ${s.status || 'CONFIRMED'}, ${s.data_source || 'Chartink Futures'},
             ${s.price ?? null}, ${s.change_percent ?? null}
           )
           ON CONFLICT (nse_symbol, direction, timeframe, candle3_close_time, trading_date)
@@ -375,61 +395,55 @@ export async function getGapSignals(params: {
   search?: string;
 }): Promise<{
   date: string;
+  isToday: boolean;
+  isPending: boolean;
   gapUps: GapSignalRecord[];
   gapDowns: GapSignalRecord[];
   totalUp: number;
   totalDown: number;
 }> {
   let rows: GapSignalRecord[] = [];
-  let targetDate: string = params.date || "";
+  // Calculate today in Asia/Kolkata
+  const todayIST = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+
+  const targetDate: string = params.date || todayIST;
+  const isToday = targetDate === todayIST;
 
   // 1. Try Neon DB
   try {
     await initNewTrickDB();
-    if (!targetDate) {
-      const latestRow = await sql`
-        SELECT trading_date FROM new_trick_gap_signals 
-        ORDER BY trading_date DESC LIMIT 1
-      `;
-      if (latestRow.length > 0) {
-        targetDate = latestRow[0].trading_date;
-      }
-    }
-
-    if (targetDate) {
-      const dbRows = await sql`
-        SELECT 
-          id, company_name, nse_symbol, signal_type,
-          prev_day_high, prev_day_low, first_candle_high, first_candle_low,
-          trading_date, candle_time, scan_time, status, data_source,
-          price, change_percent
-        FROM new_trick_gap_signals
-        WHERE trading_date = ${targetDate}
-        ORDER BY id ASC;
-      `;
-      if (dbRows && dbRows.length > 0) {
-        rows = dbRows as GapSignalRecord[];
-      }
+    const dbRows = await sql`
+      SELECT 
+        id, company_name, nse_symbol, signal_type,
+        prev_day_high, prev_day_low, first_candle_high, first_candle_low,
+        trading_date, candle_time, scan_time, status, data_source,
+        price, change_percent
+      FROM new_trick_gap_signals
+      WHERE trading_date = ${targetDate}
+      ORDER BY id ASC;
+    `;
+    if (dbRows && dbRows.length > 0) {
+      rows = dbRows as GapSignalRecord[];
     }
   } catch (err: any) {
     console.warn("[NEW-TRICK-DB] Neon DB read failed, falling back to local file store:", err.message);
   }
 
-  // 2. Fallback to local backup store
+  // 2. Fallback to local backup store strictly for targetDate
   if (rows.length === 0) {
     const localSignals = loadLocalSignals();
     if (localSignals.length > 0) {
-      if (!targetDate) {
-        const dates = [...new Set(localSignals.map(s => s.trading_date))].sort().reverse();
-        targetDate = dates[0] || "";
-      }
       rows = localSignals.filter(s => s.trading_date === targetDate);
     }
   }
 
-  if (!targetDate) {
-    targetDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  }
+  // Determine if today's scan is pending
+  const isPending = isToday && rows.length === 0;
 
   let filtered = rows;
   if (params.search && params.search.trim().length > 0) {
@@ -444,6 +458,8 @@ export async function getGapSignals(params: {
 
   return {
     date: targetDate,
+    isToday,
+    isPending,
     gapUps,
     gapDowns,
     totalUp: gapUps.length,
@@ -458,67 +474,53 @@ export async function get3CGapSignals(params: {
   date?: string;
 }): Promise<{
   date: string;
+  isToday: boolean;
+  isPending: boolean;
   m15Up: ThreeCandleGapRecord[];
   m15Down: ThreeCandleGapRecord[];
   h1Up: ThreeCandleGapRecord[];
   h1Down: ThreeCandleGapRecord[];
 }> {
   let rows: ThreeCandleGapRecord[] = [];
-  let targetDate: string = params.date || "";
+  const todayIST = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+
+  const targetDate: string = params.date || todayIST;
+  const isToday = targetDate === todayIST;
 
   // 1. Try Neon DB
   try {
     await initNewTrickDB();
-    if (!targetDate) {
-      const latestRow = await sql`
-        SELECT trading_date FROM new_trick_3c_signals 
-        ORDER BY trading_date DESC LIMIT 1
-      `;
-      if (latestRow.length > 0) {
-        targetDate = latestRow[0].trading_date;
-      }
-    }
-
-    if (targetDate) {
-      const dbRows = await sql`
-        SELECT 
-          id, company_name, nse_symbol, direction, timeframe, candle3_close_time,
-          trading_date, scan_time, status, data_source, price, change_percent
-        FROM new_trick_3c_signals
-        WHERE trading_date = ${targetDate}
-        ORDER BY id ASC;
-      `;
-      if (dbRows && dbRows.length > 0) {
-        rows = dbRows as ThreeCandleGapRecord[];
-      }
+    const dbRows = await sql`
+      SELECT 
+        id, company_name, nse_symbol, direction, timeframe, candle3_close_time,
+        trading_date, added_at, scan_time, status, data_source, price, change_percent
+      FROM new_trick_3c_signals
+      WHERE trading_date = ${targetDate}
+      ORDER BY id DESC;
+    `;
+    if (dbRows && dbRows.length > 0) {
+      rows = dbRows as ThreeCandleGapRecord[];
     }
   } catch (err: any) {
     console.warn("[NEW-TRICK-DB] Neon DB 3C read failed, using local backup:", err.message);
   }
 
-  // 2. Fallback to local store
+  // 2. Fallback to local store strictly for targetDate
   if (rows.length === 0) {
     const local = loadLocal3CSignals();
     if (local.length > 0) {
-      if (!targetDate) {
-        const dates = [...new Set(local.map(s => s.trading_date))].sort().reverse();
-        targetDate = dates[0] || "";
-      }
-      rows = local.filter(s => !targetDate || s.trading_date === targetDate);
-      if (rows.length === 0 && local.length > 0) {
-        // If no rows match targetDate, return the latest date available in local store
-        const dates = [...new Set(local.map(s => s.trading_date))].sort().reverse();
-        targetDate = dates[0];
-        rows = local.filter(s => s.trading_date === targetDate);
-      }
+      rows = local.filter(s => s.trading_date === targetDate);
     }
   }
 
-  if (!targetDate) {
-    targetDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
-  }
+  const isPending = isToday && rows.length === 0;
 
-  // Deduplicate and group by category
+  // Group by category, sorted newest first
   const m15Up = rows.filter(r => r.timeframe === "15m" && r.direction === "BULLISH");
   const m15Down = rows.filter(r => r.timeframe === "15m" && r.direction === "BEARISH");
   const h1Up = rows.filter(r => r.timeframe === "1h" && r.direction === "BULLISH");
@@ -526,6 +528,8 @@ export async function get3CGapSignals(params: {
 
   return {
     date: targetDate,
+    isToday,
+    isPending,
     m15Up,
     m15Down,
     h1Up,

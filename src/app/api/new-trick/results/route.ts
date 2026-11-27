@@ -47,6 +47,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       date: t1Results.date,
+      isToday: t1Results.isToday,
+      isPendingT1: t1Results.isPending,
+      isPendingT2: t2Results.isPending,
       // Trick 1
       gapUps: t1Results.gapUps.map((s) => ({
         company_name: s.company_name,
@@ -60,18 +63,26 @@ export async function GET(req: NextRequest) {
       m15Up: t2Results.m15Up.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
+        added_at: s.added_at || s.candle3_close_time || "Today",
+        is_new: s.is_new,
       })),
       m15Down: t2Results.m15Down.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
+        added_at: s.added_at || s.candle3_close_time || "Today",
+        is_new: s.is_new,
       })),
       h1Up: t2Results.h1Up.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
+        added_at: s.added_at || s.candle3_close_time || "Today",
+        is_new: s.is_new,
       })),
       h1Down: t2Results.h1Down.map((s) => ({
         company_name: s.company_name,
         nse_symbol: s.nse_symbol,
+        added_at: s.added_at || s.candle3_close_time || "Today",
+        is_new: s.is_new,
       })),
       lastRefreshedAt: nowIST,
     });

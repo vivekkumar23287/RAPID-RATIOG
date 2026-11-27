@@ -234,6 +234,12 @@ async function runChartink3CBackendScan() {
   ]);
 
   const candleTime = ist.timeStr.slice(0, 5) + ' IST';
+  const nowIST = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date());
 
   const insertItems = async (items, dir, tf) => {
     if (!items || !items.length) return;
@@ -243,11 +249,11 @@ async function runChartink3CBackendScan() {
       try {
         await pool.query(
           `INSERT INTO new_trick_3c_signals (
-            company_name, nse_symbol, direction, timeframe, candle3_close_time, trading_date, status, data_source, price, change_percent
-          ) VALUES ($1, $2, $3, $4, $5, $6, 'CONFIRMED', 'Chartink Futures', $7, $8)
+            company_name, nse_symbol, direction, timeframe, candle3_close_time, trading_date, added_at, status, data_source, price, change_percent
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'CONFIRMED', 'Chartink Futures', $8, $9)
           ON CONFLICT (nse_symbol, direction, timeframe, candle3_close_time, trading_date)
           DO UPDATE SET company_name = EXCLUDED.company_name, price = EXCLUDED.price, change_percent = EXCLUDED.change_percent, scan_time = CURRENT_TIMESTAMP`,
-          [item.name || sym, sym, dir, tf, candleTime, ist.dateStr, item.close ? Number(item.close) : null, item.per_chg ? Number(item.per_chg) : null]
+          [item.name || sym, sym, dir, tf, candleTime, ist.dateStr, nowIST, item.close ? Number(item.close) : null, item.per_chg ? Number(item.per_chg) : null]
         );
       } catch (e) {
         console.warn(`[CHARTINK-3C CRON] Insert error for ${sym}:`, e.message);

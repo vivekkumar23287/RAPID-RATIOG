@@ -299,9 +299,16 @@ export async function run3CGapScan(options: {
   const startMs = Date.now();
   const ist = getISTMarketTime();
   const tradingDate = options.targetDate || ist.dateStr;
-  const candleTime = ist.timeStr ? `${ist.timeStr.slice(0, 5)} IST` : "Latest";
 
-  console.log(`[CHARTINK-3C] Running 3-Candle Gap scan for ${tradingDate} (${candleTime})...`);
+  // Format Added At and Candle 3 Close time in Asia/Kolkata
+  const nowIST = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Kolkata",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
+
+  console.log(`[CHARTINK-3C] Running 3-Candle Gap scan for ${tradingDate} at ${nowIST}...`);
 
   const session = await getChartinkSession();
   if (!session) {
@@ -331,12 +338,14 @@ export async function run3CGapScan(options: {
       nse_symbol: sym,
       direction: dir,
       timeframe: tf,
-      candle3_close_time: candleTime,
+      candle3_close_time: nowIST,
+      added_at: nowIST,
       trading_date: tradingDate,
       status: "CONFIRMED",
       data_source: "Chartink Futures",
       price: item.close ? Number(item.close) : null,
       change_percent: item.per_chg ? Number(item.per_chg) : null,
+      is_new: true,
     };
   };
 

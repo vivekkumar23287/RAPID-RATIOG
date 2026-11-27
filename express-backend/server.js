@@ -368,8 +368,17 @@ cron.schedule('31,35,40,45 9 * * 1-5', async () => {
   }
 }, { timezone: 'Asia/Kolkata' });
 
-// ── Chartink 3-Candle Gap Scanner — Every 15 minutes during market hours (:02, :17, :32, :47) ──
-cron.schedule('2,17,32,47 9-15 * * 1-5', async () => {
+// ── Chartink 3-Candle Gap Scanner — Every 15 min at :01, :16, :31, :46 from 9:31 AM to 3:30 PM IST ──
+cron.schedule('1,16,31,46 9-15 * * 1-5', async () => {
+  const d = new Date();
+  const opts = { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false };
+  const timeStr = new Intl.DateTimeFormat('en-IN', opts).format(d);
+  const [hour, minute] = timeStr.split(':').map(Number);
+  const totalMin = hour * 60 + minute;
+
+  // Between 9:31 AM (571 min) and 3:30 PM (930 min)
+  if (totalMin < 9 * 60 + 31 || totalMin > 15 * 60 + 30) return;
+
   try {
     const { runChartink3CBackendScan } = require('./chartink-backend-scanner');
     await runChartink3CBackendScan();
